@@ -2,8 +2,59 @@ import { TaskType, TaskSpec } from "./types";
 
 export { TaskType };
 
+/**
+ * Validates task input and returns normalized description.
+ * Throws on invalid input (fail-closed).
+ */
+function validateAndNormalize(task: TaskSpec): string {
+  if (!task || typeof task !== "object") {
+    throw new Error("Invalid task: not an object");
+  }
+  if (!task.description || typeof task.description !== "string") {
+    throw new Error("Invalid task: description must be a non-empty string");
+  }
+  const desc = task.description.trim();
+  if (desc.length === 0) {
+    throw new Error("Invalid task: description cannot be empty or whitespace");
+  }
+  if (desc.length > 5000) {
+    throw new Error("Invalid task: description too long (max 5000 chars)");
+  }
+  return desc.toLowerCase();
+}
+
+/**
+ * Checks if description is too ambiguous to classify safely.
+ * Returns true if the task should be rejected (BLOCKED).
+ * Only matches very short, generic descriptions (3 words or less, no specific nouns)
+ */
+function isAmbiguous(desc: string): boolean {
+  const words = desc.split(/\s+/);
+  if (words.length > 4) return false; // Specific tasks have more words
+  
+  const ambiguousPatterns = [
+    /^make things? (better|good|work)$/i,
+    /^improve (it|things?|code|system)$/i,
+    /^help$/i,
+    /^please (help|fix|improve)(\s+\w+)?$/i,  // allow one extra word
+    /^do (it|this|something)$/i,
+    /^fix (it|this|stuff|things?)$/i,
+    /^make it (work|better|fast)$/i,
+    /^optimize$/i,
+    /^refactor$/i,
+    /^clean up$/i,
+  ];
+  return ambiguousPatterns.some((p) => p.test(desc));
+}
+
 export function classifyTask(task: TaskSpec): TaskType {
-  const desc = task.description.toLowerCase();
+  // R-001: Validate input first (fail-closed)
+  const desc = validateAndNormalize(task);
+
+  // R-004: Reject ambiguous descriptions (only very short generic ones)
+  if (isAmbiguous(desc)) {
+    throw new Error("Ambiguous task description: cannot classify safely — please provide specific intent");
+  }
 
   // Destructive/critical keywords must be checked FIRST — a destructive task
   // mentioning "fix"/"config" would otherwise be misclassified as L1 and under-governed
@@ -16,6 +67,19 @@ export function classifyTask(task: TaskSpec): TaskType {
     desc.includes("destructive")
   ) {
     return TaskType.DESTRUCTIVE_OP;
+  }
+
+  // L3 - Complex (check BEFORE L2 to catch "design", "architecture", "api" in complex tasks)
+  if (
+    desc.includes("api") ||
+    desc.includes("design") ||
+    desc.includes("architecture") ||
+    desc.includes("integrate") ||
+    desc.includes("microservice") ||
+    desc.includes("boundary") ||
+    desc.includes("system design")
+  ) {
+    return TaskType.API_CHANGE;
   }
 
   // L1 - Simple
@@ -39,17 +103,6 @@ export function classifyTask(task: TaskSpec): TaskType {
     desc.includes("change")
   ) {
     return TaskType.FEATURE_LIMITED;
-  }
-
-  // L3 - Complex
-  if (
-    desc.includes("api") ||
-    desc.includes("change") ||
-    desc.includes("design") ||
-    desc.includes("architecture") ||
-    desc.includes("integrate")
-  ) {
-    return TaskType.API_CHANGE;
   }
 
   // Default
