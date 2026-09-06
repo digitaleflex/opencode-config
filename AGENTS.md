@@ -44,11 +44,11 @@
 ### Workers disponibles (testés OK)
 | Worker | Modèle | Spécialité | Provider | Status |
 |---|---|---|---|---|
-| `worker-codestral` | `mistral/codestral-latest` | Code | Mistral | ✅ OK |
-| `worker-groq` | `groq/qwen/qwen3.8-27b` | Rapide | Groq | ✅ OK |
-| `worker-zhipu` | `zhipu/glm-4.7-flash` | Générique | Zhipu | ⚠️ rate_limited |
+| `worker-codestral` | `mistral/codestral-latest` | Code | Mistral | ❌ error |
+| `worker-groq` | `groq/qwen/qwen3.8-27b` | Rapide | Groq | ✅ OK (free tier) |
+| `worker-zhipu` | `zhipu/glm-4.7-flash` | Générique | Zhipu | ✅ OK (free tier) |
 | `worker-novita` | `novita/inclusionai/ling-3.0-flash-sante` | **GRATUIT** (256K ctx) | Novita AI | ✅ OK |
-| `worker-google` | `google/gemini-2.5-flash` | Polyvalent costaud | Google | ⚠️ rate_limited |
+| `worker-google` | `google/gemini-2.5-flash` | Polyvalent costaud | Google | ✅ OK (free tier) |
 
 ### Note
 **UNIQUEMENT  (Novita AI) est réellement gratuit** (GRATUIT 256K ctx). Les autres sont des API keys personnelles avec free tier ou crédits.

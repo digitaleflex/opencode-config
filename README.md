@@ -4,7 +4,7 @@ EURINHASH configuration for OpenCode - free-tier + Novita AI (vraiment gratuit),
 
 ## Features
 
-- **Models**: Groq, Mistral (API keys), Zhipu (rate_limited), Novita AI (**GRATUIT**), Google (rate_limited)
+- **Models (free tier)**: Groq (294ms), Google (1339ms), Zhipu (1533ms), Novita AI (**GRATUIT**, 256K ctx)
 - **EURINHASH Supervisor**: Automatic provider rotation on quota/error
 - **9 specialized agents**: planner, architect, design-lead, builder, quality-engineer, tester, security, reviewer, git-engineer
 - **Circuit breaker**: Protection against failing providers (CLOSED/OPEN/HALF_OPEN state)
