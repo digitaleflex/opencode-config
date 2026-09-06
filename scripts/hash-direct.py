@@ -313,6 +313,8 @@ def main():
     parser.add_argument("--reset-quota", action="store_true", help="Reinitialiser compteurs usage")
     parser.add_argument("--reset-circuit", action="store_true", help="Reinitialiser circuit breakers")
     parser.add_argument("--status", action="store_true", help="Afficher etat quota + circuit")
+    parser.add_argument("--batch", help="Fichier contenant un prompt par ligne")
+    parser.add_argument("--output", help="Fichier de sortie JSON (avec --batch)")
     args = parser.parse_args()
 
     if args.reset_quota:
@@ -363,6 +365,92 @@ def main():
             key = load_key(provider)
             status = "[OK] OK" if key else "[NO] NO KEY"
             print(f"  {provider}: {status} ({key_file})")
+        return
+
+    # Handle batch mode first
+    if args.batch:
+        if not os.path.exists(args.batch):
+            print(f"Erreur: fichier batch {args.batch} introuvable", file=sys.stderr)
+            sys.exit(1)
+        
+        with open(args.batch, 'r', encoding='utf-8') as f:
+            prompts = [line.strip() for line in f if line.strip()]
+        
+        if not prompts:
+            print("Erreur: fichier batch vide", file=sys.stderr)
+            sys.exit(1)
+        
+        results = []
+        for i, prompt in enumerate(prompts):
+            print(f"Traitement prompt {i+1}/{len(prompts)}...", file=sys.stderr)
+            messages = [{"role": "user", "content": prompt}]
+            
+            if args.provider:
+                if args.provider not in PROVIDER_CALLS:
+                    print(f"Provider inconnu: {args.provider}", file=sys.stderr)
+                    sys.exit(1)
+                model = args.model or MODELS[args.provider][0]
+                try:
+                    result = PROVIDER_CALLS[args.provider](model, messages, args.max_tokens, args.temperature)
+                except Exception as e:
+                    print(f"Erreur {args.provider}: {e}", file=sys.stderr)
+                    sys.exit(1)
+            elif args.model:
+                provider = detect_provider(args.model)
+                if not provider:
+                    print(f"Impossible de detecter le provider pour: {args.model}", file=sys.stderr)
+                    sys.exit(1)
+                try:
+                    result = PROVIDER_CALLS[provider](args.model, messages, args.max_tokens, args.temperature)
+                except Exception as e:
+                    print(f"Erreur {provider}: {e}", file=sys.stderr)
+                    sys.exit(1)
+            else:
+                result = auto_fallback_chat(
+                    messages,
+                    task_type=args.task_type,
+                    max_tokens=args.max_tokens,
+                    temperature=args.temperature,
+                )
+            
+            if "error" in result:
+                print(f"Erreur pour le prompt '{prompt}': {result['error']}", file=sys.stderr)
+                result["_error_prompt"] = prompt
+                result["_error"] = result["error"]
+            else:
+                content = extract_content(result)
+                result["_response"] = content
+                result["_provider_used"] = result.get("_provider_used", "?")
+                result["_model_used"] = result.get("_model_used", "?")
+                if "_error" in result:
+                    del result["_error"]
+                if "_error_prompt" in result:
+                    del result["_error_prompt"]
+            
+            results.append(result)
+        
+        if args.json or args.output:
+            output_data = {
+                "batch_file": args.batch,
+                "timestamp": int(time.time()),
+                "prompts_count": len(prompts),
+                "results": results
+            }
+            output_text = json.dumps(output_data, indent=2, ensure_ascii=False)
+            if args.output:
+                with open(args.output, 'w', encoding='utf-8') as f:
+                    f.write(output_text)
+                print(f"Résultats batch sauvegardés dans: {args.output}", file=sys.stderr)
+            else:
+                print(output_text)
+        else:
+            for i, result in enumerate(results):
+                if "_response" in result:
+                    provider = result.get("_provider_used", "?")
+                    model = result.get("_model_used", "?")
+                    print(f"[{i+1}] [{provider}/{model}] {result['_response']}")
+                else:
+                    print(f"[{i+1}] ERREUR: {result.get('_error', 'Erreur inconnue')} (prompt: {result.get('_error_prompt', 'N/A')})")
         return
 
     if not args.prompt:
