@@ -1,38 +1,4 @@
-export enum TaskComplexity {
-  L1 = "L1",
-  L2 = "L2",
-  L3 = "L3",
-  L4 = "L4",
-}
-
-export enum TaskType {
-  TYPO = "TYPO",
-  CONFIG = "CONFIG",
-  FORMAT = "FORMAT",
-  DOC_READ = "DOC_READ",
-  DOC_WRITE = "DOC_WRITE",
-  BUG_LOCALIZED = "BUG_LOCALIZED",
-  FEATURE_LIMITED = "FEATURE_LIMITED",
-  REFACTOR_MODULE = "REFACTOR_MODULE",
-  API_CHANGE = "API_CHANGE",
-  ARCH_DESIGN = "ARCH_DESIGN",
-  SECURITY = "SECURITY",
-  PRODUCTION_DEPLOY = "PRODUCTION_DEPLOY",
-  SENSITIVE_DATA = "SENSITIVE_DATA",
-  DESTRUCTIVE_OP = "DESTRUCTIVE_OP",
-}
-
-export interface TaskSpec {
-  id?: string;
-  description: string;
-  taskType?: TaskType;
-  complexity?: TaskComplexity;
-  risk?: "LOW" | "HIGH" | "CRITICAL";
-  scope?: string[];
-  operation?: string;
-  environment?: "development" | "staging" | "production";
-  data?: Record<string, unknown>;
-}
+import { TaskType, TaskSpec } from "./types";
 
 export function classifyTask(task: TaskSpec): TaskType {
   const desc = task.description.toLowerCase();
