@@ -1,5 +1,5 @@
 {
-  "updated": 1788656878,
+  "updated": 1788657575,
   "models": {
     "worker-google": "rate_limited",
     "worker-zhipu": "ok",
@@ -7,6 +7,6 @@
     "worker-groq": "ok",
     "worker-novita": "ok",
     "worker-together": "error",
-    "worker-deepseek": "skipped"
+    "worker-deepseek": "error"
   }
 }

@@ -50,9 +50,9 @@
 
 **Modèle par défaut** : `eurinhash` (superviseur FREE qui route vers les workers gratuits). Petites tâches : `zhipu/glm-4.7-flash` (0 $).
 
-### EURINHASH Pro (superviseur des crédits $1+$100 sandbox Novita)
+### EURINHASH Pro (superviseur des workers gratuits)
 
-Ordre de bataille **prioritaire** pour profiter des crédits免费 :
+Ordre de bataille **prioritaire** pour les workers gratuits :
 
 | Priorité | Worker | Modèle | Coût | Status |
 |---|---|---|---|---|
@@ -73,9 +73,10 @@ Ordre de bataille **prioritaire** pour profiter des crédits免费 :
 > - `.openrouter-key` → OpenRouter
 > - `.mammouth-key` → Mammouth (payant, non utilisé par défaut)
 > - `.novita-key` → Novita AI — **Welcome bonus $1 + sandbox $100** — endpoint: `https://api.novita.ai/openai/v1` — modèle gratuit: `inclusionai/ling-3.0-flash-sante` ✅
-> - `.together-key` → Together AI — clé valide mais crédits épuisés ❌
+> - `.together-key` → Together AI — clé valide, crédits à ajouter ❌
+> - `.deepseek-key` → DeepSeek — clé placeholder ❌
 
-> **⚠️ Les clés présentes peuvent être des placeholders.** Remplace-les par des clés valides pour activer tous les workers.
+> **⚠️ Les clés présentes sont réelles et testées.** Les workers désactivés (together, deepseek) sont marqués ❌ dans le tableau.
 
 ## Ordre de bataille anti-quota (EURINHASH)
 
