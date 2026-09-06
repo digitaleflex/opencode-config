@@ -86,7 +86,7 @@ export class ProofVerifier {
   /**
    * Verify an existing proof chain
    */
-  verifyProofChain(chain: ProofChain): "PASS" | "FAIL" {
+  verifyProofChain(chain: ProofChain): "PASS" | "FAIL" | "PENDING" {
     // Verify all proofs have valid hashes
     for (const proof of chain.proofs) {
       const expectedHash = this.generateHashByType(chain.taskId, proof.type);
@@ -96,6 +96,12 @@ export class ProofVerifier {
     }
 
     // Verify all proofs passed
+    // Distinguish PENDING (human approval waiting) from FAIL (proof rejected)
+    const hasPending = chain.proofs.some((p) => p.status === "PENDING");
+    if (hasPending) {
+      return "PENDING";
+    }
+
     const allPassed = chain.proofs.every((p) => p.status === "PASS");
     if (!allPassed) {
       return "FAIL";
