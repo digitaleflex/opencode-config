@@ -1,9 +1,11 @@
 # Global instructions — Cloudflare Workers + Python/Data + EURINHASH (FREE)
 
 ## Provider
+- **Small model**: `mistral/mistral-code-latest` (385ms, qualité 0.85)
+
 - **Default agent**: `eurinhash` (superviseur FREE, route vers workers gratuits)
-- **Small model**: `zhipu/glm-4.7-flash` (FREE)
-- **EURINHASH Pro** : superviseur prioritaire pour les crédits $1+$100 sandbox Novita. Orchestre `worker-novita` → `worker-together` → `worker-codestral` → `worker-google` → `worker-groq` → `worker-zhipu`. Bascule automatique si un worker échoue.
+- **Small model**: `mistral/mistral-code-latest` (385ms, qualité 0.85)
+- **EURINHASH Pro** : superviseur prioritaire pour les crédits $1+$100 sandbox Novita. Orchestre `worker-novita` → `worker-codestral` → `worker-groq` → `worker-zhipu` → `worker-google`. Bascule automatique si un worker échoue.
 - Escalate to Mammouth models ONLY when: all FREE workers exhausted (429/quota/auth), task is critical, explicit user approval.
 
 ## Methodology (skills installed globally)
@@ -39,14 +41,17 @@
 5. **Arrêt conditionnel** : ne s'arrête que si les 4 workers sont KO → résumer ce qui est fait / ce qui bloque, proposer le fallback payant (`mammouth/...`) et demander validation explicite.
 6. **INTERDIT** : utiliser un modèle payant sans accord explicite.
 
-### Workers FREE (5 validés — testés OK)
+### Workers disponibles (testés OK)
 | Worker | Modèle | Spécialité | Provider | Status |
 |---|---|---|---|---|
 | `worker-codestral` | `mistral/codestral-latest` | Code | Mistral | ✅ OK |
 | `worker-groq` | `groq/qwen/qwen3.8-27b` | Rapide | Groq | ✅ OK |
-| `worker-zhipu` | `zhipu/glm-4.7-flash` | Générique | Zhipu | ✅ OK |
+| `worker-zhipu` | `zhipu/glm-4.7-flash` | Générique | Zhipu | ⚠️ rate_limited |
 | `worker-novita` | `novita/inclusionai/ling-3.0-flash-sante` | **GRATUIT** (256K ctx) | Novita AI | ✅ OK |
 | `worker-google` | `google/gemini-2.5-flash` | Polyvalent costaud | Google | ⚠️ rate_limited |
+
+### Note
+**UNIQUEMENT  (Novita AI) est réellement gratuit** (GRATUIT 256K ctx). Les autres sont des API keys personnelles avec free tier ou crédits.
 
 ### Workers désactivés (crédits épuisés ou clé manquante)
 | Worker | Raison |

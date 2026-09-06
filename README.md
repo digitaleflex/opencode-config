@@ -1,10 +1,10 @@
 # opencode-config
 
-EURINHASH configuration for OpenCode - 100% free models, specialized agents, and security hardening.
+EURINHASH configuration for OpenCode - free-tier + Novita AI (vraiment gratuit), specialized agents, and security hardening.
 
 ## Features
 
-- **100% free models**: Groq, Mistral, Zhipu, OpenRouter, HuggingFace, Novita, Together
+- **Models**: Groq, Mistral (API keys), Zhipu (rate_limited), Novita AI (**GRATUIT**), Google (rate_limited)
 - **EURINHASH Supervisor**: Automatic provider rotation on quota/error
 - **9 specialized agents**: planner, architect, design-lead, builder, quality-engineer, tester, security, reviewer, git-engineer
 - **Circuit breaker**: Protection against failing providers (CLOSED/OPEN/HALF_OPEN state)
