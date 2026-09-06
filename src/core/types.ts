@@ -1,4 +1,4 @@
-// src/types.ts — EURINHASH Governance Engine Types
+// src/core/types.ts — EURINHASH Governance Engine Types
 
 export enum TaskComplexity {
   L1 = "L1",
@@ -30,6 +30,14 @@ export enum TaskType {
   DESTRUCTIVE_OP = "DESTRUCTIVE_OP",
 }
 
+export enum ProofType {
+  TESTS = "tests",
+  CODE_REVIEW = "code_review",
+  SECURITY_SCAN = "security_scan",
+  HUMAN_APPROVAL = "human_approval",
+  BUILD_VERIFICATION = "build_verification",
+}
+
 export interface TaskSpec {
   id?: string;
   description: string;
@@ -37,12 +45,9 @@ export interface TaskSpec {
   complexity?: TaskComplexity;
   risk?: RiskLevel;
   scope?: string[];
-  blastRadius?: "file" | "module" | "service" | "system";
   operation?: string;
   environment?: "development" | "staging" | "production";
-  data?: Record<string, unknown>;
-  user?: string;
-  timestamp?: number;
+  data?: { [key: string]: unknown };
 }
 
 export interface PolicySpec {
@@ -58,12 +63,9 @@ export interface PolicySpec {
 }
 
 export interface ModelPlan {
-  primary: string[]; // free workers first
+  primary: string[];
   fallback: string[];
-  strong?: string[];
 }
-
-export type ProofType = "tests" | "code_review" | "security_scan" | "human_approval" | "build_verification";
 
 export interface Proof {
   type: ProofType;
@@ -82,7 +84,7 @@ export interface ProofChain {
 
 export interface PolicyDecision {
   decision: "APPROVED" | "BLOCKED" | "REQUIRES_HUMAN";
-  policy: PolicySpec;
+  policy?: PolicySpec | null;
   proofsRequired: ProofType[];
   humanApproval: boolean;
   reason?: string;
@@ -94,3 +96,25 @@ export interface GuardOverride {
   policy: string;
   reason: string;
 }
+
+export type ExecutionResult = {
+  taskId: string;
+  taskType: TaskType;
+  riskLevel: RiskLevel;
+  policyDecision: PolicyDecision;
+  guardDecision: "BLOCKED" | "ALLOWED";
+  proofStatus: "PASS" | "FAIL" | "PENDING";
+  verdict: "APPROVED" | "BLOCKED" | "REJECTED";
+};
+
+
+export function isValidTaskSpec(task: unknown): task is TaskSpec {
+  return (
+    typeof task === "object" &&
+    task !== null &&
+    "description" in task &&
+    typeof (task as TaskSpec).description === "string" &&
+    (task as TaskSpec).description.trim().length > 0
+  );
+}
+

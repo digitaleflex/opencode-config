@@ -7,6 +7,8 @@ import {
   TaskComplexity,
 } from "./types";
 
+export { RiskLevel };
+
 export function assessRisk(task: TaskSpec): RiskLevel {
   let risk = RiskLevel.LOW;
 

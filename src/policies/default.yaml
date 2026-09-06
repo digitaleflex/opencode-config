@@ -1,0 +1,71 @@
+# policies/default.yaml — EURINHASH Governance Policies
+# Format: YAML declarations mapped by PolicyEngine.getDefaultPolicies()
+#
+# Note: The PolicyEngine also has hardcoded fallback policies in TypeScript
+# (getDefaultPolicies()). This YAML file is for future extensibility
+# when a YAML loader is integrated.
+#
+# Current mapping (PolicyEngine → policy):
+#   L1 → L1-SIMPLE   (TYPO, CONFIG, FORMAT — no approval)
+#   L2 → L2-STANDARD (BUG_LOCALIZED, FEATURE_LIMITED, REFACTOR_MODULE)
+#   L3 → L3-COMPLEX  (API_CHANGE, ARCH_DESIGN, SECURITY — human approval)
+#   L4 → L4-CRITICAL (PRODUCTION_DEPLOY, SENSITIVE_DATA, DESTRUCTIVE_OP)
+#
+# Workers (FREE only):
+#   primary:  [worker-codestral, worker-groq]
+#   fallback: [worker-zhipu, worker-novita, worker-google]
+#
+# Proof requirements per complexity:
+#   L1: none
+#   L2: tests + code_review
+#   L3: tests + code_review + security_scan + human_approval
+#   L4: tests + code_review + security_scan + human_approval + build_verification
+---
+policies:
+  - name: "L1-SIMPLE"
+    complexity: L1
+    task_types: [TYPO, CONFIG, FORMAT]
+    risk: LOW
+    agents: [builder]
+    model_plan:
+      primary: [worker-codestral, worker-groq]
+      fallback: [worker-zhipu, worker-novita]
+    proofs_required: []
+    human_approval: false
+    security_scan: false
+
+  - name: "L2-STANDARD"
+    complexity: L2
+    task_types: [BUG_LOCALIZED, FEATURE_LIMITED, REFACTOR_MODULE]
+    risk: LOW
+    agents: [planner, builder, reviewer]
+    model_plan:
+      primary: [worker-codestral, worker-groq]
+      fallback: [worker-zhipu, worker-novita]
+    proofs_required: [tests, code_review]
+    human_approval: false
+    security_scan: false
+
+  - name: "L3-COMPLEX"
+    complexity: L3
+    task_types: [API_CHANGE, ARCH_DESIGN, SECURITY]
+    risk: HIGH
+    agents: [planner, architect, builder, reviewer]
+    model_plan:
+      primary: [worker-codestral, worker-groq]
+      fallback: [worker-zhipu, worker-novita]
+    proofs_required: [tests, code_review, security_scan]
+    human_approval: true
+    security_scan: true
+
+  - name: "L4-CRITICAL"
+    complexity: L4
+    task_types: [PRODUCTION_DEPLOY, SENSITIVE_DATA, DESTRUCTIVE_OP]
+    risk: CRITICAL
+    agents: [planner, architect, security, builder, reviewer]
+    model_plan:
+      primary: [worker-codestral, worker-groq]
+      fallback: [worker-zhipu, worker-novita]
+    proofs_required: [tests, code_review, security_scan, human_approval]
+    human_approval: true
+    security_scan: true

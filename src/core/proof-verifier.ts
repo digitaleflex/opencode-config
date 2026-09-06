@@ -84,12 +84,18 @@ export class ProofVerifier {
   }
 
   /**
-   * Verify an existing proof chain
+   * Verify an existing proof chain.
+   * task must be provided to recompute content-bound hashes; without it the
+   * chain cannot be authenticated and the result is FAIL (fail-closed).
    */
-  verifyProofChain(chain: ProofChain): "PASS" | "FAIL" | "PENDING" {
-    // Verify all proofs have valid hashes
+  verifyProofChain(chain: ProofChain, task?: TaskSpec): "PASS" | "FAIL" | "PENDING" {
+    if (!task) {
+      return "FAIL";
+    }
+
+    // Verify all proofs have valid hashes bound to taskId + description + type
     for (const proof of chain.proofs) {
-      const expectedHash = this.generateHashByType(chain.taskId, proof.type);
+      const expectedHash = this.generateHash({ ...task, id: chain.taskId }, proof.type);
       if (proof.hash !== expectedHash) {
         return "FAIL";
       }
@@ -122,9 +128,9 @@ export class ProofVerifier {
   }
 
   private generateHash(task: TaskSpec, proofType: ProofType): string {
-  const content = `${task.id || "unknown"}|${task.description}|${proofType}`;
-  return "sha256:" + createHash("sha256").update(content).digest("hex");
-}
+    const content = `${task.id || "unknown"}|${task.description}|${proofType}`;
+    return "sha256:" + createHash("sha256").update(content).digest("hex");
+  }
 
   private generateTaskId(task: TaskSpec): string {
     return task.id || `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;

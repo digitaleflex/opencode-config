@@ -109,7 +109,18 @@ export class GovernanceOrchestrator {
 
     // Step 4: Check guards
     const startGuard = Date.now();
-    const guardDecision = this.checkGuards(task.description);
+    if (!task || typeof task.description !== "string" || !task.description.trim()) {
+      return {
+        taskId,
+        taskType,
+        riskLevel,
+        policyDecision,
+        guardDecision: "ALLOWED",
+        proofStatus: "FAIL",
+        verdict: "BLOCKED",
+      };
+    }
+    const guardResult = this.checkGuards(task.description);
     const guardMs = Date.now() - startGuard;
 
     // Step 5: Generate proof chain
@@ -120,18 +131,20 @@ export class GovernanceOrchestrator {
     );
 
     // Step 6: Verify proofs meet requirements
-    const proofStatus = this.proofVerifier.verifyProofChain(proofChain);
+    const proofStatus = this.proofVerifier.verifyProofChain(proofChain, { ...taskWithRisk, id: taskId });
     const proofMs = Date.now() - startProof;
 
     // Step 7: Determine final verdict (fail-closed)
     let verdict: "APPROVED" | "BLOCKED" | "REJECTED" = "APPROVED";
 
-    if (guardDecision.decision === "BLOCKED") {
+    if (guardResult.decision === "BLOCKED") {
       verdict = "BLOCKED";
-    } else if (guardDecision.decision === "WARN") {
+    } else if (guardResult.decision === "WARN") {
       // WARN on critical operations → BLOCKED for safety
       verdict = "BLOCKED";
     } else if (proofStatus === "FAIL") {
+      verdict = "BLOCKED";
+    } else if (proofStatus === "PENDING") {
       verdict = "BLOCKED";
     } else if (policyDecision.humanApproval && !this.hasHumanApproval(proofChain)) {
       verdict = "BLOCKED";
@@ -154,7 +167,7 @@ export class GovernanceOrchestrator {
       taskType,
       riskLevel,
       policyDecision,
-      guardDecision: guardDecision.decision,
+      guardDecision: guardResult.decision === "WARN" ? "BLOCKED" : guardResult.decision,
       proofStatus,
       verdict,
     };

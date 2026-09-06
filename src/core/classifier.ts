@@ -1,8 +1,22 @@
 import { TaskType, TaskSpec } from "./types";
 
+export { TaskType };
+
 export function classifyTask(task: TaskSpec): TaskType {
   const desc = task.description.toLowerCase();
-  const scope = task.scope?.join(" ").toLowerCase() || "";
+
+  // Destructive/critical keywords must be checked FIRST — a destructive task
+  // mentioning "fix"/"config" would otherwise be misclassified as L1 and under-governed
+  if (
+    desc.includes("deploy") ||
+    desc.includes("production") ||
+    desc.includes("drop database") ||
+    desc.includes("delete") ||
+    desc.includes("rm -rf") ||
+    desc.includes("destructive")
+  ) {
+    return TaskType.DESTRUCTIVE_OP;
+  }
 
   // L1 - Simple
   if (
@@ -36,18 +50,6 @@ export function classifyTask(task: TaskSpec): TaskType {
     desc.includes("integrate")
   ) {
     return TaskType.API_CHANGE;
-  }
-
-  // L4 - Critical
-  if (
-    desc.includes("deploy") ||
-    desc.includes("production") ||
-    desc.includes("drop database") ||
-    desc.includes("delete") ||
-    desc.includes("rm -rf") ||
-    desc.includes("destructive")
-  ) {
-    return TaskType.DESTRUCTIVE_OP;
   }
 
   // Default
