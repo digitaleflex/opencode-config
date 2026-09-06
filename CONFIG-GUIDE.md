@@ -138,19 +138,242 @@ Chaque demande est classée AVANT d'agir : type, complexité, risque → **minim
 
 ## Clés API requises (9 fichiers)
 
-| Fichier | Provider | Où obtenir | Status |
-|---|---|---|---|
-| `.gemini-key` | Google Gemini | https://makersuite.google.com/ | ✓ présent |
-| `.zhipu-key` | Z.AI GLM | https://platform.openaichina.com/ | ✓ présent |
-| `.mistral-key` | Mistral | https://console.mistral.ai/ | ✓ présent |
-| `.groq-key` | Groq | https://console.groq.com/ | ✓ présent |
-| `.hf-key` | HuggingFace | https://huggingface.co/settings | ✓ présent |
-| `.openrouter-key` | OpenRouter | https://openrouter.ai/ | ✓ présent |
-| `.novita-key` | Novita AI | https://novita.ai/ | ✓ présent (welcome bonus $1 + sandbox $100) |
-| `.together-key` | Together AI | https://api.together.xyz/ | ✓ présent |
-| `.mammouth-key` | Mammouth (payant) | https://mammouth.ai/ | ✓ présent (non utilisé par défaut) |
+| Fichier | Provider | Où obtenir | Status | Sécurité |
+|---|---|---|---|---|
+| `.gemini-key` | Google Gemini | https://makersuite.google.com/ | ✓ présent | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.zhipu-key` | Z.AI GLM | https://platform.openaichina.com/ | ✓ présent | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.mistral-key` | Mistral | https://console.mistral.ai/ | ✓ présent | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.groq-key` | Groq | https://console.groq.com/ | ✓ présent | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.hf-key` | HuggingFace | https://huggingface.co/settings | ✓ présent | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.openrouter-key` | OpenRouter | https://openrouter.ai/ | ✓ présent | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.novita-key` | Novita AI | https://novita.ai/ | ✓ présent (welcome bonus $1 + sandbox $100) | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.together-key` | Together AI | https://api.together.xyz/ | ✓ présent | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.deepseek-key` | DeepSeek | https://platform.deepseek.com/ | ❌ placeholder | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.mammouth-key` | Mammouth (payant) | https://mammouth.ai/ | ✓ présent (non utilisé par défaut) | ✅ Fichier `.gitignore` + recommandé chmod 600 |
 
-## Matrice de routage intelligent (AGENTS.md)
+### Sécurité des secrets — multi-OS
+
+**Principe :** Les clés sont stockées dans des fichiers séparés, **toujours hors de git**, et jamais en clair dans la configuration.
+
+| OS | Emplacement | Permissions | Commande de restriction |
+|----|-------------|-------------|------------------------|
+| **Windows** | `C:\Users\<user>\.config\opencode\` | ACL NTFS = **utilisateur courant uniquement** (par défaut) | `icacls "$env:USERPROFILE\.config\opencode\.novita-key" /inheritance:r /grant:r "$env:USERNAME:R"` possible |
+| **Linux** | `~/.config/opencode/` | `chmod 600` (rw owner uniquement) | `chmod 600 ~/.config/opencode/.novita-key` |
+| **macOS** | `~/.config/opencode/` | `chmod 600` (rw owner uniquement) + possible FileVault | `chmod 600 ~/.config/opencode/.novita-key` |
+
+**Points de sécurité :**
+
+- **`.gitignore`** : tous les `.key` fichiers sont exclus → **jamais commités** sur aucun OS
+- **`opencode.jsonc`** : utilise `{file:~/.config/opencode/.novita-key}` → **pas de clé en clair** dans la config
+- **`envsitter-guard`** : plugin opencode qui détecte et protège les clés exposées
+- **Aucun log** : aucun fichier journal ne contient les clés API
+- **Chiffrement disque** : BitLocker (Windows), FileVault (macOS), LUKS (Linux) recommandés pour une sécurité maximale
+
+**Aucune clé n'est exposée publiquement.** La configuration est sécurisée sur Windows, Linux et macOS.
+
+## Concurrents et positionnement honnête
+
+**Clause de sincérité :** après vérification approfondie, il existe des projets très similaires et certains sont techniquement plus avancés sur plusieurs aspects. Cette section replace EURINHASH dans son contexte réel.
+
+### Les principaux concurrents
+
+| Projet | Ce qu'ils font | Points forts | Lien |
+|--------|---------------|--------------|------|
+| **Oh My OpenAgent** | Orchestration multi-agents, Team Mode, 8 agents parallèles, Skills, MCP, LSP/AST | Le plus complet sur l'orchestration pure | [GitHub](https://github.com/docevilOck/oh-my-opencode) |
+| **OpenCode Swarm** | Architect → Experts → QA/Review, Circuit Breakers, protections comportementales | Meilleurs Circuit Breakers du marché | [GitHub](https://github.com/ZaxbyHub/opencode-swarm) |
+| **Rate Limit Fallback** | Détection 429, fallback auto, retry, exponential backoff, métriques | Plus sophistiqué que notre fallback actuel | [GitHub](https://github.com/azumag/opencode-rate-limit-fallback) |
+| **Cline** | SDK + CLI + Extension IDE, équipes multi-agents, état persistant | Plateforme la plus complète | [GitHub](https://github.com/Cline/Cline) |
+| **OpenHands** | Agents + Workflows + Cloud + Self-hosting + Gouvernance | Niveau entreprise | [Site](https://www.openhands.dev) |
+
+### Comparaison honnête
+
+| Fonctionnalité | EURINHASH | Oh My OpenAgent | OpenCode Swarm | Rate Limit Fallback |
+|----------------|-----------|----------------|----------------|---------------------|
+| Agents spécialisés | ✅ 9 agents | ✅ Très avancé | ✅ | ❌ |
+| Multi-modèles | ✅ 4 gratuits | ✅ | ✅ | ✅ |
+| Fallback automatique | ✅ Basique | ✅ Avancé | ✅ | ✅ Très sophistiqué |
+| Circuit Breaker | ✅ Basique | ⚠️ Partiel | ✅ Très avancé | ✅ |
+| Quota tracking | ✅ Journalier | ⚠️ Variable | ⚠️ Variable | ✅ Métriques complètes |
+| Multi-agent parallèle | ⚠️ Limité (1 à la fois) | ✅ 8 agents | ✅ | ❌ |
+| Audit logging | ✅ | ✅ | ✅ | ❌ |
+| Sécurité `.env` | ✅ envsitter-guard | ⚠️ Variable | ✅ | ⚠️ Variable |
+| Windows wrapper | ✅ hash-direct | ❓ | ❓ | ❌ |
+| Simplicité / config | ✅ 1 config unifiée | ❌ Complexe | ❌ Complexe | ✅ Simple |
+| **100% gratuit** | ✅ 4 workers FREE | ⚠️ Dépend des clés | ⚠️ Dépend des clés | ✅ |
+
+### Notre positionnement réel
+
+**EURINHASH n'est PAS le seul ni le plus avancé** sur l'orchestration multi-agents. Oh My OpenAgent et OpenCode Swarm sont plus sophistiqués sur plusieurs points.
+
+**Notre valeur ajoutée réelle :**
+
+1. **Assemblage cohérent** : au lieu de configurer 5 plugins séparés, une config unifiée `~/.config/opencode/` qui fonctionne immédiatement
+2. **100% gratuit prêt à l'emploi** : 4 workers gratuits validés et testés, pas de configuration nécessaire
+3. **Optimisé Windows** : wrapper hash-direct pour contourner les bugs Windows, chemin `%USERPROFILE%`
+4. **Sécurité intégrée** : envsitter-guard + audit-logger + safety guard en une config
+5. **Curated runtime** : sélection des meilleurs composants (Oh My OpenAgent, lazy-skills, morph-fast-apply) intégrés intelligemment
+
+### Recommandation
+
+**Ne pas réinventer ce qui existe.** EURINHASH évoluerait mieux en intégrant :
+- `Oh My OpenAgent` pour l'orchestration avancée
+- `Rate Limit Fallback` pour le fallback sophistiqué
+- `OpenCode Swarm` pour les Circuit Breakers
+
+plutôt que de développer ces fonctionnalités from scratch.
+
+## Stratégie KEEP-INTEGRATE-BUILD
+
+EURINHASH évolue selon une stratégie **composition over competition** : utiliser les meilleurs composants open source au lieu de tout reconstruire.
+
+```
+             EURINHASH
+                 │
+      ┌──────────┼──────────┐
+      │          │          │
+     KEEP     INTEGRATE    BUILD
+      │          │          │
+ Ce qui est   Ce qui existe  Notre vraie
+ déjà bon     mieux ailleurs  innovation
+```
+
+### KEEP — Ce que nous gardons
+
+| Composant | Raison de le garder |
+|-----------|-------------------|
+| **Superviseur EURINHASH** | Identité unique, orchestration simple mais efficace |
+| **Matrice L1→L4** | Gouvernance claire des tâches, signature du projet |
+| **Sécurité** (`envsitter-guard` + `guard.ts` + audit) | Protection essentielle, pas de doublon open source |
+| **4 workers gratuits validés** | Valeur immédiate, 100% gratuit, testé OK |
+
+### INTEGRATE — Ce que nous intégrons
+
+| Composant externe | Remplacé / дополнен | Source |
+|-------------------|---------------------|--------|
+| **Fallback EURINHASH** | → `opencode-rate-limit-fallback` | [azumag](https://github.com/azumag/opencode-rate-limit-fallback) |
+| **Orchestrateur maison** | → `Oh My OpenAgent` (Team Mode, 8 agents) | [docevilOck](https://github.com/docevilOck/oh-my-opencode) |
+| **Circuit Breakers** | → `OpenCode Swarm` (protection comportements) | [ZaxbyHub](https://github.com/ZaxbyHub/opencode-swarm) |
+
+### BUILD — Ce que nous construisons
+
+**Notre vraie innovation : EURINHASH Governance Layer**
+
+Les autres projets disent :
+> "Voici plusieurs agents. Utilisez-les."
+
+EURINHASH dit :
+> "Voici les **règles** qui déterminent **quand, pourquoi et comment** utiliser ces agents."
+
+```yaml
+# Exemple: Policy Engine
+task: payment_system
+  complexity: L3
+  required_agents:
+    - architect
+    - security
+    - builder
+    - reviewer
+  human_approval: true
+  max_parallel_agents: 3
+  fallback_policy: resilient
+  security_level: high
+
+task: css_button_fix
+  complexity: L1
+  agents:
+    - builder
+  human_approval: false
+  max_parallel_agents: 1
+  security_level: low
+```
+
+### Roadmap en 4 phases
+
+#### Phase 1 — Simplification
+**Objectif :** Supprimer les doublons avec les composants externes.
+
+Audit de chaque agent/plugin/script :
+- "Pourquoi existe-t-il ?"
+- "Un projet externe le fait-il mieux ?"
+- Si oui → **SUPPRIMER**
+
+#### Phase 2 — Intégration
+Installer et tester :
+- `Oh My OpenAgent` comme moteur agentique principal
+- `Rate Limit Fallback` pour la résilience
+- `OpenCode Swarm` pour les Circuit Breakers
+
+#### Phase 3 — EURINHASH Governance Layer
+Construire uniquement :
+- L1→L4 Classification Engine
+- Policy Engine (règles par type de tâche)
+- Agent Selection Rules
+- Risk Assessment
+- Human Approval Gate
+
+#### Phase 4 — Observabilité
+Vue claire de chaque session :
+```
+SESSION
+├── Task: Build Authentication
+├── Complexity: L3
+├── Agents Used: 4
+├── Models Used: 2
+├── Fallback: Yes
+├── Security Review: PASS
+└── Status: SUCCESS
+```
+
+---
+
+## Nouvelle architecture cible
+
+```
+┌─────────────────────────────────────┐
+│            UTILISATEUR              │
+└──────────────────┬──────────────────┘
+                   ↓
+┌─────────────────────────────────────┐
+│      EURINHASH GOVERNANCE LAYER     │
+│  • L1→L4 Classification            │
+│  • Policy Engine                   │
+│  • Agent Selection                 │
+│  • Risk Assessment                 │
+│  • Human Approval Gate             │
+└──────────────────┬──────────────────┘
+                   ↓
+┌─────────────────────────────────────┐
+│         AGENT RUNTIME               │
+│     Oh My OpenCode + OpenCode       │
+│  • Background agents               │
+│  • Parallel execution               │
+│  • Skills / MCP / LSP              │
+└──────────────────┬──────────────────┘
+                   ↓
+┌─────────────────────────────────────┐
+│         MODEL RESILIENCE            │
+│  Rate Limit Fallback Plugin         │
+│  • Retry + Backoff                 │
+│  • Circuit Breaker                  │
+│  • Dynamic priority                 │
+└──────────────────┬──────────────────┘
+                   ↓
+┌─────────────────────────────────────┐
+│          SECURITY LAYER             │
+│  • Permissions + Command Guard     │
+│  • Env Protection                  │
+│  • Secret Redaction                │
+└──────────────────┬──────────────────┘
+                   ↓
+┌─────────────────────────────────────┐
+│          OBSERVABILITY              │
+│  • Audit logs                      │
+│  • Metrics / Cost tracking         │
+│  • Session summary                 │
+└─────────────────────────────────────┘
+```
+
+**Vision :** EURINHASH = Governance Distribution for Agentic Development
 
 Chaque demande est classée AVANT d'agir : type, complexité, risque → **minimum d'intelligence nécessaire**.
 
