@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "owner": "arkcli",
+  "product": "arkcli-bp",
+  "skills": {
+    "arkcli-agent": "489ddcc202a9dde5039826719d4e6ac41277061d6b30cc8e20b42b2579826321",
+    "arkcli-api-explorer": "3a3d982fda0251eb7e8acfdb028e20af9527d4caff8737ae2448208656dd044a",
+    "arkcli-auth": "66e6551a009352b0c498de5145fd5804f4641c62cf4f5a53f457b3034699e7c3",
+    "arkcli-billing": "e7b6e48b03a51df1023871b3f760782ea405e5fc15e68b50d3f2897e6a710726",
+    "arkcli-chat": "7af55ad530743a8dd1a9fe156db787dcd99756b3d5ba49fe56c09b5bd67b8971",
+    "arkcli-config": "228cf69716e65f9e318d8f3f2326b59025ff6f26aa71dfa764adffc9a41f8102",
+    "arkcli-connect": "f3a94f76021894e6e7b0b191e5356f6ddfbe1192ed4574e3b7489779e96e4105",
+    "arkcli-custommodel": "3ee83bf73c1c70c630faf6d10fcd395557ccf12f421aec5b605021d0af01027b",
+    "arkcli-datasets": "d62d7aacb0b3308578b5aa9cfae24b3aab5c11076f2ff103807efe7efea3505c",
+    "arkcli-deploy": "a1054b440e8f94d334290805e0611f6b5b6f2212446c56399e15885eb0b9db8b",
+    "arkcli-doctor": "a4a8a8201910453eb8f26320556966742b16026a4bc8b6dc04dbbe75a50657b1",
+    "arkcli-gen": "f08f1d87143769c78d1228fd749bd44c68322c636126152aea75473bad30d2cb",
+    "arkcli-helper": "979671fda807ed28a49806d6d64f668426f25a9b4a1c885847044f63ff706bb2",
+    "arkcli-iam": "f7459c98f60a1db15b5d2593cab0d7650b352fa6c3b02e556acedfc68271f8ca",
+    "arkcli-infer-endpoint": "9f8afb9dd249a689dd6b8cca8a3390e8df89ad38070eb5d74505b89360858100",
+    "arkcli-models": "4b546923cecd317b38d067d44e66995e477b7dd16369fe260fb515dc86bc35d3",
+    "arkcli-onboard": "13fa51c0db983a83b4ee6c9772c76a5a3462ceb06f501f288df9955ab90b0d7b",
+    "arkcli-plans": "b2b0de02ded780b660db83d91178976a368ef2b0ece8c01aaf693f62347d9f50",
+    "arkcli-pricing": "31850a211d93d9d9cc0ba6a0eca2609854b4390351591443a519aeb01f6e5676",
+    "arkcli-profile": "1519fe5973f60f46991095d9854aefcf32d269ca480cbdf18c36947433d4285e",
+    "arkcli-resources": "408f86b6fc1b24e45d98d9743b7372ac23c5a87acc6c9e7712b72929276e6605",
+    "arkcli-shared": "64cfd2980feffcde17c2baa130bd5782f936137084511eae8feccbbbdee7293b",
+    "arkcli-train-finetune": "cd4dfccd6ee8e12ed62cb58c32e3abdd544bd705a7db667610e1904a5e555e18",
+    "arkcli-understand": "73283f0765cfa62e4b2f4e783ff61a1fbcb3829c6d5e563306e3b521a5d132c9",
+    "arkcli-usage": "401e1c0e83d130213893d4e139542b67881e8448986dd2dc06b269e1bab81ff9"
+  }
+}

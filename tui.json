@@ -1,0 +1,38 @@
+{
+  "$schema": "https://opencode.ai/tui.json",
+  "theme": "tokyonight",
+  "plugin": [
+    [
+      "./plugins/opencode-statusline.tsx",
+      {
+        "locale": "en",
+        "lines": [
+          [
+            { "type": "model", "color": "accent", "bold": true },
+            { "type": "separator" },
+            { "type": "tokens" },
+            { "type": "separator" },
+            { "type": "context-pct" },
+            { "type": "context-bar" }
+          ],
+          [
+            { "type": "cost" },
+            { "type": "separator" },
+            { "type": "speed" },
+            { "type": "separator" },
+            { "type": "duration" },
+            { "type": "separator" },
+            { "type": "git-branch" }
+          ],
+          [
+            { "type": "reasoning" },
+            { "type": "separator" },
+            { "type": "total-tokens" },
+            { "type": "separator" },
+            { "type": "cache-hit-rate" }
+          ]
+        ]
+      }
+    ]
+  ]
+}
