@@ -1,0 +1,12 @@
+# Cles API - NE JAMAIS COMMITER
+.*-key
+.env
+.env.*
+
+# Etat local
+provider_usage.json
+provider_circuit.json
+logs/
+node_modules/
+*.bak2
+*.disabled
