@@ -23,6 +23,16 @@ interface StatusData {
   cacheHitRate: number
   messageCount: number
   gitBranch: string | undefined
+  providerStates: Record<string, string>
+  fallbackCount: number
+  quotaToday: number
+  auditTail: string
+  sensitiveOpsToday: number
+  dangerousOpsToday: number
+  budgetPct: number
+  budgetLimit: number
+  todayCost: number
+  topProvider: string
 }
 
 const INITIAL_DATA: StatusData = {
@@ -39,6 +49,16 @@ const INITIAL_DATA: StatusData = {
   cacheHitRate: -1,
   messageCount: 0,
   gitBranch: undefined,
+  providerStates: {},
+  fallbackCount: 0,
+  quotaToday: 0,
+  auditTail: "",
+  sensitiveOpsToday: 0,
+  dangerousOpsToday: 0,
+  budgetPct: 0,
+  budgetLimit: 100,
+  todayCost: 0,
+  topProvider: "",
 }
 
 type WidgetType =
@@ -57,6 +77,13 @@ type WidgetType =
   | "cache-hit-rate"
   | "separator"
   | "text"
+  | "provider-health"
+  | "routing-chain"
+  | "quota-bar"
+  | "audit-tail"
+  | "sensitive-ops"
+  | "risk-level"
+  | "budget"
 
 interface WidgetDef {
   type: WidgetType
@@ -67,7 +94,7 @@ interface WidgetDef {
   text?: string
 }
 
-type Locale = "zh-CN" | "en"
+type Locale = "zh-CN" | "en" | "fr"
 
 interface StatuslineConfig {
   lines: WidgetDef[][]
@@ -75,7 +102,7 @@ interface StatuslineConfig {
 }
 
 const DEFAULT_CONFIG: StatuslineConfig = {
-  locale: "zh-CN",
+  locale: "fr",
   lines: [
     [
       { type: "model", bold: true },
@@ -101,6 +128,8 @@ const ALL_WIDGET_TYPES: WidgetType[] = [
   "model", "tokens", "speed", "cost", "context-pct", "context-bar",
   "git-branch", "duration", "reasoning", "cache-write", "total-tokens",
   "messages", "cache-hit-rate", "separator", "text",
+  "provider-health", "routing-chain", "quota-bar", "audit-tail",
+  "sensitive-ops", "risk-level", "budget",
 ]
 
 // ─── i18n ────────────────────────────────────────────────────────────────
@@ -150,6 +179,7 @@ const zhCN: Messages = {
     { title: "醒目", description: "数据值全高亮：费用警告色、速度成功色、分支信息色" },
     { title: "柔和", description: "统一淡灰色调，低视觉干扰" },
     { title: "素净", description: "无加粗，所有值使用默认色" },
+    { title: "EURINHASH", description: "任务控制风格：providers亮色、风险警告色、路由信息色" },
   ],
   toggleRow: (label, ln) => `第 ${ln + 1} 行`,
   mainTitle: "Statusline 配置",
@@ -208,6 +238,78 @@ const zhCN: Messages = {
     duration: "会话耗时", reasoning: "思考 tokens", "cache-write": "缓存写入",
     "total-tokens": "总 Token 用量", messages: "消息数", "cache-hit-rate": "缓存命中率",
     separator: "分隔符", text: "自定义文字",
+    "provider-health": "提供商健康", "routing-chain": "路由链", "quota-bar": "今日配额", "audit-tail": "审计尾迹",
+    "sensitive-ops": "敏感操作", "risk-level": "风险等级", "budget": "每日预算",
+  },
+}
+
+const fr: Messages = {
+  presets: [
+    { title: "Défaut", description: "Style officiel : nom du modèle en accent + gras, reste par défaut" },
+    { title: "Vibrant", description: "Toutes les données en surbrillance : coût en avertissement, vitesse en succès" },
+    { title: "Discret", description: "Gris uniforme, faible perturbation visuelle" },
+    { title: "Sobre", description: "Pas de gras, toutes les valeurs en couleur par défaut" },
+    { title: "EURINHASH", description: "Télémétrie mission-control : providers verts, alertes risque, infos routage" },
+  ],
+  toggleRow: (_label, ln) => `Ligne ${ln + 1}`,
+  mainTitle: "Config Statusline",
+  mainToggle: "Afficher/Masquer", mainToggleDesc: "Afficher ou masquer les widgets",
+  mainMove: "Éditer la mise en page", mainMoveDesc: "Déplacer ou supprimer des widgets",
+  mainAdd: "Ajouter un widget", mainAddDesc: "Insérer un nouveau widget",
+  mainReset: "↺ Réinitialiser", mainResetDesc: "Restaurer la configuration d'usine",
+  mainPreset: "🎨 Préréglage couleur", mainPresetDesc: "Appliquer un schéma de couleurs",
+  mainProfiles: "📁 Profils", mainProfilesDesc: "Sauvegarder, charger, importer et exporter les configs",
+  mainDone: "✓ Terminé",
+  toggleTitle: "Afficher/Masquer les widgets", toggleBack: "← Retour au menu",
+  moveTitle: "Sélectionner une ligne", moveBack: "← Retour au menu",
+  moveLineTitle: (n) => `Ligne ${n + 1} : `,
+  moveLineDesc: (visible, total) => `${visible} visibles · ${total} widgets`,
+  widgetActionsBack: "← Retour",
+  widgetLeft: "◀ Gauche", widgetRight: "▶ Droite",
+  widgetMoveLine: "⬇ Déplacer vers une autre ligne",
+  widgetHide: "👁 Masquer", widgetShow: "👁 Afficher",
+  widgetColor: "🎨 Couleur", widgetDelete: "✕ Supprimer", moveTargetTitle: "Vers quelle ligne ?",
+  addTypeTitle: "Ajouter — Type de widget", addLineTitle: "Vers quelle ligne ?", addPositionTitle: "À quelle position ?",
+  addNewLine: "➕ Nouvelle ligne", addAppendLine: "➕ Ajouter à cette ligne", addBack: "← Retour",
+  posAtStart: "Au début", posBefore: (l: string) => `avant "${l}"`, posAfter: (l: string) => `après "${l}"`,
+  posBeforeNext: (l: string) => `avant "${l}"`, posEnd: "(fin)", posEmptyRow: "Fin (ligne vide)",
+  presetTitle: "Sélectionner un préréglage", presetBack: "← Retour au menu",
+  profilesTitle: "Gestionnaire de profils",
+  profilesSave: "💾 Sauvegarder", profilesSaveDesc: (count) => count > 0 ? `${count} profil(s) sauvegardé(s)` : "Aucun profil sauvegardé",
+  profilesLoad: "📂 Charger un profil", profilesLoadDesc: "Passer à un profil sauvegardé",
+  profilesDelete: "🗑 Supprimer le profil",
+  profilesExport: "📤 Exporter", profilesExportDesc: (path) => `Sauvegarder dans ${path}`,
+  profilesImport: "📥 Importer", profilesImportDesc: "Restaurer depuis un fichier JSON",
+  profilesBack: "← Retour au menu",
+  profileLoadTitle: "Charger un profil", profileLoadDesc: (lines) => `${lines} ligne(s)`, profileLoadBack: "← Retour",
+  profileDeleteTitle: "Supprimer un profil", profileDeleteBack: "← Retour",
+  colorTitle: "Couleur", colorClear: "Effacer la couleur", colorClearDesc: "Restaurer la couleur par défaut", colorBack: "← Retour",
+  colorOptions: [
+    { label: "Couleur du thème", value: undefined },
+    { label: "muted (discret)", value: "muted" },
+    { label: "accent (accentué)", value: "accent" },
+    { label: "success (succès)", value: "success" },
+    { label: "warning (avertissement)", value: "warning" },
+    { label: "error (erreur)", value: "error" },
+    { label: "info (information)", value: "info" },
+    { label: "cyan", value: "cyan" },
+    { label: "Effacer la couleur", value: "" },
+  ],
+  installFailTitle: "Échec de l'installation", installFailMsg: "Impossible de copier le fichier",
+  installFailNoDirTitle: "Échec de l'installation", installFailNoDirMsg: "Impossible de déterminer le répertoire",
+  installSuccessTitle: "Installé globalement", installSuccessMsg: "Redémarrer opencode pour appliquer à toutes les sessions",
+  nextProfileName: (i) => `Profil ${i}`,
+  noVisible: "(aucun widget visible)",
+  localeTitle: "Changer de langue / Switch Language",
+  defaultText: "Texte",
+  widgetLabel: {
+    model: "Modèle", tokens: "Tokens", speed: "Vitesse", cost: "Coût",
+    "context-pct": "Context %", "context-bar": "Barre context", "git-branch": "Branche git",
+    duration: "Durée", reasoning: "Raisonnement", "cache-write": "Écriture cache",
+    "total-tokens": "Total tokens", messages: "Messages", "cache-hit-rate": "Taux cache",
+    separator: "Séparateur", text: "Texte personnalisé",
+    "provider-health": "Santé provider", "routing-chain": "Chaîne routage", "quota-bar": "Quota quotidien", "audit-tail": "Dernière action",
+    "sensitive-ops": "Ops sensibles", "risk-level": "Niveau risque", "budget": "Budget quotidien",
   },
 }
 
@@ -217,6 +319,7 @@ const en: Messages = {
     { title: "Vibrant", description: "All data highlighted: cost in warning, speed in success, branch in info" },
     { title: "Subtle", description: "Uniform muted gray, low visual noise" },
     { title: "Clean", description: "No bold, all values in default color" },
+    { title: "EURINHASH", description: "Mission-control telemetry: providers green, risk warnings, routing info" },
   ],
   toggleRow: (_label, ln) => `Row ${ln + 1}`,
   mainTitle: "Statusline Config",
@@ -275,14 +378,18 @@ const en: Messages = {
     duration: "Duration", reasoning: "Reasoning", "cache-write": "Cache Write",
     "total-tokens": "Total Tokens", messages: "Messages", "cache-hit-rate": "Cache Hit Rate",
     separator: "Separator", text: "Custom Text",
+    "provider-health": "Provider Health", "routing-chain": "Routing Chain", "quota-bar": "Daily Quota", "audit-tail": "Audit Tail",
+    "sensitive-ops": "Sensitive Ops", "risk-level": "Risk Level", "budget": "Daily Budget",
   },
 }
 
 function getMessages(locale?: Locale): Messages {
-  return locale === "en" ? en : zhCN
+  if (locale === "en") return en
+  if (locale === "fr") return fr
+  return zhCN
 }
 
-let WIDGET_LABELS: Record<WidgetType, string> = zhCN.widgetLabel
+let WIDGET_LABELS: Record<WidgetType, string> = fr.widgetLabel
 
 function setLocale(locale: Locale) {
   const m = getMessages(locale)
@@ -299,13 +406,13 @@ interface NamedPreset {
 
 const PRESET_COLORS: NamedPreset[] = [
   {
-    title: "", description: "",
+    title: "Default", description: "Official style: model name in accent + bold, rest default",
     colors: {
       model: { color: "accent", bold: true },
     },
   },
   {
-    title: "", description: "",
+    title: "Vibrant", description: "All data highlighted: cost in warning, speed in success, branch in info",
     colors: {
       model: { color: "accent", bold: true },
       cost: { color: "warning" },
@@ -316,7 +423,7 @@ const PRESET_COLORS: NamedPreset[] = [
     },
   },
   {
-    title: "", description: "",
+    title: "Subtle", description: "Uniform muted gray, low visual noise",
     colors: {
       model: { color: "muted" },
       tokens: { color: "muted" },
@@ -334,9 +441,24 @@ const PRESET_COLORS: NamedPreset[] = [
     },
   },
   {
-    title: "", description: "",
+    title: "Clean", description: "No bold, all values in default color",
     colors: {
       model: { bold: false },
+    },
+  },
+  {
+    title: "EURINHASH", description: "Mission-control telemetry: providers green, risk warnings, routing info",
+    colors: {
+      model: { color: "accent", bold: true },
+      "provider-health": { color: "success" },
+      "risk-level": { color: "warning" },
+      cost: { color: "warning" },
+      speed: { color: "success" },
+      "routing-chain": { color: "info" },
+      "audit-tail": { color: "muted" },
+      "sensitive-ops": { color: "warning" },
+      "git-branch": { color: "info" },
+      "cache-hit-rate": { color: "success" },
     },
   },
 ]
@@ -392,6 +514,137 @@ function resolveColor(theme: TuiThemeCurrent, color?: string): RGBA | undefined 
     if (n >= 0 && n <= 255) return mkRgba(...xterm256(n))
   }
   return undefined
+}
+
+// ─── EURINHASH runtime state polling ────────────────────────────────────
+
+const EURINHASH_DIR = join(homedir(), ".config", "opencode")
+const CIRCUIT_PATH = join(EURINHASH_DIR, "provider_circuit.json")
+const USAGE_PATH = join(EURINHASH_DIR, "provider_usage.json")
+
+const CIRCUIT_ORDER = ["mistral", "groq", "zhipu", "novita", "google", "openrouter", "together", "huggingface"]
+
+type CircuitEntry = { state?: string; failures?: number; last_failure?: number }
+
+function circuitGlyph(state?: string): { glyph: string; color: (t: TuiThemeCurrent) => RGBA } {
+  switch (state) {
+    case "CLOSED": return { glyph: "●", color: (t) => t.success }
+    case "HALF_OPEN": return { glyph: "◐", color: (t) => t.warning }
+    case "OPEN": return { glyph: "○", color: (t) => t.error }
+    default: return { glyph: "·", color: (t) => t.textMuted }
+  }
+}
+
+async function readCircuit(): Promise<Record<string, string>> {
+  try {
+    const raw = await readFile(CIRCUIT_PATH, "utf-8")
+    const json = JSON.parse(raw) as Record<string, CircuitEntry>
+    const out: Record<string, string> = {}
+    for (const [k, v] of Object.entries(json)) out[k] = v?.state ?? "UNKNOWN"
+    return out
+  } catch {
+    return {}
+  }
+}
+
+async function readQuota(): Promise<number> {
+  try {
+    const raw = await readFile(USAGE_PATH, "utf-8")
+    const json = JSON.parse(raw) as Record<string, number>
+    return Object.values(json).reduce((s, n) => s + (typeof n === "number" ? n : 0), 0)
+  } catch {
+    return 0
+  }
+}
+
+const DANGEROUS_TOOLS = ["rm", "dd", "mkfs", "shred", "drop database", "drop table", "kill -9", ":(){ :|:& };:"]
+
+async function readAuditTail(): Promise<string> {
+  try {
+    const { readdirSync } = await import("fs")
+    const files = readdirSync(join(EURINHASH_DIR, "logs"))
+      .filter((f: string) => /^audit-.*\.jsonl$/.test(f))
+      .sort()
+    if (files.length === 0) return ""
+    const { readFileSync } = await import("fs")
+    const buf = readFileSync(join(EURINHASH_DIR, "logs", files[files.length - 1]), "utf-8")
+    const lines = buf.split("\n").filter(Boolean)
+    if (lines.length === 0) return ""
+    const last = JSON.parse(lines[lines.length - 1]) as { event?: string; tool?: string; agent?: string }
+    const actor = last.agent ?? last.tool ?? last.event ?? "?"
+    return actor.length > 16 ? actor.slice(0, 15) + "…" : actor
+  } catch {
+    return ""
+  }
+}
+
+interface AuditCounts { sensitiveOps: number; dangerousOps: number }
+
+async function readAuditCounts(): Promise<AuditCounts> {
+  try {
+    const { readdirSync } = await import("fs")
+    const files = readdirSync(join(EURINHASH_DIR, "logs"))
+      .filter((f: string) => /^audit-.*\.jsonl$/.test(f))
+      .sort()
+    if (files.length === 0) return { sensitiveOps: 0, dangerousOps: 0 }
+    const { readFileSync } = await import("fs")
+    const buf = readFileSync(join(EURINHASH_DIR, "logs", files[files.length - 1]), "utf-8")
+    let sensitiveOps = 0
+    let dangerousOps = 0
+    for (const raw of buf.split("\n")) {
+      if (!raw.trim()) continue
+      try {
+        const entry = JSON.parse(raw) as { sensitive?: boolean; tool?: string }
+        if (entry.sensitive) sensitiveOps++
+        if (entry.tool) {
+          const tool = entry.tool.toLowerCase()
+          if (DANGEROUS_TOOLS.some((d) => tool.includes(d))) dangerousOps++
+        }
+      } catch { continue }
+    }
+    return { sensitiveOps, dangerousOps }
+  } catch {
+    return { sensitiveOps: 0, dangerousOps: 0 }
+  }
+}
+
+interface BudgetData { limit: number; cost: number; topProvider: string }
+
+async function readBudget(): Promise<BudgetData> {
+  try {
+    const today = new Date().toISOString().slice(0, 10)
+    const usageRaw = await readFile(USAGE_PATH, "utf-8")
+    const usage = JSON.parse(usageRaw) as Record<string, number>
+    const budgetRaw = await readFile(join(EURINHASH_DIR, "daily_budget.json"), "utf-8")
+    const budget = JSON.parse(budgetRaw) as { limit: number; period: string }
+    const limit = budget?.limit ?? 100
+    let totalCalls = 0
+    let topProvider = ""
+    let topCount = 0
+    for (const [key, count] of Object.entries(usage)) {
+      if (typeof count !== "number") continue
+      totalCalls += count
+      if (count > topCount) { topCount = count; topProvider = key.split(":")[0] }
+    }
+    const cost = totalCalls
+    const pct = limit > 0 ? Math.min(100, Math.round((cost / limit) * 100)) : 0
+    return { limit, cost, topProvider }
+  } catch {
+    return { limit: 100, cost: 0, topProvider: "" }
+  }
+}
+
+async function pollEURINHASH(): Promise<{ providerStates: Record<string, string>; fallbackCount: number; quotaToday: number; auditTail: string; sensitiveOpsToday: number; dangerousOpsToday: number; budgetPct: number; budgetLimit: number; todayCost: number; topProvider: string }> {
+  const [states, quota, tail, counts, budget] = await Promise.all([
+    readCircuit(), readQuota(), readAuditTail(), readAuditCounts(), readBudget(),
+  ])
+  const fallbackCount = Object.values(states).filter((s) => s === "OPEN").length
+  const budgetPct = budget.limit > 0 ? Math.min(100, Math.round((budget.cost / budget.limit) * 100)) : 0
+  return {
+    providerStates: states, fallbackCount, quotaToday: quota, auditTail: tail,
+    sensitiveOpsToday: counts.sensitiveOps, dangerousOpsToday: counts.dangerousOps,
+    budgetPct, budgetLimit: budget.limit, todayCost: budget.cost, topProvider: budget.topProvider,
+  }
 }
 
 // ─── Formatters ───────────────────────────────────────────────────────
@@ -488,6 +741,73 @@ function renderWidget(w: WidgetDef, data: StatusData, theme: TuiThemeCurrent): S
       const filled = Math.round((Math.min(data.contextPct, 100) / 100) * width)
       const bar = "█".repeat(filled) + "░".repeat(width - filled)
       return [val(bar, contextColor(theme, data.contextPct))]
+    }
+
+    case "provider-health": {
+      const glyphs = CIRCUIT_ORDER.map((p) => {
+        const state = data.providerStates[p] ?? "UNKNOWN"
+        const { glyph, color: c } = circuitGlyph(state)
+        return seg(glyph, c(theme), true)
+      })
+      const glyphStr = glyphs.map((s) => s.text).join("")
+      return glyphStr ? [seg(`SYS ${glyphStr}`, theme.accent, true)] : null
+    }
+
+    case "routing-chain": {
+      const active = data.model ? data.model.split("/")[0].toLowerCase() : "?"
+      const workers = ["codestral", "groq", "zhipu", "novita"]
+      const parts: Segment[] = workers.map((w) => {
+        const isActive = w === active
+        return seg(w + (isActive ? "▸" : ""), isActive ? theme.accent : theme.textMuted, isActive)
+      })
+      const fb = data.fallbackCount
+      const fbColor = fb === 0 ? muted : fb >= 3 ? theme.error : theme.warning
+      parts.push(seg(` ×${fb}`, fbColor, fb > 0))
+      return parts
+    }
+
+    case "quota-bar": {
+      const limit = 500
+      const width = 12
+      const pct = Math.min(100, Math.round((data.quotaToday / limit) * 100))
+      const filled = Math.round((pct / 100) * width)
+      const bar = "█".repeat(filled) + "░".repeat(width - filled)
+      const barColor = pct >= 80 ? theme.error : pct >= 60 ? theme.warning : theme.success
+      return [val(bar, barColor), seg(` Q${data.quotaToday}/${limit}`, muted)]
+    }
+
+    case "audit-tail": {
+      const tail = data.auditTail || ""
+      return tail ? [val(`LOG ${tail}`, theme.textMuted)] : null
+    }
+
+    case "budget": {
+      const pct = data.budgetPct
+      const limit = data.budgetLimit
+      const width = 10
+      const filled = Math.round((Math.min(pct, 100) / 100) * width)
+      const bar = "█".repeat(filled) + "░".repeat(width - filled)
+      const barColor = pct >= 90 ? theme.error : pct >= 70 ? theme.warning : pct === 0 ? theme.textMuted : theme.success
+      const topP = data.topProvider ? ` · ${data.topProvider}` : ""
+      const label = limit === 0 ? "BGT —" : `BGT ${bar} ${data.todayCost}/${limit}${topP}`
+      return [val(label, barColor)]
+    }
+
+    case "sensitive-ops": {
+      const n = data.sensitiveOpsToday
+      if (n === 0) return [seg("SENS 0", muted)]
+      return [seg(`SENS ${n}`, n >= 5 ? theme.error : theme.warning, true)]
+    }
+
+    case "risk-level": {
+      const danger = data.dangerousOpsToday
+      if (danger > 0) return [seg(`RISK ● ${danger}`, theme.error, true)]
+      const sens = data.sensitiveOpsToday
+      const openCount = Object.values(data.providerStates).filter((s) => s === "OPEN").length
+      const fb = data.fallbackCount
+      if (openCount > 0 || fb >= 3) return [seg(`RISK ▲`, theme.warning, true)]
+      if (sens > 3) return [seg(`RISK ◐ ${sens}`, theme.warning, false)]
+      return [seg(`RISK ●`, theme.success, true)]
     }
 
     case "reasoning":
@@ -844,13 +1164,14 @@ function showLocalePickerDialog(
   const m = getMessages(config().locale)
   const DialogSelect = api.ui.DialogSelect
   api.ui.dialog.setSize("medium")
-  const current = config().locale ?? "zh-CN"
+  const current = config().locale ?? "fr"
   api.ui.dialog.replace(() => (
     <DialogSelect
       title={m.localeTitle}
       options={[
-        { title: `${current === "zh-CN" ? "●" : "○"} 中文`, value: "zh-CN", description: "" },
+        { title: `${current === "fr" ? "●" : "○"} Français`, value: "fr", description: "" },
         { title: `${current === "en" ? "●" : "○"} English`, value: "en", description: "" },
+        { title: `${current === "zh-CN" ? "●" : "○"} 中文`, value: "zh-CN", description: "" },
         { title: m.profilesBack, value: null, description: "" },
       ]}
       onSelect={async (opt) => {
@@ -903,26 +1224,33 @@ function showToggleDialog(
 // ─── Dialog: Edit Layout — Line picker ────────────────────────────────
 
 function linePreview(line: WidgetDef[], locale?: Locale): string {
-  const m = getMessages(locale)
-  const shown = line.filter((w) => !w.hide)
-  if (shown.length === 0) return m.noVisible
-  return shown
-    .map((w) => {
-      switch (w.type) {
-        case "separator": return "│"
-        case "context-bar": return "▤▤"
-        case "text": return w.text || "txt"
-        case "model": return "M"
-        case "tokens": return "↑↓"
-        case "speed": return "tok/s"
-        case "cost": return "$"
-        case "context-pct": return "%"
-        case "duration": return "⏱"
-        case "git-branch": return "git"
+   const m = getMessages(locale)
+   const shown = line.filter((w) => !w.hide)
+   if (shown.length === 0) return m.noVisible
+   return shown
+     .map((w) => {
+       switch (w.type) {
+         case "separator": return "│"
+         case "context-bar": return "▤▤"
+         case "text": return w.text || "txt"
+         case "model": return "M"
+         case "tokens": return "↑↓"
+         case "speed": return "tok/s"
+         case "cost": return "$"
+         case "context-pct": return "%"
+         case "duration": return "⏱"
+         case "git-branch": return "git"
+        case "provider-health": return "SYS"
+        case "routing-chain": return "ROUTE"
+        case "quota-bar": return "Q▇"
+        case "audit-tail": return "LOG"
+        case "sensitive-ops": return "SENS"
+        case "risk-level": return "RISK"
+        case "budget": return "BGT"
       }
-    })
-    .join(" ")
-}
+     })
+     .join(" ")
+ }
 
 function showLinePickerForMove(
   api: TuiPluginApi,
@@ -989,6 +1317,80 @@ function showWidgetListForLine(
   ))
 }
 
+// ─── Dialog: Audit Details ──────────────────────────────────────────────
+
+function showAuditDetailsDialog(
+  api: TuiPluginApi,
+  config: () => StatuslineConfig,
+  setConfig: (c: StatuslineConfig) => void,
+  lineIdx: number,
+  col: number,
+) {
+  const DialogSelect = api.ui.DialogSelect
+  api.ui.dialog.setSize("large")
+  api.ui.dialog.replace(async () => {
+    let lastEvent: Record<string, unknown> = {}
+    let options: TuiDialogSelectOption<string | null>[] = []
+    try {
+      const { readdirSync } = await import("fs")
+      const files = readdirSync(join(EURINHASH_DIR, "logs"))
+        .filter((f: string) => /^audit-.*\.jsonl$/.test(f))
+        .sort()
+      if (files.length > 0) {
+        const { readFileSync } = await import("fs")
+        const buf = readFileSync(join(EURINHASH_DIR, "logs", files[files.length - 1]), "utf-8")
+        const lines = buf.split("\n").filter(Boolean)
+        if (lines.length > 0) {
+          lastEvent = JSON.parse(lines[lines.length - 1])
+        }
+      }
+    } catch { }
+
+    const fmt = (v: unknown): string => {
+      if (v === null || v === undefined) return "—"
+      if (typeof v === "boolean") return v ? "true" : "false"
+      if (typeof v === "object") {
+        const s = JSON.stringify(v)
+        return s.length > 60 ? s.slice(0, 58) + "…" : s
+      }
+      return String(v)
+    }
+
+    const fields: [string, string][] = [
+      ["timestamp", fmt(lastEvent.ts)],
+      ["event", fmt(lastEvent.event)],
+      ["tool", fmt((lastEvent as Record<string, unknown>).tool)],
+      ["agent", fmt((lastEvent as Record<string, unknown>).agent)],
+      ["session", fmt((lastEvent as Record<string, unknown>).sessionId)],
+      ["callId", fmt((lastEvent as Record<string, unknown>).callId)],
+      ["sensitive", fmt((lastEvent as Record<string, unknown>).sensitive)],
+      ["args", fmt((lastEvent as Record<string, unknown>).args)],
+    ]
+
+    const entries = fields.filter(([, v]) => v !== "—" && v !== "{}")
+    if (entries.length === 0) {
+      entries.push(["event", "no audit data"])
+    }
+
+    options = entries.map(([k, v]) => ({
+      title: `${k.padEnd(12)} ${v}`,
+      value: null,
+      description: "",
+    } as TuiDialogSelectOption<string | null>))
+    options.push({ title: "← Retour", value: null, description: "" })
+
+    return (
+      <DialogSelect
+        title="Audit — Last Event"
+        options={options}
+        onSelect={() => {
+          showWidgetActions(api, config, setConfig, lineIdx, col)
+        }}
+      />
+    )
+  })
+}
+
 // ─── Dialog: Widget actions (left/right/delete/color/etc) ─────────────
 
 function showWidgetActions(
@@ -1018,6 +1420,9 @@ function showWidgetActions(
   }
   options.push({ title: widget.hide ? m.widgetShow : m.widgetHide, value: "toggle", description: "" })
   options.push({ title: m.widgetColor, value: "color", description: "" })
+  if (widget.type === "audit-tail") {
+    options.push({ title: "🔍 Audit Details", value: "audit-details", description: "" })
+  }
   options.push({ title: m.widgetDelete, value: "delete", description: "" })
   options.push({ title: m.widgetActionsBack, value: null, description: "" })
 
@@ -1062,6 +1467,10 @@ function showWidgetActions(
           }
           case "color": {
             showColorPicker(api, config, setConfig, lineIdx, col)
+            break
+          }
+          case "audit-details": {
+            showAuditDetailsDialog(api, config, setConfig, lineIdx, col)
             break
           }
           case "delete": {
@@ -1351,7 +1760,7 @@ const tui: TuiPlugin = async (api, options, meta) => {
     const initialConfig = optionsConfig ?? (isValidConfig(kvConfig) ? kvConfig : DEFAULT_CONFIG)
     const [config, setConfig] = createSignal<StatuslineConfig>(initialConfig)
     if (!kvConfig && !optionsConfig) api.kv.set(KV_KEY, DEFAULT_CONFIG)
-    setLocale(initialConfig.locale ?? "zh-CN")
+    setLocale(initialConfig.locale ?? "fr")
 
     function modelDisplayName(providerID: string, modelID: string): { name: string; limit: number } {
       const provider = api.state.provider.find((p) => p.id === providerID)
@@ -1464,6 +1873,11 @@ const tui: TuiPlugin = async (api, options, meta) => {
 
     setData((prev) => ({ ...prev, gitBranch: api.state.vcs?.branch }))
 
+    const pollTimer = setInterval(async () => {
+      const extra = await pollEURINHASH()
+      setData((prev) => ({ ...prev, ...extra }))
+    }, 2000)
+
     const cmdM = getMessages(initialConfig.locale)
     api.keymap.registerLayer({
       commands: [
@@ -1495,6 +1909,7 @@ const tui: TuiPlugin = async (api, options, meta) => {
       unsubSession()
       unsubPart()
       unsubVcs()
+      clearInterval(pollTimer)
       dispose()
     })
 
