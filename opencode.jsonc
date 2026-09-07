@@ -10,11 +10,6 @@
     "./plugin/audit-logger.ts"
   ],
 
-  // ── Plugins désactivés (MORPH_API_KEY manquant) ──
-  "_disabled_plugins": [
-    "@f97/opencode-morph-fast-apply"
-  ],
-
   // ── Permissions globales ──
   "permission": {
     "skill": "allow",
@@ -151,16 +146,20 @@
       },
       "models": {
         "qwen/qwen3.8-27b": {
-          "name": "Qwen 3.8 27B (FREE, testé OK)"
+          "name": "Qwen 3.8 27B (FREE, testé OK)",
+          "limit": { "context": 131042, "output": 16384 }
         },
         "openai/gpt-oss-120b": {
-          "name": "GPT-OSS 120B (FREE)"
+          "name": "GPT-OSS 120B (FREE)",
+          "limit": { "context": 131072, "output": 8192 }
         },
         "openai/gpt-oss-20b": {
-          "name": "GPT-OSS 20B (FREE)"
+          "name": "GPT-OSS 20B (FREE)",
+          "limit": { "context": 131072, "output": 8192 }
         },
         "qwen/qwen3.6-27b": {
-          "name": "Qwen 3.6 27B (FREE)"
+          "name": "Qwen 3.6 27B (FREE)",
+          "limit": { "context": 131072, "output": 16384 }
         }
       }
     },
