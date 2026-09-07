@@ -1,0 +1,30 @@
+node_modules
+package.json
+bun.lock
+.gitignore
+.env
+.mammouth-key
+.zhipu-key
+.gemini-key
+.mistral-key
+.hf-key
+.groq-key
+.openrouter-key
+.novita-key
+.together-key
+.deepseek-key
+.zenmux-key
+.resend-key
+.morph-key
+# Runtime state files
+provider_circuit.json
+provider_usage.json
+free-models.json
+myfree-eurinhash-report.json
+opencode-mem.jsonc
+tui.json
+opencode.json.bak
+logs/
+# Python cache
+__pycache__/
+*.pyc.morph-key
