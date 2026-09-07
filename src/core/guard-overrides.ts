@@ -1,6 +1,7 @@
 // src/core/guard-overrides.ts — Guard Override System
 
 import { TaskSpec, PolicyDecision, PolicySpec, GuardOverride } from "./types";
+import { normalizeForMatching } from "./unicode-normalize";
 
 export class GuardOverrides {
   private overrides: GuardOverride[] = [];
@@ -12,19 +13,19 @@ export class GuardOverrides {
   private getDefaultOverrides(): GuardOverride[] {
     return [
       {
-        pattern: /rm\s+-rf\s+\/\S?/,
+        pattern: /rm\s+-rf\s+\/\S?/i,
         action: "BLOCK",
         policy: "HUMAN_ONLY",
         reason: "Recursive root delete blocked",
       },
       {
-        pattern: /mkfs/,
+        pattern: /mkfs/i,
         action: "BLOCK",
         policy: "HUMAN_ONLY",
         reason: "Filesystem format blocked",
       },
       {
-        pattern: /dd\s+if=/,
+        pattern: /dd\s+if=/i,
         action: "BLOCK",
         policy: "HUMAN_ONLY",
         reason: "Direct disk write blocked",
@@ -36,19 +37,19 @@ export class GuardOverrides {
         reason: "Database drop blocked",
       },
       {
-        pattern: /git\s+push\s+--force/,
+        pattern: /git\s+push\s+--force/i,
         action: "WARN",
         policy: "REVIEW_REQUIRED",
         reason: "Force push requires review",
       },
       {
-        pattern: /git\s+reset\s+--hard/,
+        pattern: /git\s+reset\s+--hard/i,
         action: "WARN",
         policy: "REVIEW_REQUIRED",
         reason: "Hard reset can cause data loss",
       },
       {
-        pattern: /curl\s+.*\|\s*sh/,
+        pattern: /curl\s+.*\|\s*sh/i,
         action: "BLOCK",
         policy: "HUMAN_ONLY",
         reason: "Pipe to shell execution blocked",
@@ -59,19 +60,75 @@ export class GuardOverrides {
         policy: "HUMAN_ONLY",
         reason: "Env file overwrite blocked",
       },
+      {
+        pattern: /rm\s+-[rf]/i,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "Recursive delete blocked",
+      },
+      {
+        pattern: /del\s+\/[fsq]/i,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "Windows force delete blocked",
+      },
+      {
+        pattern: /Remove-Item\s+-Recurse/i,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "PowerShell recursive delete blocked",
+      },
+      {
+        pattern: /shred\s+/i,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "Secure delete blocked",
+      },
+      {
+        pattern: /shutdown/i,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "System shutdown blocked",
+      },
+      {
+        pattern: /reboot/i,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "System reboot blocked",
+      },
+      {
+        pattern: /halt/i,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "System halt blocked",
+      },
+      {
+        pattern: /poweroff/i,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "System power off blocked",
+      },
+      {
+        pattern: /:\(\)\s*\{[^}]*:\|[^}]*:&/i,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "Fork bomb blocked",
+      },
     ];
   }
 
-  /**
-   * Check if a task matches any guard override
-   */
+  private normalizeForMatching(text: string): string {
+    return normalizeForMatching(text);
+  }
+
   check(task: TaskSpec): {
     matched: boolean;
     override?: GuardOverride;
     decision: "BLOCKED" | "WARN" | "ALLOWED";
     reason: string;
   } {
-    const searchText = this.buildSearchText(task);
+    const rawText = this.buildSearchText(task);
+    const searchText = this.normalizeForMatching(rawText);
 
     for (const override of this.overrides) {
       if (override.pattern.test(searchText)) {
