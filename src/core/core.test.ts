@@ -34,6 +34,75 @@ describe("classifyTask", () => {
   });
 });
 
+describe("Security: Unicode Normalization (F-001)", () => {
+  test("blocks Cyrillic homoglyph of deploy", () => {
+    expect(classifyTask({ description: "d\u0435ploy to production" })).toBe(TaskType.DESTRUCTIVE_OP);
+  });
+
+  test("blocks Cyrillic homoglyph of delete", () => {
+    expect(classifyTask({ description: "d\u0435l\u0435t\u0435 database" })).toBe(TaskType.DESTRUCTIVE_OP);
+  });
+
+  test("blocks Cyrillic MAJUSCULE deploy", () => {
+    expect(classifyTask({ description: "D\u0415LOY to production" })).toBe(TaskType.DESTRUCTIVE_OP);
+  });
+
+  test("blocks Cyrillic MAJUSCULE delete", () => {
+    expect(classifyTask({ description: "D\u0415L\u0415T\u0415 DATABASE" })).toBe(TaskType.DESTRUCTIVE_OP);
+  });
+
+  test("blocks fullwidth character bypass", () => {
+    expect(classifyTask({ description: "\uFF44\uFF45\uFF50\uFF4C\uFF4F\uFF59 production" })).toBe(TaskType.DESTRUCTIVE_OP);
+  });
+
+  test("blocks zero-width joiner injection", () => {
+    expect(classifyTask({ description: "d\u200Bdeploy to production" })).toBe(TaskType.DESTRUCTIVE_OP);
+  });
+
+  test("blocks mongolian vowel separator", () => {
+    expect(classifyTask({ description: "DROP\u180E DATABASE" })).toBe(TaskType.DESTRUCTIVE_OP);
+  });
+});
+
+describe("Security: Guard Bypass Prevention (F-002)", () => {
+  const guards = new GuardOverrides();
+
+  test("blocks cyrillic rm variant", () => {
+    expect(guards.check({ description: "r\u043C -rf /tmp" }).decision).toBe("BLOCKED");
+  });
+
+  test("blocks cyrillic rf variant", () => {
+    expect(guards.check({ description: "rm -\u0440\u0444 /tmp" }).decision).toBe("BLOCKED");
+  });
+
+  test("blocks zero-width rm bypass", () => {
+    expect(guards.check({ description: "rm\u200b -rf /" }).decision).toBe("BLOCKED");
+  });
+
+  test("blocks uppercase dangerous commands", () => {
+    expect(guards.check({ description: "RM -RF /" }).decision).toBe("BLOCKED");
+    expect(guards.check({ description: "MKFS" }).decision).toBe("BLOCKED");
+    expect(guards.check({ description: "DD IF=/DEV/ZERO" }).decision).toBe("BLOCKED");
+  });
+
+  test("blocks recursive delete rm -r", () => {
+    expect(guards.check({ description: "rm -r /var/data" }).decision).toBe("BLOCKED");
+  });
+
+  test("blocks system shutdown", () => {
+    expect(guards.check({ description: "shutdown -h now" }).decision).toBe("BLOCKED");
+  });
+
+  test("blocks fork bomb", () => {
+    expect(guards.check({ description: ":(){ :|:& };:" }).decision).toBe("BLOCKED");
+  });
+
+  test("allows safe operations", () => {
+    expect(guards.check({ description: "read the documentation" }).decision).toBe("ALLOWED");
+    expect(guards.check({ description: "compile the project" }).decision).toBe("ALLOWED");
+  });
+});
+
 describe("assessRisk", () => {
   test("destructive operation is CRITICAL", () => {
     expect(assessRisk({ description: "x", operation: "rm -rf /" })).toBe(RiskLevel.CRITICAL);
@@ -141,10 +210,17 @@ describe("GovernanceOrchestrator", () => {
     expect(result.riskLevel).toBe(RiskLevel.LOW);
   });
 
-  test("approves L2 task with proofs", async () => {
+  test("blocks L2 task with placeholder proofs (F-003 fix)", async () => {
     const result = await orchestrator.execute({ description: "refactor loader module in src" });
-    expect(result.verdict).toBe("APPROVED");
+    expect(result.verdict).toBe("BLOCKED");
     expect(result.proofStatus).toBe("PASS");
+    expect(result.policyDecision.proofsRequired.length).toBeGreaterThan(0);
+  });
+
+  test("approves L1 task without proof requirements", async () => {
+    const result = await orchestrator.execute({ description: "fix typo in readme" });
+    expect(result.verdict).toBe("APPROVED");
+    expect(result.taskType).toBe(TaskType.CONFIG);
   });
 
   test("blocks guard-matched destructive task", async () => {
