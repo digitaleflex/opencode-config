@@ -1,0 +1,17 @@
+# Build / deps / runtime state
+node_modules/
+dist/
+logs/
+.omo/
+bun.lockb
+
+# Vendored / archived content (not ours to reformat)
+skills-archive/
+.oh-my-opencode-slim/
+
+# Formats prettier cannot / should not touch here
+*.jsonl
+*.jsonc
+*.md
+plugins/
+tests/fixtures/

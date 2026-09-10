@@ -199,7 +199,12 @@ function parseAllowlistFromYaml(content: string): string[] | undefined {
     if (inside === "") return [];
     const items = inside
       .split(",")
-      .map((s) => s.trim().replace(/^["']|["']$/g, "").trim())
+      .map((s) =>
+        s
+          .trim()
+          .replace(/^["']|["']$/g, "")
+          .trim()
+      )
       .filter((s) => s.length > 0)
       .map((s) => s.toLowerCase());
     return items;
@@ -302,7 +307,10 @@ function extractHostsFromUrls(command: string): string[] {
     // Split at first / or ? or #
     hostPort = hostPort.split("/")[0].split("?")[0].split("#")[0];
     // Remove port
-    const host = hostPort.split(":")[0].replace(/[.,;]+$/, "").toLowerCase();
+    const host = hostPort
+      .split(":")[0]
+      .replace(/[.,;]+$/, "")
+      .toLowerCase();
     if (host) hosts.push(host);
   }
   return hosts;
@@ -409,7 +417,10 @@ export function checkEgress(
 
   if (allHosts.length === 0) {
     // Tool detected but no host could be extracted => fail-closed
-    return { allowed: false, reason: `EGRESS_DENIED: egress tool detected but host not parseable, blocked (fail-closed)` };
+    return {
+      allowed: false,
+      reason: `EGRESS_DENIED: egress tool detected but host not parseable, blocked (fail-closed)`,
+    };
   }
 
   // Check each host against allowlist (exact or subdomain suffix)

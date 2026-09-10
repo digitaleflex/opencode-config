@@ -22,7 +22,12 @@ export interface InjectionScanReport {
 }
 
 // Injection pattern categories
-const INJECTION_PATTERNS: { category: string; patterns: RegExp[]; action: "BLOCK" | "WARN"; severity: number }[] = [
+const INJECTION_PATTERNS: {
+  category: string;
+  patterns: RegExp[];
+  action: "BLOCK" | "WARN";
+  severity: number;
+}[] = [
   {
     category: "SYSTEM_PROMPT_EXTRACTION",
     patterns: [
@@ -111,8 +116,8 @@ const INJECTION_PATTERNS: { category: string; patterns: RegExp[]; action: "BLOCK
       /exec\s*\(\s*(req|request|input|param|query)/i,
       /system\s*\(\s*(req|request|input|param|query)/i,
       /subprocess\.(call|run|Popen)\s*\(\s*(req|request|input|param|query)/i,
-      /\$\{.*\$\{.*\}/,  // nested template literal injection
-      /`\s*\$\{[^}]*\}.*\$\{[^}]*\}/,  // template literal with multiple interpolations
+      /\$\{.*\$\{.*\}/, // nested template literal injection
+      /`\s*\$\{[^}]*\}.*\$\{[^}]*\}/, // template literal with multiple interpolations
     ],
     action: "BLOCK",
     severity: 0.9,
@@ -123,9 +128,9 @@ const INJECTION_PATTERNS: { category: string; patterns: RegExp[]; action: "BLOCK
       /\[SYSTEM\]/i,
       /\[\/SYSTEM\]/i,
       /<!--\s*(system|hidden|secret|internal)\s*-->/i,
-      /\x00/,  // null bytes
-      /\\x00/,  // escaped null bytes
-      /\\u0000/,  // unicode null bytes
+      /\x00/, // null bytes
+      /\\x00/, // escaped null bytes
+      /\\u0000/, // unicode null bytes
     ],
     action: "BLOCK",
     severity: 0.7,
@@ -218,7 +223,13 @@ export class InjectionDetector {
 
     const categories = [...new Set(detections.map((d) => d.category))];
 
-    const report: InjectionScanReport = { detected: detections.length > 0, detections, riskScore, action, categories };
+    const report: InjectionScanReport = {
+      detected: detections.length > 0,
+      detections,
+      riskScore,
+      action,
+      categories,
+    };
     this.scanHistory.push(report);
 
     return report;
@@ -236,7 +247,12 @@ export class InjectionDetector {
     return this.scanHistory.length;
   }
 
-  getDetectionStats(): { total: number; blocked: number; warned: number; categories: Record<string, number> } {
+  getDetectionStats(): {
+    total: number;
+    blocked: number;
+    warned: number;
+    categories: Record<string, number>;
+  } {
     const categories: Record<string, number> = {};
     let blocked = 0;
     let warned = 0;

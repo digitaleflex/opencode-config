@@ -1,5 +1,10 @@
 import { TaskType, TaskSpec } from "./types";
-import { stripInvisibleChars, transliterateToAscii, normalizeForMatching, normalizeForMatchingVariants } from "./unicode-normalize";
+import {
+  stripInvisibleChars,
+  transliterateToAscii,
+  normalizeForMatching,
+  normalizeForMatchingVariants,
+} from "./unicode-normalize";
 
 export { TaskType };
 
@@ -32,12 +37,12 @@ function validateAndNormalize(task: TaskSpec): string {
 function isAmbiguous(desc: string): boolean {
   const words = desc.split(/\s+/);
   if (words.length > 4) return false; // Specific tasks have more words
-  
+
   const ambiguousPatterns = [
     /^make things? (better|good|work)$/i,
     /^improve (it|things?|code|system)$/i,
     /^help$/i,
-    /^please (help|fix|improve)(\s+\w+)?$/i,  // allow one extra word
+    /^please (help|fix|improve)(\s+\w+)?$/i, // allow one extra word
     /^do (it|this|something)$/i,
     /^fix (it|this|stuff|things?)$/i,
     /^make it (work|better|fast)$/i,
@@ -60,7 +65,9 @@ export function classifyTask(task: TaskSpec): TaskType {
 
   // R-004: Reject ambiguous descriptions (only very short generic ones)
   if (isAmbiguous(primary)) {
-    throw new Error("Ambiguous task description: cannot classify safely — please provide specific intent");
+    throw new Error(
+      "Ambiguous task description: cannot classify safely — please provide specific intent"
+    );
   }
 
   // Destructive/critical keywords must be checked FIRST — a destructive task
@@ -95,13 +102,7 @@ export function classifyTask(task: TaskSpec): TaskType {
   }
 
   // L1 - Simple
-  if (
-    has("typo") ||
-    has("fix") ||
-    has("config") ||
-    has("format") ||
-    has("readme")
-  ) {
+  if (has("typo") || has("fix") || has("config") || has("format") || has("readme")) {
     return TaskType.CONFIG;
   }
 

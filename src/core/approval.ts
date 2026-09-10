@@ -58,7 +58,14 @@ function normalizeKey(key?: Buffer | string): Buffer {
   return resolveApprovalKey();
 }
 
-function canonicalPayload(p: { taskId: string; approver: string; scope: string[]; issuedAt: number; expiresAt: number; nonce: string }): string {
+function canonicalPayload(p: {
+  taskId: string;
+  approver: string;
+  scope: string[];
+  issuedAt: number;
+  expiresAt: number;
+  nonce: string;
+}): string {
   return JSON.stringify({
     taskId: p.taskId,
     approver: p.approver,
@@ -69,7 +76,17 @@ function canonicalPayload(p: { taskId: string; approver: string; scope: string[]
   });
 }
 
-function computeSig(payload: { taskId: string; approver: string; scope: string[]; issuedAt: number; expiresAt: number; nonce: string }, key: Buffer): string {
+function computeSig(
+  payload: {
+    taskId: string;
+    approver: string;
+    scope: string[];
+    issuedAt: number;
+    expiresAt: number;
+    nonce: string;
+  },
+  key: Buffer
+): string {
   const canonical = canonicalPayload(payload);
   return createHmac("sha256", key).update(canonical, "utf8").digest("hex");
 }
@@ -80,11 +97,21 @@ function cleanupNonces(now: number): void {
   }
 }
 
-export function issueApproval(params: { taskId: string; approver: string; scope?: string[]; ttlMs?: number; key?: Buffer | string }): ApprovalToken {
+export function issueApproval(params: {
+  taskId: string;
+  approver: string;
+  scope?: string[];
+  ttlMs?: number;
+  key?: Buffer | string;
+}): ApprovalToken {
   if (!params.taskId || typeof params.taskId !== "string" || params.taskId.trim().length === 0) {
     throw new Error("issueApproval: taskId must be non-empty string");
   }
-  if (!params.approver || typeof params.approver !== "string" || params.approver.trim().length === 0) {
+  if (
+    !params.approver ||
+    typeof params.approver !== "string" ||
+    params.approver.trim().length === 0
+  ) {
     throw new Error("issueApproval: approver must be non-empty string");
   }
   const key = normalizeKey(params.key);
@@ -93,11 +120,26 @@ export function issueApproval(params: { taskId: string; approver: string; scope?
   const ttlMs = params.ttlMs ?? DEFAULT_TTL_MS;
   const expiresAt = issuedAt + ttlMs;
   const nonce = randomBytes(NONCE_BYTES).toString("hex"); // 32 hex chars, >8
-  const sig = computeSig({ taskId: params.taskId, approver: params.approver, scope, issuedAt, expiresAt, nonce }, key);
-  return { taskId: params.taskId, approver: params.approver, scope, issuedAt, expiresAt, nonce, sig };
+  const sig = computeSig(
+    { taskId: params.taskId, approver: params.approver, scope, issuedAt, expiresAt, nonce },
+    key
+  );
+  return {
+    taskId: params.taskId,
+    approver: params.approver,
+    scope,
+    issuedAt,
+    expiresAt,
+    nonce,
+    sig,
+  };
 }
 
-export function verifyApproval(token: ApprovalToken, taskId: string, key?: Buffer | string): { valid: boolean; reason?: string } {
+export function verifyApproval(
+  token: ApprovalToken,
+  taskId: string,
+  key?: Buffer | string
+): { valid: boolean; reason?: string } {
   const now = Date.now();
   cleanupNonces(now);
 
@@ -105,7 +147,15 @@ export function verifyApproval(token: ApprovalToken, taskId: string, key?: Buffe
     return { valid: false, reason: "invalid token structure" };
   }
   const t = token as ApprovalToken;
-  if (typeof t.taskId !== "string" || typeof t.approver !== "string" || !Array.isArray(t.scope) || typeof t.issuedAt !== "number" || typeof t.expiresAt !== "number" || typeof t.nonce !== "string" || typeof t.sig !== "string") {
+  if (
+    typeof t.taskId !== "string" ||
+    typeof t.approver !== "string" ||
+    !Array.isArray(t.scope) ||
+    typeof t.issuedAt !== "number" ||
+    typeof t.expiresAt !== "number" ||
+    typeof t.nonce !== "string" ||
+    typeof t.sig !== "string"
+  ) {
     return { valid: false, reason: "invalid token fields" };
   }
   if (t.nonce.length < NONCE_MIN_LEN) {
@@ -122,7 +172,17 @@ export function verifyApproval(token: ApprovalToken, taskId: string, key?: Buffe
   }
   // Signature verification
   const resolvedKey = normalizeKey(key);
-  const expectedSig = computeSig({ taskId: t.taskId, approver: t.approver, scope: t.scope, issuedAt: t.issuedAt, expiresAt: t.expiresAt, nonce: t.nonce }, resolvedKey);
+  const expectedSig = computeSig(
+    {
+      taskId: t.taskId,
+      approver: t.approver,
+      scope: t.scope,
+      issuedAt: t.issuedAt,
+      expiresAt: t.expiresAt,
+      nonce: t.nonce,
+    },
+    resolvedKey
+  );
   const a = Buffer.from(t.sig, "utf8");
   const b = Buffer.from(expectedSig, "utf8");
   if (a.length !== b.length) {

@@ -88,7 +88,9 @@ describe("fuzz: shell canonicalizer bypass resistance", () => {
         const result = guards.check({ description: mutated });
         checked++;
         if (result.decision !== "BLOCKED") {
-          counterExamples.push(`${JSON.stringify(mutated)} -> ${result.decision} (${result.reason})`);
+          counterExamples.push(
+            `${JSON.stringify(mutated)} -> ${result.decision} (${result.reason})`
+          );
         }
       }
       if (counterExamples.length > 0) {

@@ -100,14 +100,20 @@ export class MerkleAuditTrail {
   record(entry: Omit<AuditEntry, "seq" | "leafHash" | "parentHash" | "redactions">): AuditEntry {
     // Redact secrets BEFORE hashing/persisting: the trail records that a
     // redaction occurred (types + counts) but never the secret value.
-    const cleanDesc = typeof entry.taskDescription === "string"
-      ? redactDeep(entry.taskDescription)
-      : { value: entry.taskDescription, redactions: [] as Redaction[] };
+    const cleanDesc =
+      typeof entry.taskDescription === "string"
+        ? redactDeep(entry.taskDescription)
+        : { value: entry.taskDescription, redactions: [] as Redaction[] };
     const cleanDetail = redactDeep(entry.detail);
     const redactions = [...cleanDesc.redactions, ...cleanDetail.redactions];
 
     const seq = this.leaves.length;
-    const leafHash = this.computeLeafHash(entry.taskId, entry.stage, entry.decision, cleanDetail.value);
+    const leafHash = this.computeLeafHash(
+      entry.taskId,
+      entry.stage,
+      entry.decision,
+      cleanDetail.value
+    );
     const parentHash = this.computeParentHash(seq, leafHash);
 
     const fullEntry: AuditEntry = {
@@ -223,7 +229,12 @@ export class MerkleAuditTrail {
     if (index < 0 || index >= this.leaves.length) return false;
 
     const entry = this.leaves[index];
-    const expectedLeafHash = this.computeLeafHash(entry.taskId, entry.stage, entry.decision, entry.detail);
+    const expectedLeafHash = this.computeLeafHash(
+      entry.taskId,
+      entry.stage,
+      entry.decision,
+      entry.detail
+    );
 
     // Verify leaf hash (with domain separation)
     if (entry.leafHash !== expectedLeafHash) return false;
@@ -369,7 +380,12 @@ export class MerkleAuditTrail {
    * H(0x00 || taskId || stage || decision || detail)
    * or HMAC-SHA256 when a key is configured.
    */
-  private computeLeafHash(taskId: string, stage: string, decision: string, detail: unknown): string {
+  private computeLeafHash(
+    taskId: string,
+    stage: string,
+    decision: string,
+    detail: unknown
+  ): string {
     const content = `${taskId}|${stage}|${decision}|${JSON.stringify(detail)}`;
     const payload = Buffer.concat([Buffer.from([0x00]), Buffer.from(content)]);
     if (this.auditKey) {

@@ -23,7 +23,10 @@ interface SecretPattern {
 // Ordered most-specific first so generic patterns don't swallow specific ones.
 const SECRET_PATTERNS: SecretPattern[] = [
   { type: "AWS_ACCESS_KEY", pattern: /\bAKIA[0-9A-Z]{16}\b/g },
-  { type: "AWS_SECRET_KEY", pattern: /\baws_secret_access_key\s*[:=]\s*['"]?[A-Za-z0-9/+=]{40}['"]?/gi },
+  {
+    type: "AWS_SECRET_KEY",
+    pattern: /\baws_secret_access_key\s*[:=]\s*['"]?[A-Za-z0-9/+=]{40}['"]?/gi,
+  },
   { type: "GITHUB_PAT", pattern: /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}\b/g },
   { type: "GITHUB_FINE_PAT", pattern: /\bgithub_pat_[A-Za-z0-9_]{22,}\b/g },
   { type: "OPENAI_KEY", pattern: /\bsk-(?:proj-)?[A-Za-z0-9]{20,}\b/g },
@@ -31,9 +34,20 @@ const SECRET_PATTERNS: SecretPattern[] = [
   { type: "ANTHROPIC_KEY", pattern: /\bsk-ant-[A-Za-z0-9\-_]{20,}\b/g },
   { type: "SLACK_TOKEN", pattern: /\bxox[baprs]-[A-Za-z0-9\-]{10,}\b/g },
   { type: "JWT", pattern: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g },
-  { type: "PEM_PRIVATE_KEY", pattern: /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/g },
-  { type: "AZURE_STORAGE_KEY", pattern: /DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[^;\s]+;?/g },
-  { type: "GENERIC_CREDENTIAL", pattern: /\b(?:api[_-]?key|secret|passwd|password|auth[_-]?token|access[_-]?token)\s*[:=]\s*['"]?[A-Za-z0-9_\-./+=]{12,}['"]?/gi },
+  {
+    type: "PEM_PRIVATE_KEY",
+    pattern:
+      /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/g,
+  },
+  {
+    type: "AZURE_STORAGE_KEY",
+    pattern: /DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[^;\s]+;?/g,
+  },
+  {
+    type: "GENERIC_CREDENTIAL",
+    pattern:
+      /\b(?:api[_-]?key|secret|passwd|password|auth[_-]?token|access[_-]?token)\s*[:=]\s*['"]?[A-Za-z0-9_\-./+=]{12,}['"]?/gi,
+  },
 ];
 
 export function scanSecrets(text: string): Redaction[] {

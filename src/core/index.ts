@@ -12,12 +12,7 @@ export { DriftDetector, DriftDimension } from "./drift-detection";
 export { BehavioralFSM } from "./behavioral-fsm";
 export { classifyTask } from "./classifier";
 export { assessRisk, getRiskFromComplexity } from "./risk-assessor";
-export {
-  TaskComplexity,
-  RiskLevel,
-  TaskType,
-  ProofType,
-} from "./types";
+export { TaskComplexity, RiskLevel, TaskType, ProofType } from "./types";
 export type {
   TaskSpec,
   PolicySpec,
@@ -53,6 +48,12 @@ export { VERSION } from "./version";
 export { redactSecrets, scanSecrets, redactDeep } from "./secret-redactor";
 export type { Redaction, RedactResult } from "./secret-redactor";
 export { scanStatic, bundledRuleCount } from "./static-rules";
-export type { StaticRule, StaticFinding, StaticScanReport, RuleSeverity, RuleCategory } from "./static-rules";
+export type {
+  StaticRule,
+  StaticFinding,
+  StaticScanReport,
+  RuleSeverity,
+  RuleCategory,
+} from "./static-rules";
 export { judgeSemantic, NoopJudgeProvider } from "./semantic-judge";
 export type { SemanticJudgment, JudgeProvider } from "./semantic-judge";

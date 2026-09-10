@@ -107,7 +107,11 @@ export class ProofVerifier {
       case ProofType.TESTS: {
         const t = evidence.testResult;
         if (!t) {
-          return { ...base, status: "PENDING", evidence: `No test evidence for: ${task.description}` };
+          return {
+            ...base,
+            status: "PENDING",
+            evidence: `No test evidence for: ${task.description}`,
+          };
         }
         return {
           ...base,
@@ -120,7 +124,11 @@ export class ProofVerifier {
       case ProofType.CODE_REVIEW: {
         const h = evidence.reviewHash;
         if (!h) {
-          return { ...base, status: "PENDING", evidence: `No code review evidence for: ${task.description}` };
+          return {
+            ...base,
+            status: "PENDING",
+            evidence: `No code review evidence for: ${task.description}`,
+          };
         }
         return {
           ...base,
@@ -133,7 +141,11 @@ export class ProofVerifier {
       case ProofType.SECURITY_SCAN: {
         const s = evidence.scanReport;
         if (!s) {
-          return { ...base, status: "PENDING", evidence: `No security scan evidence for: ${task.description}` };
+          return {
+            ...base,
+            status: "PENDING",
+            evidence: `No security scan evidence for: ${task.description}`,
+          };
         }
         return {
           ...base,
@@ -146,7 +158,11 @@ export class ProofVerifier {
       case ProofType.HUMAN_APPROVAL: {
         const a = evidence.approvalToken;
         if (!a) {
-          return { ...base, status: "PENDING", evidence: `Human approval pending for: ${task.description}` };
+          return {
+            ...base,
+            status: "PENDING",
+            evidence: `Human approval pending for: ${task.description}`,
+          };
         }
         // Structured signed token (preferred — EURINHASH #6 / Art.14)
         if (typeof a === "object") {
@@ -195,7 +211,9 @@ export class ProofVerifier {
       case ProofType.SECURITY_SCAN:
         return evidence.scanReport;
       case ProofType.HUMAN_APPROVAL:
-        return evidence.approvalToken !== undefined ? { approvalToken: evidence.approvalToken } : undefined;
+        return evidence.approvalToken !== undefined
+          ? { approvalToken: evidence.approvalToken }
+          : undefined;
       default:
         return undefined;
     }

@@ -13,12 +13,7 @@ import {
   classifyTask,
   ProofType,
 } from "../../src/core/index.ts";
-import type {
-  ProofChain,
-  Proof,
-  TaskSpec,
-  ExecutionResult,
-} from "../../src/core/index.ts";
+import type { ProofChain, Proof, TaskSpec, ExecutionResult } from "../../src/core/index.ts";
 
 import * as fs from "fs";
 import * as path from "path";
@@ -65,7 +60,11 @@ async function tryExecute(orchestrator: GovernanceOrchestrator, t: TaskSpec) {
 function isDangerous(t: TaskSpec): boolean {
   const d = (t.description + " " + (t.operation ?? "")).toLowerCase();
   if (/rm\s+-rf|drop database|mkfs|dd if=|truncate|destroy/.test(d)) return true;
-  if (t.data && /password|secret|token|pii|health|financial/.test(JSON.stringify(t.data).toLowerCase())) return true;
+  if (
+    t.data &&
+    /password|secret|token|pii|health|financial/.test(JSON.stringify(t.data).toLowerCase())
+  )
+    return true;
   if (t.environment === "production") return true;
   return false;
 }
@@ -142,7 +141,8 @@ async function s02_simple_critical(): Promise<ScenarioResult> {
   return {
     scenario: "CHAOS-02",
     injected: "Trivial description + `rm -rf /` smuggled in operation field",
-    expected: "classify→DESTRUCTIVE_OP, risk CRITICAL, guard BLOCKED, verdict BLOCKED (fail-closed)",
+    expected:
+      "classify→DESTRUCTIVE_OP, risk CRITICAL, guard BLOCKED, verdict BLOCKED (fail-closed)",
     actual: out.join(" | "),
     verdicts: out,
     latencyMs: lat,
@@ -231,7 +231,9 @@ async function s05_missing_policy(): Promise<ScenarioResult> {
     const r = await tryExecute(new GovernanceOrchestrator(), task);
     lat.push(r.latency);
     if (r.ok) {
-      out.push(`${r.result.verdict}@${r.result.policyDecision.decision}/${r.result.policyDecision.reason}`);
+      out.push(
+        `${r.result.verdict}@${r.result.policyDecision.decision}/${r.result.policyDecision.reason}`
+      );
     } else {
       crash = true;
       out.push(`CRASH:${(r as { stack?: string }).stack?.split("\n")[0] ?? "TypeError"}`);
@@ -264,7 +266,8 @@ async function s06_invalid_policy(): Promise<ScenarioResult> {
 
   return {
     scenario: "CHAOS-06",
-    injected: "Declared policy source (src/policies/default.yaml) never wired; L4 approvals structurally impossible",
+    injected:
+      "Declared policy source (src/policies/default.yaml) never wired; L4 approvals structurally impossible",
     expected: "Engine consistent with declared policy; sanctioned L4 flows reach approval",
     actual: r.ok
       ? `${r.result.verdict}@${r.result.policyDecision.decision}/${r.result.policyDecision.reason}`
@@ -515,7 +518,11 @@ async function s16_hash_valid_work_invalid(): Promise<ScenarioResult> {
   try {
     const chain = pv.generateProofChain(task, policy4);
     // Claim evidence that was never produced (valid structure, fake work)
-    const forged: Proof = { ...chain.proofs[0], evidence: "security scan: NOTHING ran", status: "PASS" };
+    const forged: Proof = {
+      ...chain.proofs[0],
+      evidence: "security scan: NOTHING ran",
+      status: "PASS",
+    };
     const forgedChain: ProofChain = {
       taskId: chain.taskId,
       proofs: [forged],
@@ -675,9 +682,7 @@ async function s20_highload(): Promise<ScenarioResult> {
   const t0 = now();
 
   const jobs = Array.from({ length: 1000 }, async (_, i) => {
-    const t = i % 10 < 3
-      ? { description: "add feature x pagination" }
-      : task;
+    const t = i % 10 < 3 ? { description: "add feature x pagination" } : task;
     const r = await tryExecute(new GovernanceOrchestrator(), t);
     lat.push(r.latency);
     if (r.ok) {
@@ -751,7 +756,11 @@ async function main() {
     proofVerifierGenerateHashByTypeRegistered: proofVerifierHasGenerateHashByType(),
   };
 
-  const out = { meta: { generatedAt: new Date().toISOString(), engine: "src/core (TS)", runs }, metrics, scenarios };
+  const out = {
+    meta: { generatedAt: new Date().toISOString(), engine: "src/core (TS)", runs },
+    metrics,
+    scenarios,
+  };
   const dest = path.join(__dirname, "results-governance.json");
   fs.writeFileSync(dest, JSON.stringify(out, null, 2));
   console.log(`Wrote ${dest} (${scenarios.length} scenarios, ${metrics.totalSamples} samples)`);

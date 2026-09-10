@@ -1,11 +1,6 @@
 // src/core/risk-assessor.ts — Risk Assessment Engine
 
-import {
-  TaskSpec,
-  RiskLevel,
-  TaskType,
-  TaskComplexity,
-} from "./types";
+import { TaskSpec, RiskLevel, TaskType, TaskComplexity } from "./types";
 
 export { RiskLevel };
 

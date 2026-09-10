@@ -45,7 +45,12 @@ export class McpGovernance {
   }
 
   registerManifest(manifest: McpManifest): void {
-    if (!manifest || typeof manifest.server !== "string" || !manifest.server.trim() || !Array.isArray(manifest.tools)) {
+    if (
+      !manifest ||
+      typeof manifest.server !== "string" ||
+      !manifest.server.trim() ||
+      !Array.isArray(manifest.tools)
+    ) {
       return;
     }
     const hashes = new Map<string, string>();
@@ -59,7 +64,12 @@ export class McpGovernance {
   }
 
   verifyManifest(manifest: McpManifest): { valid: boolean; reason?: string; changes?: string[] } {
-    if (!manifest || typeof manifest.server !== "string" || !manifest.server.trim() || !Array.isArray(manifest.tools)) {
+    if (
+      !manifest ||
+      typeof manifest.server !== "string" ||
+      !manifest.server.trim() ||
+      !Array.isArray(manifest.tools)
+    ) {
       return { valid: false, reason: "invalid manifest", changes: ["invalid manifest"] };
     }
 
@@ -98,7 +108,9 @@ export class McpGovernance {
 
     if (manifest.version !== stored.manifest.version) {
       if (manifest.version !== undefined || stored.manifest.version !== undefined) {
-        changes.push(`version changed: ${stored.manifest.version ?? "undefined"} -> ${manifest.version ?? "undefined"}`);
+        changes.push(
+          `version changed: ${stored.manifest.version ?? "undefined"} -> ${manifest.version ?? "undefined"}`
+        );
       }
     }
 
@@ -138,7 +150,8 @@ export class McpGovernance {
     }
 
     if (isUnknownServer) {
-      const reason = changes.length > 0 ? `unknown server; ${changes.join(", ")}` : "unknown server";
+      const reason =
+        changes.length > 0 ? `unknown server; ${changes.join(", ")}` : "unknown server";
       const ch = changes.length > 0 ? [...changes, "unknown server"] : ["unknown server"];
       return { valid: true, reason, changes: ch };
     }
@@ -165,7 +178,10 @@ export class McpGovernance {
     // Reuse injection detector
     const report = this.detector.scan(desc);
     if (report.detected) {
-      return { suspicious: true, reason: `injection pattern detected: ${report.categories.join(", ")}` };
+      return {
+        suspicious: true,
+        reason: `injection pattern detected: ${report.categories.join(", ")}`,
+      };
     }
 
     const toolPoisoningPatterns: RegExp[] = [
@@ -190,11 +206,15 @@ export class McpGovernance {
     ];
     for (const pat of toolPoisoningPatterns) {
       if (pat.test(normalized)) {
-        return { suspicious: true, reason: `imperative/injection instruction detected: ${pat.source.slice(0, 60)}` };
+        return {
+          suspicious: true,
+          reason: `imperative/injection instruction detected: ${pat.source.slice(0, 60)}`,
+        };
       }
     }
 
-    const imperativeStart = /^\s*(ignore|disregard|forget|reveal|execute|run|delete|send|exfiltrate|override|pretend|act)\b/i;
+    const imperativeStart =
+      /^\s*(ignore|disregard|forget|reveal|execute|run|delete|send|exfiltrate|override|pretend|act)\b/i;
     if (imperativeStart.test(normalized)) {
       return { suspicious: true, reason: "tool description contains imperative instruction" };
     }
@@ -205,7 +225,9 @@ export class McpGovernance {
   // --- Private helpers ---
 
   private hashDescription(desc: string): string {
-    return createHash("sha256").update(desc ?? "", "utf8").digest("hex");
+    return createHash("sha256")
+      .update(desc ?? "", "utf8")
+      .digest("hex");
   }
 
   private verifySignature(manifest: McpManifest): { valid: boolean; reason?: string } {
@@ -217,9 +239,16 @@ export class McpGovernance {
       // If server is unknown and signature present but no key, treat as valid (unknown server path)
       return { valid: true };
     }
-    const payload = JSON.stringify({ server: manifest.server, tools: manifest.tools, version: manifest.version });
+    const payload = JSON.stringify({
+      server: manifest.server,
+      tools: manifest.tools,
+      version: manifest.version,
+    });
     const expected = createHmac("sha256", key).update(payload, "utf8").digest("hex");
-    const sig = manifest.signature.replace(/^sha256:/, "").replace(/^hmac-sha256:/, "").trim();
+    const sig = manifest.signature
+      .replace(/^sha256:/, "")
+      .replace(/^hmac-sha256:/, "")
+      .trim();
     try {
       const expectedBuf = Buffer.from(expected, "hex");
       const sigBuf = Buffer.from(sig, "hex");
@@ -245,9 +274,14 @@ export class McpGovernance {
       for (const [server, entry] of this.manifests.entries()) {
         const hashesObj: Record<string, string> = {};
         for (const [k, v] of entry.toolHashes.entries()) hashesObj[k] = v;
-        obj[server] = { manifest: entry.manifest, hashes: hashesObj, storedAt: new Date().toISOString() };
+        obj[server] = {
+          manifest: entry.manifest,
+          hashes: hashesObj,
+          storedAt: new Date().toISOString(),
+        };
       }
-      const tmp = this.persistPath + ".tmp." + Date.now() + "." + Math.random().toString(36).slice(2, 8);
+      const tmp =
+        this.persistPath + ".tmp." + Date.now() + "." + Math.random().toString(36).slice(2, 8);
       writeFileSync(tmp, JSON.stringify(obj, null, 2), "utf8");
       renameSync(tmp, this.persistPath);
     } catch {
@@ -268,7 +302,10 @@ export class McpGovernance {
             const m = e as unknown as McpManifest;
             const hashes = new Map<string, string>();
             for (const t of m.tools) hashes.set(t.name, this.hashDescription(t.description));
-            this.manifests.set(m.server, { manifest: JSON.parse(JSON.stringify(m)), toolHashes: hashes });
+            this.manifests.set(m.server, {
+              manifest: JSON.parse(JSON.stringify(m)),
+              toolHashes: hashes,
+            });
           } else if (e && typeof e === "object" && "manifest" in e) {
             const man = (e as { manifest: McpManifest; hashes?: Record<string, string> }).manifest;
             const hashesRaw = (e as { hashes?: Record<string, string> }).hashes;
@@ -278,7 +315,10 @@ export class McpGovernance {
             } else {
               for (const t of man.tools) hashes.set(t.name, this.hashDescription(t.description));
             }
-            this.manifests.set(man.server, { manifest: JSON.parse(JSON.stringify(man)), toolHashes: hashes });
+            this.manifests.set(man.server, {
+              manifest: JSON.parse(JSON.stringify(man)),
+              toolHashes: hashes,
+            });
           }
         }
       } else if (data && typeof data === "object") {
@@ -295,13 +335,19 @@ export class McpGovernance {
               for (const t of man.tools) hashes.set(t.name, this.hashDescription(t.description));
             }
             if (man && man.server) {
-              this.manifests.set(server, { manifest: JSON.parse(JSON.stringify(man)), toolHashes: hashes });
+              this.manifests.set(server, {
+                manifest: JSON.parse(JSON.stringify(man)),
+                toolHashes: hashes,
+              });
             }
           } else if ("tools" in entry && Array.isArray((entry as { tools: unknown }).tools)) {
             const m = entry as unknown as McpManifest;
             const hashes = new Map<string, string>();
             for (const t of m.tools) hashes.set(t.name, this.hashDescription(t.description));
-            this.manifests.set(server, { manifest: JSON.parse(JSON.stringify(m)), toolHashes: hashes });
+            this.manifests.set(server, {
+              manifest: JSON.parse(JSON.stringify(m)),
+              toolHashes: hashes,
+            });
           }
         }
       }
@@ -356,7 +402,14 @@ export class McpGovernance {
     }
     if (obj && typeof obj === "object") {
       const o = obj as Record<string, unknown>;
-      const candidates = ["trusted_servers", "trustedServers", "allowlist", "servers", "trusted", "mcpServers"];
+      const candidates = [
+        "trusted_servers",
+        "trustedServers",
+        "allowlist",
+        "servers",
+        "trusted",
+        "mcpServers",
+      ];
       for (const c of candidates) {
         if (Array.isArray(o[c])) {
           for (const item of o[c] as unknown[]) {
@@ -392,7 +445,12 @@ export class McpGovernance {
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("---")) continue;
-      if (/^trusted_servers\s*:\s*$/i.test(trimmed) || /^trustedServers\s*:\s*$/i.test(trimmed) || /^allowlist\s*:\s*$/i.test(trimmed) || /^servers\s*:\s*$/i.test(trimmed)) {
+      if (
+        /^trusted_servers\s*:\s*$/i.test(trimmed) ||
+        /^trustedServers\s*:\s*$/i.test(trimmed) ||
+        /^allowlist\s*:\s*$/i.test(trimmed) ||
+        /^servers\s*:\s*$/i.test(trimmed)
+      ) {
         if (pendingServer) {
           this.trustedKeys.set(pendingServer, undefined);
           pendingServer = null;
@@ -401,7 +459,11 @@ export class McpGovernance {
         inKeysSection = false;
         continue;
       }
-      if (/^keys\s*:\s*$/i.test(trimmed) || /^secrets\s*:\s*$/i.test(trimmed) || /^hmac_keys\s*:\s*$/i.test(trimmed)) {
+      if (
+        /^keys\s*:\s*$/i.test(trimmed) ||
+        /^secrets\s*:\s*$/i.test(trimmed) ||
+        /^hmac_keys\s*:\s*$/i.test(trimmed)
+      ) {
         if (pendingServer) {
           this.trustedKeys.set(pendingServer, undefined);
           pendingServer = null;
@@ -417,7 +479,17 @@ export class McpGovernance {
           pendingServer = null;
         }
         // keep sections only if known, else reset
-        if (!["trusted_servers", "trustedServers", "allowlist", "servers", "keys", "secrets", "hmac_keys"].includes(trimmed.replace(":", "").trim())) {
+        if (
+          ![
+            "trusted_servers",
+            "trustedServers",
+            "allowlist",
+            "servers",
+            "keys",
+            "secrets",
+            "hmac_keys",
+          ].includes(trimmed.replace(":", "").trim())
+        ) {
           inKeysSection = false;
           inServersSection = false;
         }
@@ -428,7 +500,11 @@ export class McpGovernance {
         const kv = trimmed.match(/^([A-Za-z0-9._-]+)\s*:\s*["']?([^"'\n#]+)["']?\s*$/);
         if (kv) {
           const k = kv[1];
-          const v = kv[2].trim().replace(/^["']|["']$/g, "").split(/\s+#/)[0].trim();
+          const v = kv[2]
+            .trim()
+            .replace(/^["']|["']$/g, "")
+            .split(/\s+#/)[0]
+            .trim();
           if (k && v) this.trustedKeys.set(k, v);
           continue;
         }
@@ -458,15 +534,24 @@ export class McpGovernance {
         }
         continue;
       }
-      const serverProp = trimmed.match(/^server\s*:\s*["']?([^"'\s]+)["']?\s*$/i) || trimmed.match(/^name\s*:\s*["']?([^"'\s]+)["']?\s*$/i);
+      const serverProp =
+        trimmed.match(/^server\s*:\s*["']?([^"'\s]+)["']?\s*$/i) ||
+        trimmed.match(/^name\s*:\s*["']?([^"'\s]+)["']?\s*$/i);
       if (serverProp) {
         if (pendingServer) this.trustedKeys.set(pendingServer, undefined);
         pendingServer = serverProp[1];
         continue;
       }
-      const keyProp = trimmed.match(/^key\s*:\s*["']?([^"'\n#]+)["']?\s*$/i) || trimmed.match(/^hmac\s*:\s*["']?([^"'\n#]+)["']?\s*$/i) || trimmed.match(/^secret\s*:\s*["']?([^"'\n#]+)["']?\s*$/i);
+      const keyProp =
+        trimmed.match(/^key\s*:\s*["']?([^"'\n#]+)["']?\s*$/i) ||
+        trimmed.match(/^hmac\s*:\s*["']?([^"'\n#]+)["']?\s*$/i) ||
+        trimmed.match(/^secret\s*:\s*["']?([^"'\n#]+)["']?\s*$/i);
       if (keyProp && pendingServer) {
-        const keyVal = keyProp[1].trim().replace(/^["']|["']$/g, "").split(/\s+#/)[0].trim();
+        const keyVal = keyProp[1]
+          .trim()
+          .replace(/^["']|["']$/g, "")
+          .split(/\s+#/)[0]
+          .trim();
         this.trustedKeys.set(pendingServer, keyVal);
         pendingServer = null;
         continue;

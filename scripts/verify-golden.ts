@@ -46,7 +46,9 @@ async function main(): Promise<void> {
 
     if (c.expect !== "BLOCKED" && c.expect !== "APPROVED") {
       fail++;
-      failures.push(`line ${i + 1}: bad expect value ${JSON.stringify((c as { expect: unknown }).expect)}`);
+      failures.push(
+        `line ${i + 1}: bad expect value ${JSON.stringify((c as { expect: unknown }).expect)}`
+      );
       console.log(`FAIL [${i + 1}] bad expect value`);
       continue;
     }

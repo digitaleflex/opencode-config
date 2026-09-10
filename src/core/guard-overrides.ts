@@ -367,10 +367,7 @@ export class GuardOverrides {
   /**
    * Apply guards to a policy decision
    */
-  applyToDecision(
-    task: TaskSpec,
-    decision: PolicyDecision
-  ): PolicyDecision {
+  applyToDecision(task: TaskSpec, decision: PolicyDecision): PolicyDecision {
     const result = this.check(task);
 
     if (result.decision === "BLOCKED") {

@@ -38,11 +38,7 @@ export class PolicyEngine {
       {
         name: "L2-STANDARD",
         complexity: TaskComplexity.L2,
-        taskTypes: [
-          TaskType.BUG_LOCALIZED,
-          TaskType.FEATURE_LIMITED,
-          TaskType.REFACTOR_MODULE,
-        ],
+        taskTypes: [TaskType.BUG_LOCALIZED, TaskType.FEATURE_LIMITED, TaskType.REFACTOR_MODULE],
         risk: RiskLevel.LOW,
         agents: ["planner", "builder", "reviewer"],
         modelPlan: {
@@ -56,33 +52,21 @@ export class PolicyEngine {
       {
         name: "L3-COMPLEX",
         complexity: TaskComplexity.L3,
-        taskTypes: [
-          TaskType.API_CHANGE,
-          TaskType.ARCH_DESIGN,
-          TaskType.SECURITY,
-        ],
+        taskTypes: [TaskType.API_CHANGE, TaskType.ARCH_DESIGN, TaskType.SECURITY],
         risk: RiskLevel.HIGH,
         agents: ["planner", "architect", "builder", "reviewer"],
         modelPlan: {
           primary: ["worker-codestral", "worker-groq"],
           fallback: ["worker-zhipu", "worker-novita"],
         },
-        proofsRequired: [
-          ProofType.TESTS,
-          ProofType.CODE_REVIEW,
-          ProofType.SECURITY_SCAN,
-        ],
+        proofsRequired: [ProofType.TESTS, ProofType.CODE_REVIEW, ProofType.SECURITY_SCAN],
         humanApproval: true,
         securityScan: true,
       },
       {
         name: "L4-CRITICAL",
         complexity: TaskComplexity.L4,
-        taskTypes: [
-          TaskType.PRODUCTION_DEPLOY,
-          TaskType.SENSITIVE_DATA,
-          TaskType.DESTRUCTIVE_OP,
-        ],
+        taskTypes: [TaskType.PRODUCTION_DEPLOY, TaskType.SENSITIVE_DATA, TaskType.DESTRUCTIVE_OP],
         risk: RiskLevel.CRITICAL,
         agents: ["planner", "architect", "security", "builder", "reviewer"],
         modelPlan: {
@@ -118,11 +102,12 @@ export class PolicyEngine {
 
     // Assess risk using the centralized risk assessor
     const taskRisk = task.risk || assessRisk(task);
-    
+
     // Find matching policy by taskType and complexity (not risk)
-    const matchingPolicy = this.policies.find((policy) =>
-      policy.taskTypes.includes(task.taskType!) &&
-      policy.complexity === (task.complexity || this.inferComplexity(task.taskType!))
+    const matchingPolicy = this.policies.find(
+      (policy) =>
+        policy.taskTypes.includes(task.taskType!) &&
+        policy.complexity === (task.complexity || this.inferComplexity(task.taskType!))
     );
 
     if (!matchingPolicy) {
@@ -166,7 +151,13 @@ export class PolicyEngine {
    * Infer complexity from taskType when not explicitly provided.
    */
   private inferComplexity(taskType: TaskType): TaskComplexity {
-    const l1Types = [TaskType.TYPO, TaskType.CONFIG, TaskType.FORMAT, TaskType.DOC_READ, TaskType.DOC_WRITE];
+    const l1Types = [
+      TaskType.TYPO,
+      TaskType.CONFIG,
+      TaskType.FORMAT,
+      TaskType.DOC_READ,
+      TaskType.DOC_WRITE,
+    ];
     const l2Types = [TaskType.BUG_LOCALIZED, TaskType.FEATURE_LIMITED, TaskType.REFACTOR_MODULE];
     const l3Types = [TaskType.API_CHANGE, TaskType.ARCH_DESIGN, TaskType.SECURITY];
     const l4Types = [TaskType.PRODUCTION_DEPLOY, TaskType.SENSITIVE_DATA, TaskType.DESTRUCTIVE_OP];
@@ -284,7 +275,12 @@ export class PolicyEngine {
     }
 
     // Wrap in { policies: [...] } structure
-    if (result.length > 0 && result[0] && typeof result[0] === "object" && "name" in (result[0] as Record<string, unknown>)) {
+    if (
+      result.length > 0 &&
+      result[0] &&
+      typeof result[0] === "object" &&
+      "name" in (result[0] as Record<string, unknown>)
+    ) {
       return { policies: result };
     }
 

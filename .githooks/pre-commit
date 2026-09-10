@@ -1,0 +1,18 @@
+#!/bin/sh
+# EURINHASH pre-commit gate (fast, local).
+# Install once per clone:  git config core.hooksPath .githooks
+set -e
+echo "[pre-commit] format:check"
+if [ -x ./node_modules/.bin/prettier ]; then
+  ./node_modules/.bin/prettier --check "src/**/*.ts" "scripts/**/*.ts" "plugin/*.ts" "tests/**/*.ts" "*.json" ".opencode/*.json"
+else
+  echo "[pre-commit] prettier not installed, skipping format check (run: bun install)"
+fi
+echo "[pre-commit] typecheck"
+./node_modules/.bin/tsc --noEmit
+echo "[pre-commit] unit + fuzz tests"
+export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+export PATH="$BUN_INSTALL/bin:$PATH"
+bun test src/core/core.test.ts
+bun test tests/fuzz/
+echo "[pre-commit] OK"

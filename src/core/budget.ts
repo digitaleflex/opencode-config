@@ -32,13 +32,22 @@ export class TaskBudget {
 
   exhausted(): { exhausted: boolean; reason?: string } {
     if (this.spentMs > this.maxMs) {
-      return { exhausted: true, reason: `budget exceeded: maxMs ${this.maxMs} exceeded (spent ${this.spentMs}ms)` };
+      return {
+        exhausted: true,
+        reason: `budget exceeded: maxMs ${this.maxMs} exceeded (spent ${this.spentMs}ms)`,
+      };
     }
     if (this.spentToolCalls > this.maxToolCalls) {
-      return { exhausted: true, reason: `budget exceeded: maxToolCalls ${this.maxToolCalls} exceeded (spent ${this.spentToolCalls})` };
+      return {
+        exhausted: true,
+        reason: `budget exceeded: maxToolCalls ${this.maxToolCalls} exceeded (spent ${this.spentToolCalls})`,
+      };
     }
     if (this.spentTokens > this.maxTokens) {
-      return { exhausted: true, reason: `budget exceeded: maxTokens ${this.maxTokens} exceeded (spent ${this.spentTokens})` };
+      return {
+        exhausted: true,
+        reason: `budget exceeded: maxTokens ${this.maxTokens} exceeded (spent ${this.spentTokens})`,
+      };
     }
     return { exhausted: false };
   }

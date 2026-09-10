@@ -148,7 +148,6 @@ export type ExecutionResult = {
   verdict: "APPROVED" | "BLOCKED" | "REJECTED";
 };
 
-
 export function isValidTaskSpec(task: unknown): task is TaskSpec {
   return (
     typeof task === "object" &&
@@ -158,4 +157,3 @@ export function isValidTaskSpec(task: unknown): task is TaskSpec {
     (task as TaskSpec).description.trim().length > 0
   );
 }
-

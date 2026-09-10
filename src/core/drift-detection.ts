@@ -8,24 +8,24 @@ import { TaskType, RiskLevel } from "./types";
 import { StateStore } from "./state-store";
 
 export enum DriftDimension {
-  TOOL_FREQUENCY = "tool_frequency",       // Rate of tool invocations
-  RISK_ESCALATION = "risk_escalation",     // Risk level progression
-  COMPLEXITY = "complexity",               // Task complexity trend
+  TOOL_FREQUENCY = "tool_frequency", // Rate of tool invocations
+  RISK_ESCALATION = "risk_escalation", // Risk level progression
+  COMPLEXITY = "complexity", // Task complexity trend
   DESCRIPTION_ENTROPY = "description_entropy", // Description variability
-  TASK_DIVERSITY = "task_diversity",       // Type diversity (Shannon index)
-  REPETITION = "repetition",               // Repeated identical tasks
+  TASK_DIVERSITY = "task_diversity", // Type diversity (Shannon index)
+  REPETITION = "repetition", // Repeated identical tasks
 }
 
 export interface DriftReading {
   dimension: DriftDimension;
-  current: number;      // Current drift score (0-1)
-  baseline: number;     // Expected baseline (0-1)
-  deviation: number;    // |current - baseline|
+  current: number; // Current drift score (0-1)
+  baseline: number; // Expected baseline (0-1)
+  deviation: number; // |current - baseline|
   anomalous: boolean;
 }
 
 export interface DriftReport {
-  overallDrift: number;          // Composite 0-1
+  overallDrift: number; // Composite 0-1
   readings: DriftReading[];
   anomalous: boolean;
   reason?: string;
@@ -69,7 +69,8 @@ export class DriftDetector {
     this.counters[`risk:${riskLevel}`] = (this.counters[`risk:${riskLevel}`] || 0) + 1;
     this.counters[`type:${taskType}`] = (this.counters[`type:${taskType}`] || 0) + 1;
     this.counters["toolCalls"] = (this.counters["toolCalls"] || 0) + 1;
-    this.counters["descLen:" + description.length] = (this.counters["descLen:" + description.length] || 0) + 1;
+    this.counters["descLen:" + description.length] =
+      (this.counters["descLen:" + description.length] || 0) + 1;
 
     // Build baseline memory (first 20% of samples define baseline)
     if (this.sampleCount <= 20) {
@@ -93,7 +94,11 @@ export class DriftDetector {
       const anomalous = deviation > DRIFT_THRESHOLD;
 
       if (anomalous) {
-        this.slowLog.push({ dimension: dim, delta: deviation, timestamp: new Date().toISOString() });
+        this.slowLog.push({
+          dimension: dim,
+          delta: deviation,
+          timestamp: new Date().toISOString(),
+        });
         if (this.slowLog.length > 100) this.slowLog.shift();
       }
 
@@ -108,9 +113,10 @@ export class DriftDetector {
       overallDrift,
       readings,
       anomalous: anomalousDims.length > 0 || overallDrift > DRIFT_THRESHOLD,
-      reason: anomalousDims.length > 0
-        ? `Drift in: ${anomalousDims.map((d) => d.dimension).join(", ")}`
-        : undefined,
+      reason:
+        anomalousDims.length > 0
+          ? `Drift in: ${anomalousDims.map((d) => d.dimension).join(", ")}`
+          : undefined,
       slowLog: [...this.slowLog],
     };
   }
@@ -155,11 +161,13 @@ export class DriftDetector {
       }
       case DriftDimension.COMPLEXITY: {
         // L4 tasks dominate → drift
-        const l4 = this.counters["type:DESTRUCTIVE_OP"] || 0 +
-          (this.counters["type:PRODUCTION_DEPLOY"] || 0) +
-          (this.counters["type:SENSITIVE_DATA"] || 0);
+        const l4 =
+          this.counters["type:DESTRUCTIVE_OP"] ||
+          0 +
+            (this.counters["type:PRODUCTION_DEPLOY"] || 0) +
+            (this.counters["type:SENSITIVE_DATA"] || 0);
         const total = this.taskTypeHistory.length || 1;
-        return Math.min(l4 / total * 4, 1);
+        return Math.min((l4 / total) * 4, 1);
       }
       case DriftDimension.DESCRIPTION_ENTROPY: {
         // Shannon entropy of description lengths normalized
@@ -196,9 +204,9 @@ export class DriftDetector {
       }
       case DriftDimension.REPETITION: {
         if (this.recentDescriptions.length < 3) return 0;
-        const exactDuplicates = this.recentDescriptions.length -
-          new Set(this.recentDescriptions).size;
-        return Math.min(exactDuplicates / this.recentDescriptions.length * 3, 1);
+        const exactDuplicates =
+          this.recentDescriptions.length - new Set(this.recentDescriptions).size;
+        return Math.min((exactDuplicates / this.recentDescriptions.length) * 3, 1);
       }
     }
   }
@@ -248,13 +256,15 @@ export class DriftDetector {
         this.descriptionLengths = (obj.descriptionLengths as unknown[]).filter(
           (v) => typeof v === "number"
         ) as number[];
-        if (this.descriptionLengths.length > 100) this.descriptionLengths = this.descriptionLengths.slice(-100);
+        if (this.descriptionLengths.length > 100)
+          this.descriptionLengths = this.descriptionLengths.slice(-100);
       }
       if (Array.isArray(obj.recentDescriptions)) {
         this.recentDescriptions = (obj.recentDescriptions as unknown[]).filter(
           (v) => typeof v === "string"
         ) as string[];
-        if (this.recentDescriptions.length > 50) this.recentDescriptions = this.recentDescriptions.slice(-50);
+        if (this.recentDescriptions.length > 50)
+          this.recentDescriptions = this.recentDescriptions.slice(-50);
       }
       if (Array.isArray(obj.slowLog)) {
         this.slowLog = (obj.slowLog as unknown[]).filter(

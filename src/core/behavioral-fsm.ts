@@ -9,16 +9,18 @@ import { TaskType } from "./types";
 import { StateStore } from "./state-store";
 
 export type ToolKind =
-  | "read"
-  | "write"
-  | "execute"
-  | "delete"
-  | "network"
-  | "secret"
-  | "config"
-  | "approve";
+  "read" | "write" | "execute" | "delete" | "network" | "secret" | "config" | "approve";
 
-export const ToolKinds: ToolKind[] = ["read", "write", "execute", "delete", "network", "secret", "config", "approve"];
+export const ToolKinds: ToolKind[] = [
+  "read",
+  "write",
+  "execute",
+  "delete",
+  "network",
+  "secret",
+  "config",
+  "approve",
+];
 
 export interface StateTransition {
   from: WorkflowState;
@@ -27,19 +29,83 @@ export interface StateTransition {
   allowed: boolean;
 }
 
-export type WorkflowState = "INIT" | "ANALYZE" | "MODIFY" | "VERIFY" | "APPROVAL" | "DONE" | "VIOLATION";
+export type WorkflowState =
+  "INIT" | "ANALYZE" | "MODIFY" | "VERIFY" | "APPROVAL" | "DONE" | "VIOLATION";
 
 const STATE_ORDER: WorkflowState[] = ["INIT", "ANALYZE", "MODIFY", "VERIFY", "APPROVAL", "DONE"];
 
 // Allowed transitions per state. Deny-by-default: only these are legal.
 const TRANSITION_TABLE: Record<WorkflowState, Record<ToolKind, WorkflowState>> = {
-  INIT: { read: "ANALYZE", write: "MODIFY", execute: "MODIFY", delete: "VIOLATION", network: "MODIFY", secret: "MODIFY", config: "MODIFY", approve: "VIOLATION" },
-  ANALYZE: { read: "ANALYZE", write: "MODIFY", execute: "MODIFY", delete: "VIOLATION", network: "MODIFY", secret: "VIOLATION", config: "MODIFY", approve: "APPROVAL" },
-  MODIFY: { read: "ANALYZE", write: "MODIFY", execute: "VERIFY", delete: "VERIFY", network: "MODIFY", secret: "MODIFY", config: "MODIFY", approve: "APPROVAL" },
-  VERIFY: { read: "ANALYZE", write: "MODIFY", execute: "VERIFY", delete: "VIOLATION", network: "MODIFY", secret: "MODIFY", config: "MODIFY", approve: "APPROVAL" },
-  APPROVAL: { read: "ANALYZE", write: "MODIFY", execute: "VERIFY", delete: "VERIFY", network: "MODIFY", secret: "MODIFY", config: "MODIFY", approve: "APPROVAL" },
-  DONE: { read: "ANALYZE", write: "MODIFY", execute: "VERIFY", delete: "VIOLATION", network: "MODIFY", secret: "MODIFY", config: "MODIFY", approve: "APPROVAL" },
-  VIOLATION: { read: "VIOLATION", write: "VIOLATION", execute: "VIOLATION", delete: "VIOLATION", network: "VIOLATION", secret: "VIOLATION", config: "VIOLATION", approve: "VIOLATION" },
+  INIT: {
+    read: "ANALYZE",
+    write: "MODIFY",
+    execute: "MODIFY",
+    delete: "VIOLATION",
+    network: "MODIFY",
+    secret: "MODIFY",
+    config: "MODIFY",
+    approve: "VIOLATION",
+  },
+  ANALYZE: {
+    read: "ANALYZE",
+    write: "MODIFY",
+    execute: "MODIFY",
+    delete: "VIOLATION",
+    network: "MODIFY",
+    secret: "VIOLATION",
+    config: "MODIFY",
+    approve: "APPROVAL",
+  },
+  MODIFY: {
+    read: "ANALYZE",
+    write: "MODIFY",
+    execute: "VERIFY",
+    delete: "VERIFY",
+    network: "MODIFY",
+    secret: "MODIFY",
+    config: "MODIFY",
+    approve: "APPROVAL",
+  },
+  VERIFY: {
+    read: "ANALYZE",
+    write: "MODIFY",
+    execute: "VERIFY",
+    delete: "VIOLATION",
+    network: "MODIFY",
+    secret: "MODIFY",
+    config: "MODIFY",
+    approve: "APPROVAL",
+  },
+  APPROVAL: {
+    read: "ANALYZE",
+    write: "MODIFY",
+    execute: "VERIFY",
+    delete: "VERIFY",
+    network: "MODIFY",
+    secret: "MODIFY",
+    config: "MODIFY",
+    approve: "APPROVAL",
+  },
+  DONE: {
+    read: "ANALYZE",
+    write: "MODIFY",
+    execute: "VERIFY",
+    delete: "VIOLATION",
+    network: "MODIFY",
+    secret: "MODIFY",
+    config: "MODIFY",
+    approve: "APPROVAL",
+  },
+  VIOLATION: {
+    read: "VIOLATION",
+    write: "VIOLATION",
+    execute: "VIOLATION",
+    delete: "VIOLATION",
+    network: "VIOLATION",
+    secret: "VIOLATION",
+    config: "VIOLATION",
+    approve: "VIOLATION",
+  },
 };
 
 // Disallowed sequences that are high-signal reverse-direction moves
@@ -176,7 +242,15 @@ export class BehavioralFSM {
       if (!data || typeof data !== "object") return;
       const obj = data as Record<string, unknown>;
       if (typeof obj.state === "string") {
-        const validStates: WorkflowState[] = ["INIT", "ANALYZE", "MODIFY", "VERIFY", "APPROVAL", "DONE", "VIOLATION"];
+        const validStates: WorkflowState[] = [
+          "INIT",
+          "ANALYZE",
+          "MODIFY",
+          "VERIFY",
+          "APPROVAL",
+          "DONE",
+          "VIOLATION",
+        ];
         if ((validStates as string[]).includes(obj.state)) {
           this.state = obj.state as WorkflowState;
         }
@@ -192,7 +266,8 @@ export class BehavioralFSM {
             typeof (t as Record<string, unknown>).allowed === "boolean"
         ) as StateTransition[];
         // Cap to maxTransitions (100)
-        this.transitions = filtered.length > this.maxTransitions ? filtered.slice(-this.maxTransitions) : filtered;
+        this.transitions =
+          filtered.length > this.maxTransitions ? filtered.slice(-this.maxTransitions) : filtered;
       }
     } catch {
       // fail-open

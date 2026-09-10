@@ -1,7 +1,7 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { mkdir, appendFile, readdir, stat, unlink } from "node:fs/promises"
-import { join } from "node:path"
-import { homedir } from "node:os"
+import type { Plugin } from "@opencode-ai/plugin";
+import { mkdir, appendFile, readdir, stat, unlink } from "node:fs/promises";
+import { join } from "node:path";
+import { homedir } from "node:os";
 
 // ---------------------------------------------------------------------------
 // Audit logger plugin
@@ -26,12 +26,12 @@ import { homedir } from "node:os"
 //   - Log rotation: delete files older than 30 days
 // ---------------------------------------------------------------------------
 
-const LOG_DIR = join(homedir(), ".config", "opencode", "logs")
-const RETENTION_DAYS = 30
-const TASK_TRUNCATE = 200
-const ROTATION_INTERVAL_MS = 24 * 60 * 60 * 1000 // 24h
+const LOG_DIR = join(homedir(), ".config", "opencode", "logs");
+const RETENTION_DAYS = 30;
+const TASK_TRUNCATE = 200;
+const ROTATION_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24h
 
-const REDACT_KEY_PATTERN = /(api[_-]?key|password|secret|token|authorization|key)/i
+const REDACT_KEY_PATTERN = /(api[_-]?key|password|secret|token|authorization|key)/i;
 
 const SENSITIVE_PATTERNS: RegExp[] = [
   /\bDATABASE_URL\b/,
@@ -44,65 +44,76 @@ const SENSITIVE_PATTERNS: RegExp[] = [
   /ALTER\s+TABLE/i,
   /CREATE\s+USER\b/i,
   /\bGRANT\b/i,
-]
+];
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function todayDate(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function logFilePath(date: string): string {
-  return join(LOG_DIR, `audit-${date}.jsonl`)
+  return join(LOG_DIR, `audit-${date}.jsonl`);
 }
 
 function redactValue(value: unknown): unknown {
-  if (value === null || value === undefined) return value
-  if (Array.isArray(value)) return value.map((v) => redactValue(v))
+  if (value === null || value === undefined) return value;
+  if (Array.isArray(value)) return value.map((v) => redactValue(v));
   if (typeof value === "object") {
-    const out: Record<string, unknown> = {}
+    const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = REDACT_KEY_PATTERN.test(k) ? "***REDACTED***" : redactValue(v)
+      out[k] = REDACT_KEY_PATTERN.test(k) ? "***REDACTED***" : redactValue(v);
     }
-    return out
+    return out;
   }
-  return value
+  return value;
 }
 
 function flattenForScan(value: unknown, acc: string[] = []): string[] {
-  if (value === null || value === undefined) return acc
-  if (typeof value === "string") { acc.push(value); return acc }
-  if (typeof value === "number" || typeof value === "boolean") { acc.push(String(value)); return acc }
-  if (Array.isArray(value)) { for (const v of value) flattenForScan(v, acc); return acc }
-  if (typeof value === "object") { for (const v of Object.values(value as Record<string, unknown>)) flattenForScan(v, acc) }
-  return acc
+  if (value === null || value === undefined) return acc;
+  if (typeof value === "string") {
+    acc.push(value);
+    return acc;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    acc.push(String(value));
+    return acc;
+  }
+  if (Array.isArray(value)) {
+    for (const v of value) flattenForScan(v, acc);
+    return acc;
+  }
+  if (typeof value === "object") {
+    for (const v of Object.values(value as Record<string, unknown>)) flattenForScan(v, acc);
+  }
+  return acc;
 }
 
 function isSensitive(value: unknown): boolean {
-  const haystack = flattenForScan(value).join("\n")
-  if (!haystack) return false
-  return SENSITIVE_PATTERNS.some((re) => re.test(haystack))
+  const haystack = flattenForScan(value).join("\n");
+  if (!haystack) return false;
+  return SENSITIVE_PATTERNS.some((re) => re.test(haystack));
 }
 
 async function ensureLogDir(): Promise<void> {
-  await mkdir(LOG_DIR, { recursive: true })
+  await mkdir(LOG_DIR, { recursive: true });
 }
 
 async function writeEntry(entry: Record<string, unknown>): Promise<void> {
   try {
-    await ensureLogDir()
-    const line = JSON.stringify({ ts: new Date().toISOString(), ...entry })
-    await appendFile(logFilePath(todayDate()), line + "\n", "utf8")
+    await ensureLogDir();
+    const line = JSON.stringify({ ts: new Date().toISOString(), ...entry });
+    await appendFile(logFilePath(todayDate()), line + "\n", "utf8");
   } catch (err) {
     try {
       // eslint-disable-next-line no-console
-      console.error("[audit-logger] write failed:", err)
+      console.error("[audit-logger] write failed:", err);
     } catch {
       /* ignore */
     }
@@ -110,20 +121,20 @@ async function writeEntry(entry: Record<string, unknown>): Promise<void> {
 }
 
 function fireAndForget(promise: Promise<void>): void {
-  void promise // errors handled inside writeEntry
+  void promise; // errors handled inside writeEntry
 }
 
 async function rotateLogs(): Promise<void> {
   try {
-    await ensureLogDir()
-    const files = await readdir(LOG_DIR)
-    const cutoff = Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000
+    await ensureLogDir();
+    const files = await readdir(LOG_DIR);
+    const cutoff = Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000;
     for (const name of files) {
-      if (!name.startsWith("audit-") || !name.endsWith(".jsonl")) continue
-      const full = join(LOG_DIR, name)
+      if (!name.startsWith("audit-") || !name.endsWith(".jsonl")) continue;
+      const full = join(LOG_DIR, name);
       try {
-        const st = await stat(full)
-        if (st.isFile() && st.mtimeMs < cutoff) await unlink(full)
+        const st = await stat(full);
+        if (st.isFile() && st.mtimeMs < cutoff) await unlink(full);
       } catch {
         /* skip individual file errors */
       }
@@ -131,7 +142,7 @@ async function rotateLogs(): Promise<void> {
   } catch (err) {
     try {
       // eslint-disable-next-line no-console
-      console.error("[audit-logger] rotate failed:", err)
+      console.error("[audit-logger] rotate failed:", err);
     } catch {
       /* ignore */
     }
@@ -144,16 +155,18 @@ async function rotateLogs(): Promise<void> {
 
 const plugin: Plugin = (async () => {
   // Run rotation once at startup, then daily.
-  fireAndForget(rotateLogs())
-  const interval = setInterval(() => { fireAndForget(rotateLogs()) }, ROTATION_INTERVAL_MS)
+  fireAndForget(rotateLogs());
+  const interval = setInterval(() => {
+    fireAndForget(rotateLogs());
+  }, ROTATION_INTERVAL_MS);
   // Keep event loop alive only while the process is running.
   if (typeof (interval as unknown as { unref?: () => void }).unref === "function") {
-    (interval as unknown as { unref: () => void }).unref()
+    (interval as unknown as { unref: () => void }).unref();
   }
 
   return {
     "tool.execute.before": async (input) => {
-      const args = (input as { args?: unknown }).args ?? {}
+      const args = (input as { args?: unknown }).args ?? {};
       fireAndForget(
         writeEntry({
           event: "tool.execute.before",
@@ -163,11 +176,11 @@ const plugin: Plugin = (async () => {
           args: redactValue(args),
           sensitive: isSensitive(args),
         })
-      )
+      );
     },
 
     "tool.execute.after": async (input) => {
-      const args = input.args ?? {}
+      const args = input.args ?? {};
       fireAndForget(
         writeEntry({
           event: "tool.execute.after",
@@ -180,7 +193,7 @@ const plugin: Plugin = (async () => {
           metadata: input.metadata,
           sensitive: isSensitive(args),
         })
-      )
+      );
     },
 
     // agent.invoked is not defined in the current @opencode-ai/plugin SDK version.
@@ -188,8 +201,8 @@ const plugin: Plugin = (async () => {
     ...({
       agent: {
         invoked: async (input) => {
-          const raw = input.task ?? ""
-          const task = raw.length > TASK_TRUNCATE ? raw.slice(0, TASK_TRUNCATE) + "…" : raw
+          const raw = input.task ?? "";
+          const task = raw.length > TASK_TRUNCATE ? raw.slice(0, TASK_TRUNCATE) + "…" : raw;
           fireAndForget(
             writeEntry({
               event: "agent.invoked",
@@ -200,11 +213,17 @@ const plugin: Plugin = (async () => {
               parentAgentId: input.parentAgentId,
               sensitive: isSensitive({ task }),
             })
-          )
+          );
         },
       },
-    } as NonNullable<Plugin extends (input: unknown, options?: unknown) => Promise<infer R> ? R extends { agent?: infer A } ? { agent: A } : never : never>),
-  }
-}) as unknown as Plugin
+    } as NonNullable<
+      Plugin extends (input: unknown, options?: unknown) => Promise<infer R>
+        ? R extends { agent?: infer A }
+          ? { agent: A }
+          : never
+        : never
+    >),
+  };
+}) as unknown as Plugin;
 
-export default plugin
+export default plugin;

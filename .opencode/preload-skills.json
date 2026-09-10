@@ -4,14 +4,30 @@
   "agentSkills": {
     "plan": ["verification-planning"],
     "build": ["hash-token-efficiency", "hash-enterprise-development"],
-    "reviewer": ["hash-verification", "code-review", "requesting-code-review", "caveman-review", "verification-before-completion"],
+    "reviewer": [
+      "hash-verification",
+      "code-review",
+      "requesting-code-review",
+      "caveman-review",
+      "verification-before-completion"
+    ],
     "planner": ["verification-planning", "executing-plans"],
-    "builder": ["hash-token-efficiency", "hash-enterprise-development", "test-driven-development", "systematic-debugging"],
+    "builder": [
+      "hash-token-efficiency",
+      "hash-enterprise-development",
+      "test-driven-development",
+      "systematic-debugging"
+    ],
     "tester": ["test-driven-development", "systematic-debugging", "diagnosing-bugs"],
     "architect": ["executing-plans"],
     "quality-engineer": ["verification-before-completion", "diagnosing-bugs"],
     "security": ["git-guardrails-claude-code"],
-    "git-engineer": ["resolving-merge-conflicts", "git-guardrails-claude-code", "caveman-commit", "setup-pre-commit"]
+    "git-engineer": [
+      "resolving-merge-conflicts",
+      "git-guardrails-claude-code",
+      "caveman-commit",
+      "setup-pre-commit"
+    ]
   },
   "fileTypeSkills": {
     ".py": ["hash-enterprise-development"],
@@ -22,7 +38,11 @@
     "simplify OR refactor for clarity": ["simplify"],
     "codemap OR unfamiliar repository": ["codemap"],
     "deep work OR large refactor": ["deepwork"],
-    "code review OR review the diff OR review this PR": ["code-review", "caveman-review", "requesting-code-review"],
+    "code review OR review the diff OR review this PR": [
+      "code-review",
+      "caveman-review",
+      "requesting-code-review"
+    ],
     "debug OR diagnose OR failing OR broken OR slow": ["systematic-debugging", "diagnosing-bugs"],
     "commit message OR conventional commit": ["caveman-commit"],
     "merge conflict OR rebase conflict": ["resolving-merge-conflicts"],

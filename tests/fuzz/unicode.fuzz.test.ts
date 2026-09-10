@@ -66,9 +66,7 @@ function mutate(text: string, rng: () => number): string {
   }
   if (roll < 0.85) {
     // Fullwidth a run of letters
-    return chars
-      .map((c) => (/[a-z]/i.test(c) && rng() < 0.5 ? FULLWIDTH(c) : c))
-      .join("");
+    return chars.map((c) => (/[a-z]/i.test(c) && rng() < 0.5 ? FULLWIDTH(c) : c)).join("");
   }
   // Mixed: confusable + zero-width
   return chars

@@ -117,8 +117,14 @@ export class AnomalyDetector {
    * Update the baseline with a new task observation.
    */
   updateBaseline(taskType: TaskType, riskLevel: RiskLevel, descriptionLength: number): void {
-    this.baseline.taskTypeCounts.set(taskType, (this.baseline.taskTypeCounts.get(taskType) || 0) + 1);
-    this.baseline.riskLevelCounts.set(riskLevel, (this.baseline.riskLevelCounts.get(riskLevel) || 0) + 1);
+    this.baseline.taskTypeCounts.set(
+      taskType,
+      (this.baseline.taskTypeCounts.get(taskType) || 0) + 1
+    );
+    this.baseline.riskLevelCounts.set(
+      riskLevel,
+      (this.baseline.riskLevelCounts.get(riskLevel) || 0) + 1
+    );
     this.baseline.totalTasks++;
 
     // Running average for description length
@@ -143,7 +149,11 @@ export class AnomalyDetector {
 
   // --- Mahalanobis distance ---
 
-  private buildFeatureVector(taskType: TaskType, riskLevel: RiskLevel, task: TaskSpec): [number, number, number, number] {
+  private buildFeatureVector(
+    taskType: TaskType,
+    riskLevel: RiskLevel,
+    task: TaskSpec
+  ): [number, number, number, number] {
     // Feature 1: task type entropy (how unexpected is this type given baseline)
     const typeIdx = TASK_TYPE_ORDER.indexOf(taskType);
     const typeEntropy = typeIdx >= 0 ? typeIdx / (TASK_TYPE_ORDER.length - 1) : 0.5;
@@ -157,7 +167,8 @@ export class AnomalyDetector {
     // Feature 4: burst count (tasks of this type in window)
     const now = Date.now();
     const burstCount = Math.min(
-      this.recentTasks.filter((t) => t.taskType === taskType && now - t.timestamp < this.WINDOW_MS).length / 10,
+      this.recentTasks.filter((t) => t.taskType === taskType && now - t.timestamp < this.WINDOW_MS)
+        .length / 10,
       1
     );
 
@@ -233,7 +244,12 @@ export class AnomalyDetector {
   private invert4x4(m: number[][]): number[][] {
     // Gauss-Jordan elimination for 4x4 matrix
     const n = 4;
-    const augmented = m.map((row, i) => [...row, ...Array(n).fill(0).map((_, j) => (i === j ? 1 : 0))]);
+    const augmented = m.map((row, i) => [
+      ...row,
+      ...Array(n)
+        .fill(0)
+        .map((_, j) => (i === j ? 1 : 0)),
+    ]);
 
     for (let col = 0; col < n; col++) {
       // Find pivot
@@ -294,7 +310,9 @@ export class AnomalyDetector {
 
     const recent = this.recentTasks.slice(-10);
     const lowCount = recent.filter((t) => t.riskLevel === "LOW").length;
-    const highCount = recent.filter((t) => t.riskLevel === "CRITICAL" || t.riskLevel === "HIGH").length;
+    const highCount = recent.filter(
+      (t) => t.riskLevel === "CRITICAL" || t.riskLevel === "HIGH"
+    ).length;
 
     if (lowCount >= 5 && riskLevel === "CRITICAL" && highCount === 0) return 0.8;
     if (lowCount >= 3 && riskLevel === "CRITICAL") return 0.4;
@@ -305,7 +323,8 @@ export class AnomalyDetector {
   private checkBaselineDeviation(taskType: TaskType): number {
     if (this.baseline.totalTasks < 10) return 0;
 
-    const expectedRatio = (this.baseline.taskTypeCounts.get(taskType) || 0) / this.baseline.totalTasks;
+    const expectedRatio =
+      (this.baseline.taskTypeCounts.get(taskType) || 0) / this.baseline.totalTasks;
     const recentCount = this.recentTasks.filter((t) => t.taskType === taskType).length;
     const recentRatio = this.recentTasks.length > 0 ? recentCount / this.recentTasks.length : 0;
 
@@ -360,13 +379,15 @@ export class AnomalyDetector {
         this.baseline = {
           taskTypeCounts,
           riskLevelCounts,
-          avgDescriptionLength: typeof b.avgDescriptionLength === "number" ? b.avgDescriptionLength : 50,
+          avgDescriptionLength:
+            typeof b.avgDescriptionLength === "number" ? b.avgDescriptionLength : 50,
           maxFrequencyPerMinute,
           totalTasks: typeof b.totalTasks === "number" ? b.totalTasks : 0,
           lastUpdated: typeof b.lastUpdated === "string" ? b.lastUpdated : new Date().toISOString(),
-          mean: Array.isArray(b.mean) && (b.mean as number[]).length === 4
-            ? ([...(b.mean as number[])] as [number, number, number, number])
-            : [0.5, 0.25, 0.1, 0.1],
+          mean:
+            Array.isArray(b.mean) && (b.mean as number[]).length === 4
+              ? ([...(b.mean as number[])] as [number, number, number, number])
+              : [0.5, 0.25, 0.1, 0.1],
           covarianceInverse: Array.isArray(b.covarianceInverse)
             ? (b.covarianceInverse as number[][]).map((row) => [...row])
             : [
@@ -380,14 +401,16 @@ export class AnomalyDetector {
       }
 
       if (Array.isArray(obj.recentTasks)) {
-        this.recentTasks = (obj.recentTasks as unknown[]).filter(
-          (t): t is { timestamp: number; taskType: TaskType; riskLevel: RiskLevel } =>
-            !!t &&
-            typeof t === "object" &&
-            typeof (t as Record<string, unknown>).timestamp === "number" &&
-            typeof (t as Record<string, unknown>).taskType === "string" &&
-            typeof (t as Record<string, unknown>).riskLevel === "string"
-        ).map((t) => ({ ...t }));
+        this.recentTasks = (obj.recentTasks as unknown[])
+          .filter(
+            (t): t is { timestamp: number; taskType: TaskType; riskLevel: RiskLevel } =>
+              !!t &&
+              typeof t === "object" &&
+              typeof (t as Record<string, unknown>).timestamp === "number" &&
+              typeof (t as Record<string, unknown>).taskType === "string" &&
+              typeof (t as Record<string, unknown>).riskLevel === "string"
+          )
+          .map((t) => ({ ...t }));
         // Enforce window cap implicitly by keeping as-is (orchestrator prunes on next analyze)
       }
     } catch {

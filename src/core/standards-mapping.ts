@@ -24,52 +24,146 @@ export interface ComplianceReport {
 
 // OWASP Agentic AI Top 10 (2025)
 const OWASP_AGENTIC_TOP10 = [
-  { id: "AA01", name: "Agentic Goal Misalignment", controls: ["classifyTask", "policy-engine", "guard-overrides"] },
-  { id: "AA02", name: "Tool Abuse", controls: ["guard-overrides", "policy-engine", "risk-assessor"] },
+  {
+    id: "AA01",
+    name: "Agentic Goal Misalignment",
+    controls: ["classifyTask", "policy-engine", "guard-overrides"],
+  },
+  {
+    id: "AA02",
+    name: "Tool Abuse",
+    controls: ["guard-overrides", "policy-engine", "risk-assessor"],
+  },
   { id: "AA03", name: "Autonomous Repetition", controls: ["risk-assessor", "circuit-breaker"] },
-  { id: "AA04", name: "Agent-to-Agent Exploitation", controls: ["guard-overrides", "proof-verifier"] },
-  { id: "AA05", name: "Context Poisoning", controls: ["unicode-normalize", "guard-overrides", "injection-detection"] },
-  { id: "AA06", name: "Information Exfiltration", controls: ["guard-overrides", "policy-engine", "anomaly-detection"] },
-  { id: "AA07", name: "Privilege Escalation", controls: ["policy-engine", "risk-assessor", "guard-overrides"] },
-  { id: "AA08", name: "Unreliable Agent Actions", controls: ["proof-verifier", "merkle-audit", "policy-engine"] },
-  { id: "AA09", name: "Cross-Session Contamination", controls: ["guard-overrides", "unicode-normalize"] },
-  { id: "AA10", name: "Lack of Audit Trail", controls: ["merkle-audit", "proof-verifier", "audit-logger"] },
+  {
+    id: "AA04",
+    name: "Agent-to-Agent Exploitation",
+    controls: ["guard-overrides", "proof-verifier"],
+  },
+  {
+    id: "AA05",
+    name: "Context Poisoning",
+    controls: ["unicode-normalize", "guard-overrides", "injection-detection"],
+  },
+  {
+    id: "AA06",
+    name: "Information Exfiltration",
+    controls: ["guard-overrides", "policy-engine", "anomaly-detection"],
+  },
+  {
+    id: "AA07",
+    name: "Privilege Escalation",
+    controls: ["policy-engine", "risk-assessor", "guard-overrides"],
+  },
+  {
+    id: "AA08",
+    name: "Unreliable Agent Actions",
+    controls: ["proof-verifier", "merkle-audit", "policy-engine"],
+  },
+  {
+    id: "AA09",
+    name: "Cross-Session Contamination",
+    controls: ["guard-overrides", "unicode-normalize"],
+  },
+  {
+    id: "AA10",
+    name: "Lack of Audit Trail",
+    controls: ["merkle-audit", "proof-verifier", "audit-logger"],
+  },
 ];
 
 // EU AI Act — Key Articles for AI Agent Governance
 const EU_AI_ACT = [
-  { id: "Art.9", name: "Risk Management System", riskLevels: ["HIGH", "CRITICAL"], controls: ["risk-assessor", "policy-engine"] },
-  { id: "Art.11", name: "Technical Documentation", riskLevels: ["LOW", "HIGH", "CRITICAL"], controls: ["merkle-audit", "proof-verifier"] },
-  { id: "Art.12", name: "Record Keeping / Logging", riskLevels: ["HIGH", "CRITICAL"], controls: ["merkle-audit", "audit-logger"] },
-  { id: "Art.13", name: "Transparency & Information", riskLevels: ["LOW", "HIGH", "CRITICAL"], controls: ["merkle-audit"] },
+  {
+    id: "Art.9",
+    name: "Risk Management System",
+    riskLevels: ["HIGH", "CRITICAL"],
+    controls: ["risk-assessor", "policy-engine"],
+  },
+  {
+    id: "Art.11",
+    name: "Technical Documentation",
+    riskLevels: ["LOW", "HIGH", "CRITICAL"],
+    controls: ["merkle-audit", "proof-verifier"],
+  },
+  {
+    id: "Art.12",
+    name: "Record Keeping / Logging",
+    riskLevels: ["HIGH", "CRITICAL"],
+    controls: ["merkle-audit", "audit-logger"],
+  },
+  {
+    id: "Art.13",
+    name: "Transparency & Information",
+    riskLevels: ["LOW", "HIGH", "CRITICAL"],
+    controls: ["merkle-audit"],
+  },
   // Art.14 Human Oversight — satisfied by signed ApprovalToken (EURINHASH #6) via proof-verifier HUMAN_APPROVAL; unsigned or missing token = gap
-  { id: "Art.14", name: "Human Oversight", riskLevels: ["HIGH", "CRITICAL"], controls: ["policy-engine", "proof-verifier", "approval-token"] },
-  { id: "Art.15", name: "Accuracy, Robustness, Cybersecurity", riskLevels: ["CRITICAL"], controls: ["guard-overrides", "anomaly-detection", "injection-detection"] },
+  {
+    id: "Art.14",
+    name: "Human Oversight",
+    riskLevels: ["HIGH", "CRITICAL"],
+    controls: ["policy-engine", "proof-verifier", "approval-token"],
+  },
+  {
+    id: "Art.15",
+    name: "Accuracy, Robustness, Cybersecurity",
+    riskLevels: ["CRITICAL"],
+    controls: ["guard-overrides", "anomaly-detection", "injection-detection"],
+  },
 ];
 
 // NIST AI RMF — Govern/Map/Measure/Manage
 const NIST_AI_RMF = [
-  { id: "GOVERN-1", name: "AI Risk Management Strategy", controls: ["policy-engine", "risk-assessor"] },
+  {
+    id: "GOVERN-1",
+    name: "AI Risk Management Strategy",
+    controls: ["policy-engine", "risk-assessor"],
+  },
   { id: "GOVERN-2", name: "Roles & Responsibilities", controls: ["policy-engine"] },
   { id: "GOVERN-3", name: "AI Risk Tolerance", controls: ["risk-assessor", "policy-engine"] },
   { id: "MAP-1", name: "Intended Purpose Identified", controls: ["classifier"] },
   { id: "MAP-2", name: "Intended Users Identified", controls: ["policy-engine"] },
-  { id: "MAP-3", name: "Impact to Individuals & Communities", controls: ["risk-assessor", "policy-engine"] },
-  { id: "MEASURE-1", name: "Approaches for Measurement", controls: ["proof-verifier", "merkle-audit"] },
+  {
+    id: "MAP-3",
+    name: "Impact to Individuals & Communities",
+    controls: ["risk-assessor", "policy-engine"],
+  },
+  {
+    id: "MEASURE-1",
+    name: "Approaches for Measurement",
+    controls: ["proof-verifier", "merkle-audit"],
+  },
   { id: "MEASURE-2", name: "Measurement Methods", controls: ["merkle-audit", "anomaly-detection"] },
   { id: "MANAGE-1", name: "Risk Response Plan", controls: ["guard-overrides", "policy-engine"] },
-  { id: "MANAGE-2", name: "Monitoring & Improvement", controls: ["merkle-audit", "anomaly-detection"] },
+  {
+    id: "MANAGE-2",
+    name: "Monitoring & Improvement",
+    controls: ["merkle-audit", "anomaly-detection"],
+  },
 ];
 
 // ISO 42001 — AI Management System
 const ISO_42001 = [
   { id: "6.1.2", name: "Risk Assessment", controls: ["risk-assessor", "policy-engine"] },
   { id: "7.3", name: "Awareness & Competence", controls: ["classifier", "guard-overrides"] },
-  { id: "8.1", name: "Operational Planning & Control", controls: ["policy-engine", "orchestrator"] },
+  {
+    id: "8.1",
+    name: "Operational Planning & Control",
+    controls: ["policy-engine", "orchestrator"],
+  },
   { id: "8.2", name: "AI Risk Assessment", controls: ["risk-assessor", "anomaly-detection"] },
-  { id: "9.1", name: "Monitoring, Measurement & Evaluation", controls: ["merkle-audit", "anomaly-detection"] },
+  {
+    id: "9.1",
+    name: "Monitoring, Measurement & Evaluation",
+    controls: ["merkle-audit", "anomaly-detection"],
+  },
   { id: "9.3", name: "Management Review", controls: ["merkle-audit"] },
-  { id: "10.1", name: "Nonconformity & Corrective Action", controls: ["guard-overrides", "policy-engine"] },
+  {
+    id: "10.1",
+    name: "Nonconformity & Corrective Action",
+    controls: ["guard-overrides", "policy-engine"],
+  },
 ];
 
 export class StandardsMapper {
@@ -89,7 +183,9 @@ export class StandardsMapper {
         control: owasp.controls.join(", "),
         description: owasp.name,
         status: hasControl ? "COVERED" : "NOT_COVERED",
-        evidence: hasControl ? `Controlled by: ${owasp.controls.filter((c) => usedControls.includes(c)).join(", ")}` : "No control mapping found",
+        evidence: hasControl
+          ? `Controlled by: ${owasp.controls.filter((c) => usedControls.includes(c)).join(", ")}`
+          : "No control mapping found",
       });
     }
 
@@ -104,7 +200,9 @@ export class StandardsMapper {
         control: article.controls.join(", "),
         description: article.name,
         status: hasControl ? "COVERED" : "NOT_COVERED",
-        evidence: hasControl ? `Controlled by: ${article.controls.filter((c) => usedControls.includes(c)).join(", ")}` : "No control mapping found",
+        evidence: hasControl
+          ? `Controlled by: ${article.controls.filter((c) => usedControls.includes(c)).join(", ")}`
+          : "No control mapping found",
       });
     }
 
@@ -117,7 +215,9 @@ export class StandardsMapper {
         control: nist.controls.join(", "),
         description: nist.name,
         status: hasControl ? "COVERED" : "NOT_COVERED",
-        evidence: hasControl ? `Controlled by: ${nist.controls.filter((c) => usedControls.includes(c)).join(", ")}` : "No control mapping found",
+        evidence: hasControl
+          ? `Controlled by: ${nist.controls.filter((c) => usedControls.includes(c)).join(", ")}`
+          : "No control mapping found",
       });
     }
 
@@ -130,7 +230,9 @@ export class StandardsMapper {
         control: iso.controls.join(", "),
         description: iso.name,
         status: hasControl ? "COVERED" : "NOT_COVERED",
-        evidence: hasControl ? `Controlled by: ${iso.controls.filter((c) => usedControls.includes(c)).join(", ")}` : "No control mapping found",
+        evidence: hasControl
+          ? `Controlled by: ${iso.controls.filter((c) => usedControls.includes(c)).join(", ")}`
+          : "No control mapping found",
       });
     }
 
