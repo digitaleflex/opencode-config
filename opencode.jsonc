@@ -3,21 +3,22 @@
   "shell": "bash",
 
   // ── Plugins (canonical list — opencode.json must NOT re-declare) ──
+  // Curated 2026-09-10 : un seul système par rôle (mémoire, skills-loader,
+  // orchestration). Retirés : DCP (mauvais nom de paquet → better-compact),
+  // supermemory (cloud, doublon de opencode-mem), lazy-skills + skillful
+  // (remplacés par preload-skills), opencode-router (bridges inutilisés),
+  // opencode.nvim (pas d'usage Neovim), oh-my-openagent (chevauche slim +
+  // le superviseur maison), context-summarizer local (stub, remplacé).
   "plugin": [
-    "opencode-dynamic-context-pruning",
+    "better-compact",
     "opencode-mem",
     "envsitter-guard",
     "oh-my-opencode-slim",
-    "opencode-router",
-    "opencode.nvim",
     "./plugin/guard.ts",
     "./plugin/audit-logger.ts",
-    "@felipegenef/opencode-lazy-skills",
-    "@f97/opencode-morph-fast-apply",
-    "opencode-supermemory",
-    "@zenobius/opencode-skillful",
-    "oh-my-openagent",
-    "./plugin/context-summarizer.ts"
+    "opencode-plugin-preload-skills"
+    // "@f97/opencode-morph-fast-apply" — désactivé : exige MORPH_API_KEY.
+    // Réactiver après avoir posé la clé (voir docs/02-configuration.md §3).
   ],
 
   // ── Permissions globales ──
