@@ -173,6 +173,9 @@ Toutes les clés API sont dans `~/.config/opencode/` avec le format `.<provider>
 .sambanova-key  # SambaNova API key (FREE, 20 req/jour)
 .cerebras-key   # Cerebras API key (TRIAL $5, optionnel)
 .pollinations-key # Pollinations (optionnel : tier anonyme sans clé)
+.cohere-key     # Cohere trial key (1000 appels/mois, sans carte)
+.cloudflare-key     # Cloudflare API token (Workers AI, 10K neurons/jour)
+.cloudflare-account # Cloudflare account ID (requis avec le token)
 # Ollama : aucune clé (local, http://localhost:11434)
 ```
 
@@ -192,6 +195,8 @@ cat .groq-key
 | Pollinations | https://auth.pollinations.ai/ (optionnel) | Sans clé : 1 req/15s ; compte gratuit : 1 req/5s |
 | Cerebras | https://cloud.cerebras.ai/ | Trial $5 / 30 jours (pas de free permanent) |
 | Ollama | Aucune (local) | Illimité (limité par ta machine) |
+| Cohere | https://dashboard.cohere.com/api-keys | Trial : 1000 appels/mois, sans carte, **non-commercial uniquement** |
+| Cloudflare | https://dash.cloudflare.com/ (Workers AI) | 10K neurons/jour (clé API + account ID) |
 | Mistral | https://console.mistral.ai/ | 30M tokens/mois |
 | Google | https://aistudio.google.com/ | 20 req/min |
 | Zhipu | https://bigmodel.cn/ | 200 req/jour |
@@ -255,6 +260,36 @@ ollama pull llama3.1        # générique
 ```
 Aucun quota, aucune donnée envoyée : parfait pour les tâches sensibles et
 comme futur rôle juge local. Limité par ta RAM/VRAM.
+
+#### Cohere (trial 1000 appels/mois, tous modèles)
+```bash
+# 1. Créer un compte : https://dashboard.cohere.com/ (sans carte)
+# 2. Créer une TRIAL key sur https://dashboard.cohere.com/api-keys
+echo "votre-cle-cohere" > ~/.config/opencode/.cohere-key
+chmod 600 ~/.config/opencode/.cohere-key
+# 3. Vérifier : python ~/.config/opencode/scripts/free-probe.py
+```
+Modèles configurés : `command-a-03-2025` (généraliste), `command-r-plus-08-2024`,
+`north-mini-code-1-0` (code). **Contraintes** : 1000 appels/mois TOUS
+endpoints confondus, 20 req/min, **usage non-commercial uniquement**.
+API propriétaire `/v2/chat` (pas OpenAI-compatible) exposée via l'adaptateur
+AI SDK — à valider live au premier appel réel.
+
+#### Cloudflare Workers AI (10K neurons/jour)
+```bash
+# 1. Compte Cloudflare (gratuit) : https://dash.cloudflare.com/
+# 2. Créer un token API (Workers AI) + noter l'account ID
+echo "votre-token-cloudflare" > ~/.config/opencode/.cloudflare-key
+echo "votre-account-id" > ~/.config/opencode/.cloudflare-account
+chmod 600 ~/.config/opencode/.cloudflare-*
+# 3. Vérifier : python ~/.config/opencode/scripts/free-probe.py
+```
+Modèles gratuits constatés : `@cf/zai-org/glm-4.7-flash`, `@cf/google/gemma-4-*`,
+`@cf/nvidia/nemotron-3-*` (les gros Kimi/GLM-5.2 sont passés au plan payant).
+**Note d'intégration** : l'API Workers AI est REST propriétaire
+(`/client/v4/accounts/{id}/ai/run/...`), pas OpenAI-compatible — le probe
+ci-dessus la teste en direct, mais le bloc provider OpenCode correspondant
+reste **à valider live** avant d'y router des workers.
 
 #### Après ajout d'un provider
 1. Quitter + relancer OpenCode (rechargement config).
