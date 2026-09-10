@@ -113,3 +113,26 @@ L2+ approuvable uniquement avec preuves vérifiables.
 - `src/core/version.ts`: `export const VERSION`; `getSummary()` l'utilise.
 - (Option) `scripts/check-version.ts` compare au CHANGELOG.
 - Acceptation: une seule définition, testée.
+
+---
+
+## Borrowed strengths (intégrés v0.7.0 — idées reprises, zéro-dép)
+
+### A. Secret redactor (pattern microsoft/agent-governance-toolkit)
+- `secret-redactor.ts`: AWS, GitHub PAT, OpenAI/Anthropic/Stripe/Slack, JWT,
+  PEM, Azure, générique + `redactDeep()` pour structures JSON.
+- `MerkleAuditTrail.record()` et `logAuditEntry()` redactent AVANT
+  persistance (occurrence tracée, valeur jamais stockée).
+- `plugin/guard.ts`: hook `tool.execute.after` qui redacte les sorties
+  d'outils avant que le modèle les voie.
+
+### B. Static rules (esprit red-orbita, sans Semgrep/YARA)
+- `static-rules.ts`: ~25 règles (shell/python/js/deser/secrets/mining/exfil)
+  + règles custom via `policies/static-rules.json`; stage pipeline qui bloque
+  sur critical/high.
+
+### C. Semantic judge (sans modèle ; point d'extension remorses)
+- `semantic-judge.ts`: signaux linguistiques (override, persona, scope-shift,
+  hypothétique, faux dialogue, densité impérative) ; BLOCK ≥ 0.7, WARN ≥ 0.4.
+- `JudgeProvider` + `NoopJudgeProvider` : un juge modèle (free-tier) peut être
+  branché en 4e argument de `execute()` plus tard.

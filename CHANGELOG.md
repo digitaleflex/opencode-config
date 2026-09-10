@@ -1,5 +1,36 @@
 # CHANGELOG — EURINHASH Governance Engine
 
+## [0.7.0] - 2026-09-10 — Borrowed strengths: redaction, static rules, semantic judge
+
+### 🤫 Secret redaction (pattern Microsoft AGT, 100% local)
+- **`secret-redactor.ts`**: AWS, GitHub PAT, OpenAI/Anthropic/Stripe/Slack,
+  JWT, PEM, Azure, credential générique + `redactDeep()` pour objets JSON
+- **Logs jamais contaminés**: `MerkleAuditTrail.record()` et `logAuditEntry()`
+  redactent AVANT hachage/persistance (occurrence tracée, valeur jamais
+  stockée) ; la vérification de chaîne reste cohérente car le hash porte sur
+  le contenu redacté
+- **`plugin/guard.ts`**: hook `tool.execute.after` qui redacte les sorties
+  d'outils avant que le modèle les voie
+
+### 🔍 Static rules (esprit red-orbita, sans Semgrep)
+- **`static-rules.ts`**: ~25 règles (shell-exec, python-exec, js-exec,
+  deserialization, secrets-in-code, crypto-mining, network-exfil) + règles
+  custom via `policies/static-rules.json`
+- Nouveau stage pipeline après les gardes : findings critical/high → BLOCKED,
+  tracés dans le détail Merkle
+
+### 🧠 Semantic judge (sans modèle)
+- **`semantic-judge.ts`**: score l'intention de hijack par signaux
+  linguistiques (override, persona, scope-shift, cadrage hypothétique, faux
+  dialogue, densité impérative) ; BLOCK ≥ 0.7, WARN ≥ 0.4
+- Attrape des formulations inédites que les regex ratent (vérifié : 4/4
+  BLOCK, bénins à 0–0.25) ; `JudgeProvider`/`NoopJudgeProvider` prêts pour
+  brancher un juge modèle free-tier plus tard (4e arg de `execute()`)
+
+### 🧪 Validation
+- 133 unit + 12 fuzz, 0 échec ; `tsc` clean ; golden 39/39 (6 nouveaux cas) ;
+  chaos 16/0/0
+
 ## [0.6.0] - 2026-09-10 — Confinement, persistence, approvals, MCP, budgets, fuzzing
 
 ### 🛡️ Workspace confinement + egress (#3)
