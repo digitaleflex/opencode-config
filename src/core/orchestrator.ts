@@ -9,6 +9,9 @@ import { GuardOverrides } from "./guard-overrides";
 import { TaskBudget, TaskBudgetOpts } from "./budget";
 import { StateStore } from "./state-store";
 import { McpGovernance, McpManifest } from "./mcp-governance";
+import { redactDeep, redactSecrets } from "./secret-redactor";
+import { judgeSemantic, JudgeProvider } from "./semantic-judge";
+import { scanStatic } from "./static-rules";
 import { VERSION } from "./version";
 import { TaskSpec, ExecutionResult, PolicyDecision, TaskType, RiskLevel, ProofChain, Proof, ProofType, EvidenceBundle } from "./types";
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
@@ -99,7 +102,7 @@ export class GovernanceOrchestrator {
     return this.budgetOpts;
   }
 
- async execute(task: TaskSpec, evidence: EvidenceBundle = {}, budgetOverride?: TaskBudget | TaskBudgetOpts): Promise<ExecutionResult> {
+ async execute(task: TaskSpec, evidence: EvidenceBundle = {}, budgetOverride?: TaskBudget | TaskBudgetOpts, judgeProvider?: JudgeProvider): Promise<ExecutionResult> {
       // Resolve budget: per-execute override > constructor opts > defaults
       let budget: TaskBudget;
       if (budgetOverride instanceof TaskBudget) {
@@ -289,6 +292,80 @@ export class GovernanceOrchestrator {
 
       ex = budget.exhausted();
       if (ex.exhausted) return budgetBlocked(ex.reason!, "injection");
+
+      // --- Semantic intent judgment (novel phrasings that regex lists miss) ---
+      const startSemantic = Date.now();
+      const semanticResult = judgeSemantic([task.description, task.operation || ""].join(" "));
+      const semanticBlocked = semanticResult.action === "BLOCK";
+      budget.spend(Date.now() - startSemantic);
+      if (semanticBlocked) {
+        const totalMs = Date.now() - startTotal;
+        this.merkleAudit.record({
+          timestamp: new Date().toISOString(),
+          taskId,
+          taskDescription: task.description,
+          stage: "semantic",
+          decision: "BLOCKED",
+          detail: { score: semanticResult.score, reasons: semanticResult.reasons },
+        });
+        this.metrics.push({
+          classification_ms: classifyMs,
+          risk_assessment_ms: riskMs,
+          policy_evaluation_ms: 0,
+          guard_check_ms: 0,
+          proof_verification_ms: 0,
+          pipeline_total_ms: totalMs,
+        });
+        return {
+          taskId,
+          taskType: taskType!,
+          riskLevel: riskLevel!,
+          policyDecision: { decision: "BLOCKED", policy: null, proofsRequired: [], humanApproval: false, reason: `Semantic hijack intent: ${semanticResult.reasons.join(", ")}` },
+          guardDecision: "BLOCKED",
+          proofStatus: "FAIL",
+          verdict: "BLOCKED",
+        };
+      }
+      // Optional model-backed judge (e.g. a free-tier model) consulted only
+      // when the heuristic did not already block.
+      if (judgeProvider && !semanticBlocked) {
+        try {
+          const ext = await judgeProvider.judge([task.description, task.operation || ""].join(" "));
+          if (ext.flagged && ext.confidence >= 0.7) {
+            const totalMs = Date.now() - startTotal;
+            this.merkleAudit.record({
+              timestamp: new Date().toISOString(),
+              taskId,
+              taskDescription: task.description,
+              stage: "semantic",
+              decision: "BLOCKED",
+              detail: { provider: true, confidence: ext.confidence, reason: ext.reason },
+            });
+            this.metrics.push({
+              classification_ms: classifyMs,
+              risk_assessment_ms: riskMs,
+              policy_evaluation_ms: 0,
+              guard_check_ms: 0,
+              proof_verification_ms: 0,
+              pipeline_total_ms: totalMs,
+            });
+            return {
+              taskId,
+              taskType: taskType!,
+              riskLevel: riskLevel!,
+              policyDecision: { decision: "BLOCKED", policy: null, proofsRequired: [], humanApproval: false, reason: `Model judge flagged: ${ext.reason ?? "hijack intent"}` },
+              guardDecision: "BLOCKED",
+              proofStatus: "FAIL",
+              verdict: "BLOCKED",
+            };
+          }
+        } catch {
+          // A failing external judge must never fail the pipeline open or closed.
+        }
+      }
+
+      ex = budget.exhausted();
+      if (ex.exhausted) return budgetBlocked(ex.reason!, "semantic");
 
       // --- MCP Governance (tool poisoning / rug-pull) ---
       const mcpManifest = (task.data as Record<string, unknown> | undefined)?.mcpManifest as McpManifest | undefined;
@@ -508,6 +585,24 @@ export class GovernanceOrchestrator {
       ex = budget.exhausted();
       if (ex.exhausted) return budgetBlocked(ex.reason!, "guard");
 
+      // --- Static rules (Semgrep-spirit code scan) ---
+      const startStatic = Date.now();
+      const staticReport = scanStatic([task.description, task.operation || ""].join("\n"));
+      budget.spend(Date.now() - startStatic);
+      this.logAuditEntry({
+        timestamp: new Date().toISOString(),
+        taskId,
+        taskDescription: task.description,
+        stage: "guard",
+        input: { staticRules: staticReport.rulesEvaluated },
+        output: { blocked: staticReport.blocked, findings: staticReport.findings.length },
+        decision: staticReport.blocked ? "BLOCKED" : "APPROVED",
+        duration_ms: Date.now() - startStatic,
+      });
+
+      ex = budget.exhausted();
+      if (ex.exhausted) return budgetBlocked(ex.reason!, "static");
+
        const startProof = Date.now();
        const proofChain = this.proofVerifier.generateProofChain(
          { ...taskWithRisk, id: taskId },
@@ -548,6 +643,8 @@ export class GovernanceOrchestrator {
             proofStatus,
             anomalyScore: anomalyResult!.score,
             injectionDetected: injectionReport.action !== "ALLOW",
+            semanticScore: semanticResult.score,
+            staticBlocked: staticReport.blocked,
             evidenceProvided: Object.keys(evidence),
             reason: ex.reason,
             budgetExceeded: true,
@@ -577,6 +674,10 @@ export class GovernanceOrchestrator {
        if (guardResult.decision === "BLOCKED") {
          verdict = "BLOCKED";
        } else if (guardResult.decision === "WARN") {
+         verdict = "BLOCKED";
+       } else if (semanticResult.action === "WARN") {
+         verdict = "BLOCKED";
+       } else if (staticReport.blocked) {
          verdict = "BLOCKED";
        } else if (anomalyResult!.isAnomalous && anomalyResult!.category === "anomalous") {
          verdict = "BLOCKED";
@@ -618,6 +719,10 @@ export class GovernanceOrchestrator {
            proofStatus,
            anomalyScore: anomalyResult!.score,
            injectionDetected: injectionReport.action !== "ALLOW",
+           semanticScore: semanticResult.score,
+           semanticReasons: semanticResult.reasons,
+           staticBlocked: staticReport.blocked,
+           staticFindings: staticReport.findings.map((f) => `${f.ruleId}:${f.severity}`),
            evidenceProvided: Object.keys(evidence),
         },
       });
@@ -823,7 +928,25 @@ export class GovernanceOrchestrator {
 
    private auditEntries: GovernanceAuditEntry[] = [];
 
- private logAuditEntry(entry: GovernanceAuditEntry): void {
+  private logAuditEntry(entry: GovernanceAuditEntry): void {
+      // Redact secrets before buffering/persisting (record occurrence, never value).
+      const cleanInput = redactDeep(entry.input);
+      const cleanOutput = redactDeep(entry.output);
+      const cleanDesc = typeof entry.taskDescription === "string"
+        ? redactSecrets(entry.taskDescription).text
+        : entry.taskDescription;
+      const redactionCount =
+        cleanInput.redactions.reduce((n, r) => n + r.count, 0) +
+        cleanOutput.redactions.reduce((n, r) => n + r.count, 0);
+      entry = {
+        ...entry,
+        taskDescription: cleanDesc,
+        input: cleanInput.value,
+        output: cleanOutput.value,
+        ...(redactionCount > 0
+          ? { reason: `${entry.reason ?? ""} [${redactionCount} secret(s) redacted]`.trim() }
+          : {}),
+      };
       this.auditEntries.push(entry);
       const logDir = join(process.cwd(), "logs");
       if (!existsSync(logDir)) {
