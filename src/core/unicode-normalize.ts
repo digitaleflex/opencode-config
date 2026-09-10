@@ -63,9 +63,8 @@ function transliterateToAscii(str: string): string {
     "\u0414": "D", // Cyrillic Д
     "\u0416": "W", // Cyrillic Ж
     "\u0417": "Z", // Cyrillic З
-    "\u041F": "P", // Cyrillic Ф (duplicate with 041F but kept for clarity)
-    "\u0428": "W", // Cyrillic Ш (duplicate with 0448 but kept for clarity)
-    "\u0429": "W", // Cyrillic Щ (duplicate with 0449 but kept for clarity)
+    "\u0428": "W", // Cyrillic Ш
+    "\u0429": "W", // Cyrillic Щ
     "\u042A": "B", // Cyrillic Ъ
     "\u042B": "B", // Cyrillic Ы
     "\u042C": "B", // Cyrillic Ь
