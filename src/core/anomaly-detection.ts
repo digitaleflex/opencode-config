@@ -4,6 +4,7 @@
 // Inspired by Aegis (pDFA), OWASP Agentic, Agent Flight Recorder.
 
 import { TaskSpec, TaskType, RiskLevel } from "./types";
+import { StateStore } from "./state-store";
 
 export interface AnomalyResult {
   isAnomalous: boolean;
@@ -311,6 +312,107 @@ export class AnomalyDetector {
     if (expectedRatio > 0 && recentRatio > expectedRatio * 3) return 0.5;
 
     return 0;
+  }
+
+  // --- Persistence (État persistant #5) ---
+
+  /**
+   * Serialize detector state to a plain JSON-compatible object.
+   * Maps are converted to arrays of entries for stable round-trip.
+   */
+  serialize(): unknown {
+    return {
+      baseline: {
+        taskTypeCounts: Array.from(this.baseline.taskTypeCounts.entries()),
+        riskLevelCounts: Array.from(this.baseline.riskLevelCounts.entries()),
+        avgDescriptionLength: this.baseline.avgDescriptionLength,
+        maxFrequencyPerMinute: Array.from(this.baseline.maxFrequencyPerMinute.entries()),
+        totalTasks: this.baseline.totalTasks,
+        lastUpdated: this.baseline.lastUpdated,
+        mean: [...this.baseline.mean] as [number, number, number, number],
+        covarianceInverse: this.baseline.covarianceInverse.map((row) => [...row]),
+        sampleCount: this.baseline.sampleCount,
+      },
+      recentTasks: [...this.recentTasks],
+    };
+  }
+
+  /**
+   * Restore detector state from serialized data. Fail-open on corrupt input.
+   */
+  restore(data: unknown): void {
+    try {
+      if (!data || typeof data !== "object") return;
+      const obj = data as Record<string, unknown>;
+
+      if (obj.baseline && typeof obj.baseline === "object") {
+        const b = obj.baseline as Record<string, unknown>;
+        const taskTypeCounts = Array.isArray(b.taskTypeCounts)
+          ? new Map<string, number>(b.taskTypeCounts as [string, number][])
+          : new Map<string, number>();
+        const riskLevelCounts = Array.isArray(b.riskLevelCounts)
+          ? new Map<string, number>(b.riskLevelCounts as [string, number][])
+          : new Map<string, number>();
+        const maxFrequencyPerMinute = Array.isArray(b.maxFrequencyPerMinute)
+          ? new Map<string, number>(b.maxFrequencyPerMinute as [string, number][])
+          : new Map<string, number>();
+
+        this.baseline = {
+          taskTypeCounts,
+          riskLevelCounts,
+          avgDescriptionLength: typeof b.avgDescriptionLength === "number" ? b.avgDescriptionLength : 50,
+          maxFrequencyPerMinute,
+          totalTasks: typeof b.totalTasks === "number" ? b.totalTasks : 0,
+          lastUpdated: typeof b.lastUpdated === "string" ? b.lastUpdated : new Date().toISOString(),
+          mean: Array.isArray(b.mean) && (b.mean as number[]).length === 4
+            ? ([...(b.mean as number[])] as [number, number, number, number])
+            : [0.5, 0.25, 0.1, 0.1],
+          covarianceInverse: Array.isArray(b.covarianceInverse)
+            ? (b.covarianceInverse as number[][]).map((row) => [...row])
+            : [
+                [4, 0, 0, 0],
+                [0, 4, 0, 0],
+                [0, 0, 4, 0],
+                [0, 0, 0, 4],
+              ],
+          sampleCount: typeof b.sampleCount === "number" ? b.sampleCount : 0,
+        };
+      }
+
+      if (Array.isArray(obj.recentTasks)) {
+        this.recentTasks = (obj.recentTasks as unknown[]).filter(
+          (t): t is { timestamp: number; taskType: TaskType; riskLevel: RiskLevel } =>
+            !!t &&
+            typeof t === "object" &&
+            typeof (t as Record<string, unknown>).timestamp === "number" &&
+            typeof (t as Record<string, unknown>).taskType === "string" &&
+            typeof (t as Record<string, unknown>).riskLevel === "string"
+        ).map((t) => ({ ...t }));
+        // Enforce window cap implicitly by keeping as-is (orchestrator prunes on next analyze)
+      }
+    } catch {
+      // fail-open: keep current state on corrupt data
+    }
+  }
+
+  /**
+   * Static factory that deserializes a new instance from data.
+   */
+  static deserialize(data: unknown): AnomalyDetector {
+    const inst = new AnomalyDetector();
+    inst.restore(data);
+    return inst;
+  }
+
+  /** Convenience: persist to a StateStore under the given name (default: "anomaly"). */
+  save(store: StateStore, name = "anomaly"): void {
+    store.save(name, this.serialize());
+  }
+
+  /** Convenience: load from a StateStore (fail-open). */
+  load(store: StateStore, name = "anomaly"): void {
+    const data = store.load(name);
+    if (data) this.restore(data);
   }
 
   private createDefaultBaseline(): Baseline {

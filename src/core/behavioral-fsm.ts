@@ -6,6 +6,7 @@
 // read → write → delete without approval) are flagged.
 
 import { TaskType } from "./types";
+import { StateStore } from "./state-store";
 
 export type ToolKind =
   | "read"
@@ -159,5 +160,57 @@ export class BehavioralFSM {
 
   private resolveTaskTypeFromState(): TaskType {
     return TaskType.FEATURE_LIMITED;
+  }
+
+  // --- Persistence (État persistant #5) ---
+
+  serialize(): unknown {
+    return {
+      state: this.state,
+      transitions: [...this.transitions],
+    };
+  }
+
+  restore(data: unknown): void {
+    try {
+      if (!data || typeof data !== "object") return;
+      const obj = data as Record<string, unknown>;
+      if (typeof obj.state === "string") {
+        const validStates: WorkflowState[] = ["INIT", "ANALYZE", "MODIFY", "VERIFY", "APPROVAL", "DONE", "VIOLATION"];
+        if ((validStates as string[]).includes(obj.state)) {
+          this.state = obj.state as WorkflowState;
+        }
+      }
+      if (Array.isArray(obj.transitions)) {
+        const filtered = (obj.transitions as unknown[]).filter(
+          (t): t is StateTransition =>
+            !!t &&
+            typeof t === "object" &&
+            typeof (t as Record<string, unknown>).from === "string" &&
+            typeof (t as Record<string, unknown>).to === "string" &&
+            typeof (t as Record<string, unknown>).tool === "string" &&
+            typeof (t as Record<string, unknown>).allowed === "boolean"
+        ) as StateTransition[];
+        // Cap to maxTransitions (100)
+        this.transitions = filtered.length > this.maxTransitions ? filtered.slice(-this.maxTransitions) : filtered;
+      }
+    } catch {
+      // fail-open
+    }
+  }
+
+  static deserialize(data: unknown): BehavioralFSM {
+    const inst = new BehavioralFSM();
+    inst.restore(data);
+    return inst;
+  }
+
+  save(store: StateStore, name = "fsm"): void {
+    store.save(name, this.serialize());
+  }
+
+  load(store: StateStore, name = "fsm"): void {
+    const data = store.load(name);
+    if (data) this.restore(data);
   }
 }

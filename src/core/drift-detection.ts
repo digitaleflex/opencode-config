@@ -5,6 +5,7 @@
 // the Mahalanobis-checked composite score exceeds threshold.
 
 import { TaskType, RiskLevel } from "./types";
+import { StateStore } from "./state-store";
 
 export enum DriftDimension {
   TOOL_FREQUENCY = "tool_frequency",       // Rate of tool invocations
@@ -209,5 +210,82 @@ export class DriftDetector {
       const value = this.computeDimension(dim);
       if (!this.baselines[dim]) this.baselines[dim] = value;
     }
+  }
+
+  // --- Persistence (État persistant #5) ---
+
+  serialize(): unknown {
+    return {
+      counters: { ...this.counters },
+      baselines: { ...this.baselines },
+      taskTypeHistory: [...this.taskTypeHistory],
+      descriptionLengths: [...this.descriptionLengths],
+      recentDescriptions: [...this.recentDescriptions],
+      slowLog: [...this.slowLog],
+      sampleCount: this.sampleCount,
+    };
+  }
+
+  restore(data: unknown): void {
+    try {
+      if (!data || typeof data !== "object") return;
+      const obj = data as Record<string, unknown>;
+      if (obj.counters && typeof obj.counters === "object" && !Array.isArray(obj.counters)) {
+        this.counters = { ...(obj.counters as Record<string, number>) };
+      }
+      if (obj.baselines && typeof obj.baselines === "object" && !Array.isArray(obj.baselines)) {
+        this.baselines = { ...(obj.baselines as Record<string, number>) };
+      }
+      if (Array.isArray(obj.taskTypeHistory)) {
+        this.taskTypeHistory = (obj.taskTypeHistory as unknown[]).filter(
+          (v) => typeof v === "string"
+        ) as TaskType[];
+        if (this.taskTypeHistory.length > this.MAX_HISTORY) {
+          this.taskTypeHistory = this.taskTypeHistory.slice(-this.MAX_HISTORY);
+        }
+      }
+      if (Array.isArray(obj.descriptionLengths)) {
+        this.descriptionLengths = (obj.descriptionLengths as unknown[]).filter(
+          (v) => typeof v === "number"
+        ) as number[];
+        if (this.descriptionLengths.length > 100) this.descriptionLengths = this.descriptionLengths.slice(-100);
+      }
+      if (Array.isArray(obj.recentDescriptions)) {
+        this.recentDescriptions = (obj.recentDescriptions as unknown[]).filter(
+          (v) => typeof v === "string"
+        ) as string[];
+        if (this.recentDescriptions.length > 50) this.recentDescriptions = this.recentDescriptions.slice(-50);
+      }
+      if (Array.isArray(obj.slowLog)) {
+        this.slowLog = (obj.slowLog as unknown[]).filter(
+          (e): e is { dimension: DriftDimension; delta: number; timestamp: string } =>
+            !!e &&
+            typeof e === "object" &&
+            typeof (e as Record<string, unknown>).dimension === "string" &&
+            typeof (e as Record<string, unknown>).delta === "number"
+        ) as { dimension: DriftDimension; delta: number; timestamp: string }[];
+        if (this.slowLog.length > 100) this.slowLog = this.slowLog.slice(-100);
+      }
+      if (typeof obj.sampleCount === "number") {
+        this.sampleCount = obj.sampleCount;
+      }
+    } catch {
+      // fail-open
+    }
+  }
+
+  static deserialize(data: unknown): DriftDetector {
+    const inst = new DriftDetector();
+    inst.restore(data);
+    return inst;
+  }
+
+  save(store: StateStore, name = "drift"): void {
+    store.save(name, this.serialize());
+  }
+
+  load(store: StateStore, name = "drift"): void {
+    const data = store.load(name);
+    if (data) this.restore(data);
   }
 }
