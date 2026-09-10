@@ -67,7 +67,8 @@
     }
   },
 
-  // ── Providers FREE uniquement ──
+  // ── Providers : gratuits (free tier, quotas stricts) + trial/payants marqués ──
+  // « FREE » = tier gratuit du provider, jamais illimité. Voir docs/02-configuration.md §3.
   "provider": {
     "zhipu": {
       "npm": "@ai-sdk/openai-compatible",
@@ -139,10 +140,10 @@
       },
       "models": {
         "codestral-latest": {
-          "name": "Codestral (FREE, testé OK)"
+          "name": "Codestral (FREE tier quotas stricts, OK le 2026-09-05)"
         },
         "mistral-code-latest": {
-          "name": "Mistral Code (FREE, testé OK)"
+          "name": "Mistral Code (FREE tier quotas stricts, OK le 2026-09-05)"
         }
       }
     },
@@ -156,7 +157,7 @@
       },
       "models": {
         "qwen/qwen3.8-27b": {
-          "name": "Qwen 3.8 27B (FREE, testé OK)"
+          "name": "Qwen 3.8 27B (FREE tier, 1K req/jour chat-models)"
         },
         "openai/gpt-oss-120b": {
           "name": "GPT-OSS 120B (FREE)"
