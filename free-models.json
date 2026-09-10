@@ -11,6 +11,8 @@
     "worker-sambanova": "unknown",
     "worker-pollinations": "unknown",
     "worker-cerebras": "unknown",
-    "worker-ollama": "unknown"
+    "worker-ollama": "unknown",
+    "worker-cohere": "unknown",
+    "worker-cloudflare": "unknown"
   }
 }

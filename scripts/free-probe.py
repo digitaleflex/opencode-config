@@ -232,6 +232,50 @@ except Exception as e:
     results["worker-ollama"] = f"error:{str(e)[:60]}"
     latencies["worker-ollama"] = 0
 
+# 12. Cohere Command A (TRIAL 1000 appels/mois — skip si pas de cle)
+try:
+    key = read_key(".cohere-key")
+    if not key:
+        results["worker-cohere"] = "skipped"
+        latencies["worker-cohere"] = 0
+    else:
+        st, _, dt = post(
+            "https://api.cohere.com/v2/chat",
+            {"Authorization": f"Bearer {key}", "Content-Type": "application/json", **UA},
+            {"model": "command-a-03-2025",
+             "messages": [{"role": "user", "content": "OK"}],
+             "max_tokens": 2},
+        )
+        results["worker-cohere"] = st
+        latencies["worker-cohere"] = dt
+except Exception as e:
+    results["worker-cohere"] = f"error:{str(e)[:60]}"
+    latencies["worker-cohere"] = 0
+time.sleep(1.5)
+
+# 13. Cloudflare Workers AI (10K neurons/jour — cle + account ID requis)
+try:
+    key = read_key(".cloudflare-key")
+    try:
+        with open(os.path.join(CFG, ".cloudflare-account")) as f:
+            account = f.read().strip()
+    except Exception:
+        account = ""
+    if not key or not account:
+        results["worker-cloudflare"] = "skipped"
+        latencies["worker-cloudflare"] = 0
+    else:
+        st, _, dt = post(
+            f"https://api.cloudflare.com/client/v4/accounts/{account}/ai/run/@cf/zai-org/glm-4.7-flash",
+            {"Authorization": f"Bearer {key}", "Content-Type": "application/json", **UA},
+            {"messages": [{"role": "user", "content": "OK"}]},
+        )
+        results["worker-cloudflare"] = st
+        latencies["worker-cloudflare"] = dt
+except Exception as e:
+    results["worker-cloudflare"] = f"error:{str(e)[:60]}"
+    latencies["worker-cloudflare"] = 0
+
 # Construction du rapport
 out = {
     "updated": int(time.time()),
