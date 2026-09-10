@@ -14,6 +14,9 @@ node_modules
 .zenmux-key
 .resend-key
 .morph-key
+.sambanova-key
+.cerebras-key
+.cohere-key
 # Runtime state files (choix locaux, jamais commités)
 mode.json
 provider_circuit.json
