@@ -34,6 +34,11 @@
             { "type": "git-branch" }
           ],
           [
+            { "type": "burn", "color": "info" },
+            { "type": "separator" },
+            { "type": "context-guard" }
+          ],
+          [
             { "type": "reasoning" },
             { "type": "separator" },
             { "type": "total-tokens" },

@@ -35,6 +35,8 @@ interface StatusData {
   topProvider: string
   advisorLabel: string
   advisorLevel: "ok" | "warn" | "bad"
+  sessionTokens: number
+  sessionStartMs: number
 }
 
 const INITIAL_DATA: StatusData = {
@@ -63,6 +65,8 @@ const INITIAL_DATA: StatusData = {
   topProvider: "",
   advisorLabel: "→ …",
   advisorLevel: "warn",
+  sessionTokens: 0,
+  sessionStartMs: 0,
 }
 
 type WidgetType =
@@ -89,6 +93,8 @@ type WidgetType =
   | "risk-level"
   | "budget"
   | "advisor"
+  | "burn"
+  | "context-guard"
 
 interface WidgetDef {
   type: WidgetType
@@ -135,6 +141,11 @@ const DEFAULT_CONFIG: StatuslineConfig = {
       { type: "separator" },
       { type: "git-branch" },
     ],
+    [
+      { type: "burn" },
+      { type: "separator" },
+      { type: "context-guard" },
+    ],
   ],
 }
 
@@ -143,7 +154,7 @@ const ALL_WIDGET_TYPES: WidgetType[] = [
   "git-branch", "duration", "reasoning", "cache-write", "total-tokens",
   "messages", "cache-hit-rate", "separator", "text",
   "provider-health", "routing-chain", "quota-bar", "audit-tail",
-  "sensitive-ops", "risk-level", "budget", "advisor",
+  "sensitive-ops", "risk-level", "budget", "advisor", "burn", "context-guard",
 ]
 
 // ─── i18n ────────────────────────────────────────────────────────────────
@@ -253,7 +264,7 @@ const zhCN: Messages = {
     "total-tokens": "总 Token 用量", messages: "消息数", "cache-hit-rate": "缓存命中率",
     separator: "分隔符", text: "自定义文字",
     "provider-health": "提供商健康", "routing-chain": "路由链", "quota-bar": "今日配额", "audit-tail": "审计尾迹",
-    "sensitive-ops": "敏感操作", "risk-level": "风险等级", "budget": "每日预算", "advisor": "建议",
+    "sensitive-ops": "敏感操作", "risk-level": "风险等级", "budget": "每日预算", "advisor": "建议", "burn": "速率", "context-guard": "上下文",
   },
 }
 
@@ -323,7 +334,7 @@ const fr: Messages = {
     "total-tokens": "Total tokens", messages: "Messages", "cache-hit-rate": "Taux cache",
     separator: "Séparateur", text: "Texte personnalisé",
     "provider-health": "Santé provider", "routing-chain": "Chaîne routage", "quota-bar": "Quota quotidien", "audit-tail": "Dernière action",
-    "sensitive-ops": "Ops sensibles", "risk-level": "Niveau risque", "budget": "Budget quotidien", "advisor": "Conseil",
+    "sensitive-ops": "Ops sensibles", "risk-level": "Niveau risque", "budget": "Budget quotidien", "advisor": "Conseil", "burn": "Débit", "context-guard": "Garde ctx",
   },
 }
 
@@ -393,7 +404,7 @@ const en: Messages = {
     "total-tokens": "Total Tokens", messages: "Messages", "cache-hit-rate": "Cache Hit Rate",
     separator: "Separator", text: "Custom Text",
     "provider-health": "Provider Health", "routing-chain": "Routing Chain", "quota-bar": "Daily Quota", "audit-tail": "Audit Tail",
-    "sensitive-ops": "Sensitive Ops", "risk-level": "Risk Level", "budget": "Daily Budget", "advisor": "Advice",
+    "sensitive-ops": "Sensitive Ops", "risk-level": "Risk Level", "budget": "Daily Budget", "advisor": "Advice", "burn": "Burn", "context-guard": "Ctx guard",
   },
 }
 
@@ -475,6 +486,7 @@ const PRESET_COLORS: NamedPreset[] = [
       "cache-hit-rate": { color: "success" },
       "quota-bar": { color: "success" },
       budget: { color: "info" },
+      burn: { color: "info" },
     },
   },
 ]
@@ -862,6 +874,26 @@ function renderWidget(w: WidgetDef, data: StatusData, theme: TuiThemeCurrent): S
       if (openCount > 0 || fb >= 3) return [seg(`RISK ▲`, theme.warning, true)]
       if (sens > 3) return [seg(`RISK ◐ ${sens}`, theme.warning, false)]
       return [seg(`RISK ●`, theme.success, true)]
+    }
+
+    case "burn": {
+      if (data.sessionTokens <= 0) return [seg("🔥 —", muted)]
+      const elapsedMin = data.sessionStartMs > 0
+        ? Math.max((Date.now() - data.sessionStartMs) / 60000, 1 / 60)
+        : 1 / 60
+      const perMin = data.sessionTokens / elapsedMin
+      return [
+        val(`🔥 ${fmtTokens(data.sessionTokens)}`, theme.text, true),
+        seg(` · ${fmtTokens(perMin)}/min`, muted),
+      ]
+    }
+
+    case "context-guard": {
+      const pct = data.contextPct
+      if (pct <= 0) return [seg("🛡 —", muted)]
+      if (pct >= 80) return [seg(`🛡 ${pct}% → /compact ou /new`, theme.error, true)]
+      if (pct >= 60) return [seg(`🛡 ${pct}% → bientôt /compact`, theme.warning, true)]
+      return [seg(`🛡 ${pct}%`, theme.success, false)]
     }
 
     case "reasoning":
@@ -1301,6 +1333,8 @@ function linePreview(line: WidgetDef[], locale?: Locale): string {
          case "sensitive-ops": return "SENS"
          case "risk-level": return "RISK"
          case "budget": return "BGT"
+         case "burn": return "BURN"
+         case "context-guard": return "GUARD"
          case "advisor": return "⇒"
       }
      })
@@ -1826,7 +1860,44 @@ const tui: TuiPlugin = async (api, options, meta) => {
       }
     }
 
+    // One-shot context-guard toast state (module scope of the plugin entry:
+    // warn at most once per level escalation, min 10 min between toasts).
+    let guardToastAt = 0
+    let guardToastLevel: "" | "warn" | "bad" = ""
+
+    function maybeGuardToast(pct: number) {
+      const level: "" | "warn" | "bad" = pct >= 80 ? "bad" : pct >= 60 ? "warn" : ""
+      const now = Date.now()
+      if (!level) {
+        // Context went back down (fresh session / compaction): re-arm.
+        guardToastLevel = ""
+        return
+      }
+      if (level === guardToastLevel && now - guardToastAt < 600_000) return
+      guardToastLevel = level
+      guardToastAt = now
+      if (level === "bad") {
+        api.ui.toast({
+          variant: "error",
+          title: `Contexte à ${pct}% — presque plein`,
+          message: "Lance /compact pour résumer, ou /new pour repartir léger et économiser des tokens.",
+        })
+      } else {
+        api.ui.toast({
+          variant: "warning",
+          title: `Contexte à ${pct}%`,
+          message: "Pense à /compact bientôt pour garder la session fluide et économe.",
+        })
+      }
+    }
+
     function applyAssistantMessage(msg: AssistantMessage) {
+      const used = msg.tokens.input + msg.tokens.cache.read + msg.tokens.output + msg.tokens.reasoning
+      // Threshold toast AFTER state update (throttled inside maybeGuardToast).
+      setTimeout(() => {
+        const d = data()
+        if (d.contextLimit > 0) maybeGuardToast(d.contextPct)
+      }, 0)
       setData((prev) => {
         const next = { ...prev }
         const { name, limit } = modelDisplayName(msg.providerID, msg.modelID)
@@ -1836,9 +1907,11 @@ const tui: TuiPlugin = async (api, options, meta) => {
         next.outputTokens = msg.tokens.output
         next.reasoningTokens = msg.tokens.reasoning
         next.cacheWriteTokens = msg.tokens.cache.write
-        if (next.contextLimit > 0) {
-          const used = msg.tokens.input + msg.tokens.cache.read + msg.tokens.output + msg.tokens.reasoning
-          next.contextPct = Math.min(100, Math.round((used / next.contextLimit) * 100))
+        next.sessionTokens = prev.sessionTokens + used
+        if (!prev.sessionStartMs && msg.time.created) next.sessionStartMs = msg.time.created
+        const limitNow = next.contextLimit
+        if (limitNow > 0) {
+          next.contextPct = Math.min(100, Math.round((used / limitNow) * 100))
         }
         const cacheRead = msg.tokens.cache.read
         const freshInput = msg.tokens.input
