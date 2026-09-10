@@ -1,0 +1,18 @@
+{
+  "name": "opencode-config",
+  "version": "0.3.1",
+  "description": "EURINHASH governance engine and OpenCode configuration (free-tier models only)",
+  "private": true,
+  "scripts": {
+    "test": "bun test src/core/core.test.ts",
+    "typecheck": "tsc --noEmit",
+    "chaos": "bun run scripts/chaos/chaos-lab.ts",
+    "test:golden": "bun run scripts/verify-golden.ts",
+    "verify": "bun run typecheck && bun test src/core/core.test.ts && bun run test:golden"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "@types/node": "^22.20.2",
+    "typescript": "^5.6.0"
+  }
+}
