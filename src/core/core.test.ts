@@ -163,12 +163,47 @@ describe("ProofVerifier", () => {
   const verifier = new ProofVerifier();
   const engine = new PolicyEngine();
 
-  test("generates and verifies a PASS chain bound to task content", () => {
+  test("generates and verifies a PASS chain with authentic evidence", () => {
     const engine = new PolicyEngine();
     const policy = policyFor(engine, { description: "fix bug in service", taskType: TaskType.BUG_LOCALIZED, risk: RiskLevel.LOW });
     const task = { id: "task-1", description: "fix bug in service" };
+    const evidence = {
+      testResult: { passed: 5, failed: 0, outputHash: "sha256:abc123" },
+      reviewHash: "review-456",
+    };
+    const chain = verifier.generateProofChain(task, policy, evidence);
+    expect(verifier.verifyProofChain(chain, task, evidence)).toBe("PASS");
+  });
+
+  test("returns PENDING when evidence is missing (no fabricated proofs)", () => {
+    const policy = policyFor(engine, { description: "fix bug in service", taskType: TaskType.BUG_LOCALIZED, risk: RiskLevel.LOW });
+    const task = { id: "task-1b", description: "fix bug in service" };
     const chain = verifier.generateProofChain(task, policy);
-    expect(verifier.verifyProofChain(chain, task)).toBe("PASS");
+    expect(chain.proofs.every((p) => p.status === "PENDING")).toBe(true);
+    expect(verifier.verifyProofChain(chain, task)).toBe("PENDING");
+  });
+
+  test("returns FAIL on failing test evidence", () => {
+    const policy = policyFor(engine, { description: "fix bug in service", taskType: TaskType.BUG_LOCALIZED, risk: RiskLevel.LOW });
+    const task = { id: "task-1c", description: "fix bug in service" };
+    const evidence = {
+      testResult: { passed: 3, failed: 2, outputHash: "sha256:def456" },
+      reviewHash: "review-789",
+    };
+    const chain = verifier.generateProofChain(task, policy, evidence);
+    expect(verifier.verifyProofChain(chain, task, evidence)).toBe("FAIL");
+  });
+
+  test("detects evidence swap at verify time", () => {
+    const policy = policyFor(engine, { description: "fix bug in service", taskType: TaskType.BUG_LOCALIZED, risk: RiskLevel.LOW });
+    const task = { id: "task-1d", description: "fix bug in service" };
+    const evidence = {
+      testResult: { passed: 5, failed: 0, outputHash: "sha256:abc123" },
+      reviewHash: "review-456",
+    };
+    const chain = verifier.generateProofChain(task, policy, evidence);
+    const swapped = { ...evidence, testResult: { passed: 5, failed: 0, outputHash: "sha256:EVIL" } };
+    expect(verifier.verifyProofChain(chain, task, swapped)).toBe("FAIL");
   });
 
   test("detects tampered proof hash", () => {
@@ -211,11 +246,29 @@ describe("GovernanceOrchestrator", () => {
     expect(result.riskLevel).toBe(RiskLevel.LOW);
   });
 
-  test("blocks L2 task with placeholder proofs (F-003 fix)", async () => {
+  test("blocks L2 task when evidence is missing", async () => {
     const result = await orchestrator.execute({ description: "refactor loader module in src" });
     expect(result.verdict).toBe("BLOCKED");
-    expect(result.proofStatus).toBe("PASS");
+    expect(result.proofStatus).toBe("PENDING");
     expect(result.policyDecision.proofsRequired.length).toBeGreaterThan(0);
+  });
+
+  test("approves L2 task with authentic evidence", async () => {
+    const result = await orchestrator.execute(
+      { description: "refactor loader module in src" },
+      { testResult: { passed: 12, failed: 0, outputHash: "sha256:deadbeef" }, reviewHash: "review-cafe" }
+    );
+    expect(result.verdict).toBe("APPROVED");
+    expect(result.proofStatus).toBe("PASS");
+  });
+
+  test("blocks L2 task with failing test evidence", async () => {
+    const result = await orchestrator.execute(
+      { description: "refactor loader module in src" },
+      { testResult: { passed: 10, failed: 2, outputHash: "sha256:badc0de" }, reviewHash: "review-cafe" }
+    );
+    expect(result.verdict).toBe("BLOCKED");
+    expect(result.proofStatus).toBe("FAIL");
   });
 
   test("approves L1 task without proof requirements", async () => {
