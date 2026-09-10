@@ -8,6 +8,7 @@ import {
   TaskComplexity,
   TaskType,
   PolicyDecision,
+  ModelPlan,
 } from "./types";
 import { assessRisk } from "./risk-assessor";
 
@@ -121,7 +122,7 @@ export class PolicyEngine {
     // Find matching policy by taskType and complexity (not risk)
     const matchingPolicy = this.policies.find((policy) =>
       policy.taskTypes.includes(task.taskType!) &&
-      policy.complexity === (task.complexity || this.inferComplexity(task.taskType))
+      policy.complexity === (task.complexity || this.inferComplexity(task.taskType!))
     );
 
     if (!matchingPolicy) {
@@ -190,11 +191,21 @@ export class PolicyEngine {
    */
   loadPoliciesFromYaml(yamlContent: string): void {
     try {
-      // Simple YAML parsing - in production use a proper YAML parser
-      // This is a placeholder for the actual implementation
-      const parsed = this.parseYaml(yamlContent);
-      if (Array.isArray(parsed)) {
-        this.policies = parsed;
+      const parsed = this.parseYaml(yamlContent) as Record<string, unknown>;
+
+      if (parsed && Array.isArray(parsed.policies)) {
+        const policies: PolicySpec[] = parsed.policies.map((p: Record<string, unknown>) => ({
+          name: p.name as string,
+          complexity: p.complexity as TaskComplexity,
+          taskTypes: (p.taskTypes || p.tasktypes) as TaskType[],
+          risk: p.risk as RiskLevel,
+          agents: p.agents as string[],
+          modelPlan: p.modelPlan as ModelPlan,
+          proofsRequired: (p.proofsRequired || p.proofsrequired || []) as ProofType[],
+          humanApproval: p.humanApproval as boolean,
+          securityScan: p.securityScan as boolean,
+        }));
+        this.policies = policies;
       }
     } catch (error) {
       // Fail closed: on invalid YAML, keep default policies and log error
@@ -204,15 +215,112 @@ export class PolicyEngine {
   }
 
   /**
-   * Simple YAML parser placeholder - replace with js-yaml in production.
+   * Lightweight YAML parser (zero-dependency subset).
+   * Parses the EURINHASH policy YAML format: lists of objects with scalars.
    */
   private parseYaml(content: string): unknown {
-    // Minimal implementation - throws on invalid YAML
     if (!content || content.trim().length === 0) {
       throw new Error("Empty YAML content");
     }
-    // In production: return require('js-yaml').load(content);
-    throw new Error("YAML parsing not implemented - use default policies");
+
+    const lines = content.split("\n");
+    const result: unknown[] = [];
+    let currentObj: Record<string, unknown> | null = null;
+    let currentKey = "";
+    let inList = false;
+    let listTarget: unknown[] | null = null;
+    let currentArrayKey = "";
+
+    for (const rawLine of lines) {
+      const line = rawLine.replace(/\r$/, "").trimEnd();
+      if (line.trim().startsWith("#") || line.trim() === "" || line.trim() === "---") continue;
+
+      const indent = line.length - line.trimStart().length;
+      const trimmed = line.trim();
+
+      // Top-level list item: "- name: ..."
+      if (trimmed.startsWith("- ") && indent <= 2) {
+        const inner = trimmed.slice(2);
+        const colonIdx = inner.indexOf(":");
+        if (colonIdx > 0) {
+          currentObj = {};
+          const key = inner.slice(0, colonIdx).trim().replace(/_/g, "");
+          const val = inner.slice(colonIdx + 1).trim();
+          currentObj[key] = this.parseYamlValue(val);
+          result.push(currentObj);
+        }
+        inList = false;
+        listTarget = null;
+        continue;
+      }
+
+      if (!currentObj) continue;
+
+      // Nested list item (e.g., "  - [task_type]")
+      if (trimmed.startsWith("- ") && inList && listTarget) {
+        const val = trimmed.slice(2).trim();
+        listTarget.push(this.parseYamlValue(val));
+        continue;
+      }
+
+      const colonIdx = trimmed.indexOf(":");
+      if (colonIdx <= 0) continue;
+
+      const key = trimmed.slice(0, colonIdx).trim().replace(/_/g, "");
+      const val = trimmed.slice(colonIdx + 1).trim();
+
+      if (val === "" || val === "[]") {
+        // Could be a nested object or array
+        inList = true;
+        listTarget = [];
+        currentArrayKey = key;
+        currentObj[key] = listTarget;
+        continue;
+      }
+
+      inList = false;
+      listTarget = null;
+      currentObj[key] = this.parseYamlValue(val);
+    }
+
+    // Wrap in { policies: [...] } structure
+    if (result.length > 0 && result[0] && typeof result[0] === "object" && "name" in (result[0] as Record<string, unknown>)) {
+      return { policies: result };
+    }
+
+    return result;
+  }
+
+  private parseYamlValue(val: string): unknown {
+    if (val === "true") return true;
+    if (val === "false") return false;
+    if (val === "null") return null;
+
+    // Array: "[a, b, c]"
+    if (val.startsWith("[") && val.endsWith("]")) {
+      const inner = val.slice(1, -1).trim();
+      if (inner === "") return [];
+      return inner.split(",").map((s) => this.parseYamlValue(s.trim()));
+    }
+
+    // Nested object: "{ a: b }"
+    if (val.startsWith("{") && val.endsWith("}")) {
+      const inner = val.slice(1, -1).trim();
+      if (inner === "") return {};
+      const obj: Record<string, unknown> = {};
+      for (const pair of inner.split(",")) {
+        const [k, v] = pair.split(":").map((s) => s.trim());
+        if (k) obj[k.replace(/_/g, "")] = this.parseYamlValue(v || "");
+      }
+      return obj;
+    }
+
+    // Number
+    if (/^\d+$/.test(val)) return parseInt(val, 10);
+    if (/^\d+\.\d+$/.test(val)) return parseFloat(val);
+
+    // Unquoted string
+    return val;
   }
 
   getPolicyCount(): number {
