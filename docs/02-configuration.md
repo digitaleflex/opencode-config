@@ -10,6 +10,8 @@
 7. [Skills](#7-skills)
 8. [MCP Servers](#8-mcp-servers)
 9. [Migration](#9-migration)
+10. [Checklist post-installation](#10-checklist-post-installation)
+11. [Référence syntaxe des politiques](#11-référence-syntaxe-des-politiques)
 
 ---
 
@@ -594,6 +596,89 @@ mv opencode.json.bak opencode.jsonc
 - [ ] `opencode /audit-log` → fonctionne
 - [ ] Git initialisé (si souhaité)
 - [ ] `.gitignore` vérifié (clés exclues)
+
+---
+
+## 11. Référence syntaxe des politiques
+
+Les politiques vivent dans `src/policies/default.yaml` (rechargeables via
+`PolicyEngine.loadPoliciesFromYaml()` ; à défaut, les 4 politiques compilées
+sont utilisées). Fichier invalide ou vide → politiques par défaut (fail-closed).
+
+### Champs
+
+| Champ | Type | Requis | Description |
+|---|---|---|---|
+| `name` | string | oui | Identifiant unique (`L1-SIMPLE`, …) |
+| `complexity` | `L1` \| `L2` \| `L3` \| `L4` | oui | Niveau de complexité |
+| `task_types` (alias `taskTypes`) | liste de TaskType | oui | `TYPO`, `CONFIG`, `FORMAT`, `BUG_LOCALIZED`, `FEATURE_LIMITED`, `REFACTOR_MODULE`, `API_CHANGE`, `ARCH_DESIGN`, `SECURITY`, `PRODUCTION_DEPLOY`, `SENSITIVE_DATA`, `DESTRUCTIVE_OP`, `DOC_READ`, `DOC_WRITE` |
+| `risk` | `LOW` \| `HIGH` \| `CRITICAL` | oui | Risque nominal de la politique |
+| `agents` | liste de string | oui | Agents autorisés (`builder`, `planner`, `reviewer`, …) |
+| `model_plan` | objet | oui | `primary:` + `fallback:` (noms de workers) |
+| `proofs_required` (alias `proofsRequired`) | liste | non (défaut `[]`) | `tests`, `code_review`, `security_scan`, `human_approval` |
+| `human_approval` | booléen | non (défaut `false`) | Approbation humaine exigée |
+| `security_scan` | booléen | non (défaut `false`) | Scan de sécurité exigé |
+
+### Règles d'évaluation (`PolicyEngine.evaluatePolicy`)
+1. Tâche sans `taskType` → `BLOCKED` (fail-closed).
+2. Recherche d'une politique par `taskType` + `complexity` (déduite du type si absente).
+3. Aucune correspondance → `BLOCKED` (pas de fallback permissif).
+4. Si le risque évalué **dépasse** le risque de la politique → décision
+   `REQUIRES_HUMAN` + ajout automatique de `human_approval` et
+   `security_scan` aux preuves exigées.
+
+### Exemples (un par niveau — extraits de `default.yaml`)
+```yaml
+policies:
+  - name: "L1-SIMPLE"          # typo, config : 0 preuve
+    complexity: L1
+    task_types: [TYPO, CONFIG, FORMAT]
+    risk: LOW
+    agents: [builder]
+    model_plan: { primary: [worker-codestral, worker-groq],
+                  fallback: [worker-zhipu, worker-novita] }
+    proofs_required: []
+    human_approval: false
+    security_scan: false
+
+  - name: "L2-STANDARD"        # bug, feature : tests + review
+    complexity: L2
+    task_types: [BUG_LOCALIZED, FEATURE_LIMITED, REFACTOR_MODULE]
+    risk: LOW
+    agents: [planner, builder, reviewer]
+    model_plan: { primary: [worker-codestral, worker-groq],
+                  fallback: [worker-zhipu, worker-novita] }
+    proofs_required: [tests, code_review]
+    human_approval: false
+    security_scan: false
+
+  - name: "L3-COMPLEX"        # api, archi, sécu : + scan + approbation
+    complexity: L3
+    task_types: [API_CHANGE, ARCH_DESIGN, SECURITY]
+    risk: HIGH
+    agents: [planner, architect, builder, reviewer]
+    model_plan: { primary: [worker-codestral, worker-groq],
+                  fallback: [worker-zhipu, worker-novita] }
+    proofs_required: [tests, code_review, security_scan]
+    human_approval: true
+    security_scan: true
+
+  - name: "L4-CRITICAL"       # prod, données sensibles, destructif : tout
+    complexity: L4
+    task_types: [PRODUCTION_DEPLOY, SENSITIVE_DATA, DESTRUCTIVE_OP]
+    risk: CRITICAL
+    agents: [planner, architect, security, builder, reviewer]
+    model_plan: { primary: [worker-codestral, worker-groq],
+                  fallback: [worker-zhipu, worker-novita] }
+    proofs_required: [tests, code_review, security_scan, human_approval]
+    human_approval: true
+    security_scan: true
+```
+
+### Bonnes pratiques
+- Une politique par couple (type, complexité) ; jamais de politique « attrape-tout ».
+- `human_approval: true` dès que l'effet est irréversible (prod, données, destructif).
+- Tester via `bun test src/core/core.test.ts` (suite « PolicyEngine YAML loading ») après chaque modification.
 
 ---
 

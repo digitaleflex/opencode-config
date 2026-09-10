@@ -10,6 +10,8 @@
 7. [Skills](#7-skills)
 8. [MCP Servers](#8-mcp-servers)
 9. [Migration](#9-migration)
+10. [Post-Installation Checklist](#post-installation-checklist)
+11. [Policy syntax reference](#11-policy-syntax-reference)
 
 ---
 
@@ -532,6 +534,39 @@ mv opencode.json.bak opencode.jsonc
 - [ ] `opencode /audit-log` → works
 - [ ] Git initialized (if desired)
 - [ ] `.gitignore` verified (keys excluded)
+
+---
+
+## 11. Policy syntax reference
+
+Policies live in `src/policies/default.yaml` (reloadable via
+`PolicyEngine.loadPoliciesFromYaml()`; otherwise the 4 compiled policies
+apply). Invalid or empty file → default policies (fail-closed).
+
+### Fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | yes | Unique id (`L1-SIMPLE`, …) |
+| `complexity` | `L1` \| `L2` \| `L3` \| `L4` | yes | Complexity level |
+| `task_types` (alias `taskTypes`) | TaskType list | yes | See French doc for the 14 values |
+| `risk` | `LOW` \| `HIGH` \| `CRITICAL` | yes | Nominal policy risk |
+| `agents` | string list | yes | Allowed agents |
+| `model_plan` | object | yes | `primary:` + `fallback:` worker names |
+| `proofs_required` (alias `proofsRequired`) | list | no (default `[]`) | `tests`, `code_review`, `security_scan`, `human_approval` |
+| `human_approval` | boolean | no (default `false`) | Human approval required |
+| `security_scan` | boolean | no (default `false`) | Security scan required |
+
+### Evaluation rules
+1. Task without `taskType` → `BLOCKED` (fail-closed).
+2. Match by `taskType` + `complexity` (inferred from type if absent).
+3. No match → `BLOCKED` (no permissive fallback).
+4. Assessed risk above policy risk → `REQUIRES_HUMAN` plus automatic
+   `human_approval` and `security_scan` in the required proofs.
+
+See `default.yaml` (L1-SIMPLE, L2-STANDARD, L3-COMPLEX, L4-CRITICAL) for one
+worked example per level, and test changes with
+`bun test src/core/core.test.ts` (PolicyEngine YAML loading suite).
 
 ---
 
