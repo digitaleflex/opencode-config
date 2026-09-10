@@ -205,6 +205,7 @@ Toutes les clés API sont dans `~/.config/opencode/` avec le format `.<provider>
 .cohere-key     # Cohere trial key (1000 appels/mois, sans carte)
 .cloudflare-key     # Cloudflare API token (Workers AI, 10K neurons/jour)
 .cloudflare-account # Cloudflare account ID (requis avec le token)
+.omniroute-key  # OmniRoute dashboard key (optionnel si pools no-auth)
 # Ollama : aucune clé (local, http://localhost:11434)
 ```
 
@@ -319,6 +320,28 @@ Modèles gratuits constatés : `@cf/zai-org/glm-4.7-flash`, `@cf/google/gemma-4-
 (`/client/v4/accounts/{id}/ai/run/...`), pas OpenAI-compatible — le probe
 ci-dessus la teste en direct, mais le bloc provider OpenCode correspondant
 reste **à valider live** avant d'y router des workers.
+
+#### OmniRoute — gateway locale multi-backends (enquête 2026-09-10)
+```bash
+# 1. Installer + démarrer (paquet lourd : desktop + 352 providers)
+npm install -g omniroute
+omniroute            # dashboard : http://localhost:20128
+# 2. Clé dashboard (optionnelle si pools no-auth) :
+#    Dashboard → Endpoints → copier la clé, puis :
+echo "ta-cle-dashboard" > ~/.config/opencode/.omniroute-key
+chmod 600 ~/.config/opencode/.omniroute-key
+# 3. Vérifier : curl http://localhost:20128/v1/models
+#    puis python ~/.config/opencode/scripts/free-probe.py
+```
+- Modèles configurés : `auto/coding`, `auto/fast`, `auto/cheap` (le routeur
+  choisit parmi 150+ backends gratuits avec fallback auto).
+- **Constat d'enquête honnête** : les pools no-auth fonctionnent parfois
+  (test indépendant : 2/7 seulement) — considérer OmniRoute comme un
+  **super-fallback**, pas comme un provider principal. Changer
+  `INITIAL_PASSWORD` (défaut `CHANGEME`) si le dashboard est exposé.
+- Nouvelles sources gratuites repérées via son catalogue (à intégrer en
+  direct le cas échéant) : Kiro (Claude gratuit), Qoder, LongCat (50M/jour),
+  iFlow (illimité), NVIDIA NIM (crédits), SiliconFlow, Baidu ERNIE, Requesty.
 
 #### Après ajout d'un provider
 1. Quitter + relancer OpenCode (rechargement config).

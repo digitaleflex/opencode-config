@@ -48,6 +48,7 @@
 | `cerebras` | GPT-OSS-120B, Llama-3.1-8B | **TRIAL $5/30j** (pas de free permanent) |
 | `ollama` | Devstral, Qwen2.5-Coder, Llama-3.1 | **Local, 100% gratuit** (`ollama serve` + `ollama pull`) |
 | `cohere` | Command A, Command R+, North Mini Code | **TRIAL 1000 appels/mois** (sans carte, non-commercial) |
+| `omniroute` | `auto/coding`, `auto/fast`, `auto/cheap` (gateway locale) | **150+ backends gratuits**, fallback auto (serveur local requis) |
 | `cloudflare` | GLM-4.7-flash, Gemma, Nemotron (via REST) | **10K neurons/jour** (compte + token, provider à valider) |
 | `openrouter` | Routeur auto `openrouter/free` | **FREE**, 50 req/jour → bouche-trou |
 | `huggingface` | Qwen3-480B, GPT-OSS-120B, DeepSeek-Flash, Hermes-3-70B | 0,10 $/mois partagé (~10-30 appels) |
@@ -75,6 +76,7 @@ Ordre de bataille **prioritaire** pour les workers gratuits :
 | 10 | `worker-cerebras` | `cerebras/gpt-oss-120b` | **TRIAL** | ❓ à prober |
 | 11 | `worker-ollama` | `ollama/devstral` | **Local gratuit** | ❓ si `ollama serve` |
 | 12 | `worker-cohere` | `cohere/command-a-03-2025` | **TRIAL** (1000/mois) | ❓ à prober |
+| 13 | `worker-omniroute` | `omniroute/auto-coding` | **Méta gratuit** (gateway locale) | ❓ si serveur `omniroute` actif |
 | — | `worker-cloudflare` | REST directe (pas de worker) | **10K neurons/jour** | ❓ probe OK, provider à valider |
 
 > **Clés API requises (15 fichiers, voir table § Clés API)** + `mode.json` (choix local FREE/PRO, jamais commité) :
