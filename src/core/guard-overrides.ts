@@ -5,7 +5,8 @@
 // before regex evaluation).
 
 import { TaskSpec, PolicyDecision, PolicySpec, GuardOverride } from "./types";
-import { normalizeForMatching } from "./unicode-normalize";
+import { normalizeForMatching, normalizeForMatchingVariants } from "./unicode-normalize";
+import { checkEgress } from "./confinement";
 
 export interface ToolAttestation {
   issuedAt: number;
@@ -131,11 +132,84 @@ export class GuardOverrides {
         policy: "HUMAN_ONLY",
         reason: "Fork bomb blocked",
       },
+      {
+        pattern: /(^|[\s"'`(])\.\.[\\/]/,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "Path traversal blocked",
+      },
+      {
+        pattern: /(^|[\s"'`(])\/(etc|root|proc|sys|boot|dev)\//i,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "Sensitive system path blocked",
+      },
+      {
+        pattern: /[a-zA-Z]:[\\/](windows|system32|users|programdata)[\\/]/i,
+        action: "BLOCK",
+        policy: "HUMAN_ONLY",
+        reason: "Windows system path blocked",
+      },
     ];
   }
 
   private normalizeForMatching(text: string): string {
     return normalizeForMatching(text);
+  }
+
+  /**
+   * Guard evaluation with hard timeout (anti Guardrail-DoS).
+   * Measures wall-clock time around synchronous check(); if elapsed exceeds
+   * timeoutMs the result is forced to BLOCKED fail-closed with reason
+   * "guard timeout" and a warning is logged.
+   */
+  checkWithTimeout(
+    task: TaskSpec,
+    timeoutMs = 50
+  ): {
+    matched: boolean;
+    override?: GuardOverride;
+    decision: "BLOCKED" | "WARN" | "ALLOWED";
+    reason: string;
+  } {
+    const start = Date.now();
+    const result = this.check(task);
+    const elapsed = Date.now() - start;
+    if (elapsed > timeoutMs) {
+      console.warn(`[GuardOverrides] guard timeout after ${elapsed}ms (limit ${timeoutMs}ms)`);
+      return {
+        matched: true,
+        override: result.override,
+        decision: "BLOCKED",
+        reason: "guard timeout",
+      };
+    }
+    return result;
+  }
+
+  /**
+   * Budget-aware guard check. Fails closed if the supplied budget is already
+   * exhausted before evaluation.
+   */
+  checkWithBudget(
+    task: TaskSpec,
+    budget: { exhausted(): { exhausted: boolean; reason?: string } },
+    timeoutMs = 50
+  ): {
+    matched: boolean;
+    override?: GuardOverride;
+    decision: "BLOCKED" | "WARN" | "ALLOWED";
+    reason: string;
+  } {
+    const ex = budget.exhausted();
+    if (ex.exhausted) {
+      return {
+        matched: true,
+        decision: "BLOCKED",
+        reason: ex.reason ?? "budget exceeded",
+      };
+    }
+    return this.checkWithTimeout(task, timeoutMs);
   }
 
   check(task: TaskSpec): {
@@ -146,17 +220,31 @@ export class GuardOverrides {
   } {
     const rawText = this.buildSearchText(task);
     const canonical = this.canonicalizeShell(rawText);
-    const searchText = this.normalizeForMatching(canonical);
+    // Match every plausible homoglyph reading (Cyrillic er is p/r ambiguous).
+    const variants = normalizeForMatchingVariants(canonical);
 
-    for (const override of this.overrides) {
-      if (override.pattern.test(searchText)) {
-        return {
-          matched: true,
-          override,
-          decision: override.action === "BLOCK" ? "BLOCKED" : "WARN",
-          reason: override.reason,
-        };
+    for (const searchText of variants) {
+      for (const override of this.overrides) {
+        if (override.pattern.test(searchText)) {
+          return {
+            matched: true,
+            override,
+            decision: override.action === "BLOCK" ? "BLOCKED" : "WARN",
+            reason: override.reason,
+          };
+        }
       }
+    }
+
+    // Egress filtering (fail-closed): curl/wget/ssh/scp/URLs are denied unless
+    // explicitly allowlisted via policies/egress.yaml.
+    const egress = checkEgress(rawText);
+    if (!egress.allowed) {
+      return {
+        matched: true,
+        decision: "BLOCKED",
+        reason: egress.reason ?? "EGRESS_DENIED",
+      };
     }
 
     return {
@@ -193,6 +281,10 @@ export class GuardOverrides {
 
     // Join concatenated quoted strings: "rm" " -rf" → "rm -rf"
     s = s.replace(/(['"])((?:\\.|(?!\1)[^\\])*?)\1\s*(?=['"])/g, "");
+
+    // Strip quotes wrapping a single token: "rm" -rf / → rm -rf /
+    // Boundaries include whitespace, shell separators and '=' / ','.
+    s = s.replace(/(^|[\s|;&()=,])(['"])([^'"]*)\2(?=$|[\s|;&()=,])/g, "$1$3");
 
     // Strip surrounding quotes on entire token sequences
     s = s.replace(/^(['"])(.*)\1$/s, "$2");
