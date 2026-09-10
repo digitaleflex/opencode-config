@@ -276,6 +276,24 @@ except Exception as e:
     results["worker-cloudflare"] = f"error:{str(e)[:60]}"
     latencies["worker-cloudflare"] = 0
 
+# 14. OmniRoute gateway locale (150+ backends, check sans coût : liste modèles)
+try:
+    req = urllib.request.Request(
+        "http://localhost:20128/v1/models",
+        headers={**UA},
+    )
+    r = urllib.request.urlopen(req, timeout=10)
+    dt = 0
+    body = r.read().decode("utf-8", errors="replace")
+    if '"data"' in body or '"object"' in body:
+        results["worker-omniroute"] = "ok"
+    else:
+        results["worker-omniroute"] = "error:unexpected-models-shape"
+    latencies["worker-omniroute"] = dt
+except Exception as e:
+    results["worker-omniroute"] = f"error:{str(e)[:60]}"
+    latencies["worker-omniroute"] = 0
+
 # Construction du rapport
 out = {
     "updated": int(time.time()),

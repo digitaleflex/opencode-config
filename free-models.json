@@ -13,6 +13,7 @@
     "worker-cerebras": "unknown",
     "worker-ollama": "unknown",
     "worker-cohere": "unknown",
-    "worker-cloudflare": "unknown"
+    "worker-cloudflare": "unknown",
+    "worker-omniroute": "unknown"
   }
 }
