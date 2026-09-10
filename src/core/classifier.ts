@@ -1,5 +1,5 @@
 import { TaskType, TaskSpec } from "./types";
-import { stripInvisibleChars, transliterateToAscii, normalizeForMatching } from "./unicode-normalize";
+import { stripInvisibleChars, transliterateToAscii, normalizeForMatching, normalizeForMatchingVariants } from "./unicode-normalize";
 
 export { TaskType };
 
@@ -17,8 +17,10 @@ function validateAndNormalize(task: TaskSpec): string {
   if (desc.length > 5000) {
     throw new Error("Invalid task: description too long (max 5000 chars)");
   }
-  // NFC normalization + strip invisible chars + transliterate confusables
-  desc = normalizeForMatching(desc);
+  // NFC normalization + strip invisible chars. Transliteration happens in
+  // classifyTask via normalizeForMatchingVariants so ambiguous homoglyphs
+  // (Cyrillic er) can be matched in both readings.
+  desc = stripInvisibleChars(desc.normalize("NFC"));
   return desc.toLowerCase();
 }
 
@@ -48,58 +50,69 @@ function isAmbiguous(desc: string): boolean {
 
 export function classifyTask(task: TaskSpec): TaskType {
   // R-001: Validate input first (fail-closed)
-  const desc = validateAndNormalize(task);
+  const raw = validateAndNormalize(task);
+
+  // Match against every plausible homoglyph normalization (Cyrillic er is
+  // ambiguous between p/r) so a mutated keyword cannot slip through.
+  const variants = normalizeForMatchingVariants(raw).map((v) => v.toLowerCase());
+  const primary = variants[0];
+  const has = (kw: string) => variants.some((v) => v.includes(kw));
 
   // R-004: Reject ambiguous descriptions (only very short generic ones)
-  if (isAmbiguous(desc)) {
+  if (isAmbiguous(primary)) {
     throw new Error("Ambiguous task description: cannot classify safely — please provide specific intent");
   }
 
   // Destructive/critical keywords must be checked FIRST — a destructive task
   // mentioning "fix"/"config" would otherwise be misclassified as L1 and under-governed
   if (
-    desc.includes("deploy") ||
-    desc.includes("production") ||
-    desc.includes("drop database") ||
-    desc.includes("delete") ||
-    desc.includes("rm -rf") ||
-    desc.includes("destructive")
+    has("deploy") ||
+    has("production") ||
+    has("drop database") ||
+    has("drop table") ||
+    has("delete") ||
+    has("rm -rf") ||
+    has("destroy") ||
+    has("truncate") ||
+    has("wipe") ||
+    has("erase") ||
+    has("destructive")
   ) {
     return TaskType.DESTRUCTIVE_OP;
   }
 
   // L3 - Complex (check BEFORE L2 to catch "design", "architecture", "api" in complex tasks)
   if (
-    desc.includes("api") ||
-    desc.includes("design") ||
-    desc.includes("architecture") ||
-    desc.includes("integrate") ||
-    desc.includes("microservice") ||
-    desc.includes("boundary") ||
-    desc.includes("system design")
+    has("api") ||
+    has("design") ||
+    has("architecture") ||
+    has("integrate") ||
+    has("microservice") ||
+    has("boundary") ||
+    has("system design")
   ) {
     return TaskType.API_CHANGE;
   }
 
   // L1 - Simple
   if (
-    desc.includes("typo") ||
-    desc.includes("fix") ||
-    desc.includes("config") ||
-    desc.includes("format") ||
-    desc.includes("readme")
+    has("typo") ||
+    has("fix") ||
+    has("config") ||
+    has("format") ||
+    has("readme")
   ) {
     return TaskType.CONFIG;
   }
 
   // L2 - Standard
   if (
-    desc.includes("bug") ||
-    desc.includes("feature") ||
-    desc.includes("refactor") ||
-    desc.includes("add") ||
-    desc.includes("fix") ||
-    desc.includes("change")
+    has("bug") ||
+    has("feature") ||
+    has("refactor") ||
+    has("add") ||
+    has("fix") ||
+    has("change")
   ) {
     return TaskType.FEATURE_LIMITED;
   }
