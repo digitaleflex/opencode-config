@@ -11,6 +11,7 @@
 7. [Documentation des Skills](07-skills.md)
 8. [Guide de Dépannage](08-troubleshooting.md)
 9. [Documentation de Sécurité](09-security.md)
+10. [Exemples de gouvernance](11-examples.md)
 
 ---
 
