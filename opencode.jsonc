@@ -188,6 +188,12 @@
         "inclusionai/ling-3.0-flash-sante:free": {
           "name": "Ling 3.0 Flash Santé (100% GRATUIT, 256K ctx)"
         },
+        "poolside/laguna-s-2.1:free": {
+          "name": "Poolside Laguna S 2.1 (FREE, code, 1M ctx)"
+        },
+        "minimax/MiniMax-M2.7:free": {
+          "name": "MiniMax M2.7 (FREE, 512K ctx)"
+        },
         "meta-llama/muse-spark-1.3-contributor": {
           "name": "Muse Spark 1.3 (1M ctx, $0.10/M)"
         }
@@ -342,6 +348,28 @@
         },
         "llama3.1": {
           "name": "Llama 3.1 (local, générique)"
+        }
+      }
+    },
+
+    "cohere": {
+      // API propriétaire /v2/chat (pas OpenAI-compatible) exposée via
+      // l'adaptateur AI SDK — à valider live avec une clé trial.
+      // Trial : 1000 appels/mois, sans carte, usage non-commercial uniquement.
+      "npm": "@ai-sdk/cohere",
+      "name": "Cohere (TRIAL 1000 appels/mois)",
+      "options": {
+        "apiKey": "{file:~/.config/opencode/.cohere-key}"
+      },
+      "models": {
+        "command-a-03-2025": {
+          "name": "Command A (TRIAL, généraliste)"
+        },
+        "command-r-plus-08-2024": {
+          "name": "Command R+ (TRIAL)"
+        },
+        "north-mini-code-1-0": {
+          "name": "North Mini Code (TRIAL, code)"
         }
       }
     }
