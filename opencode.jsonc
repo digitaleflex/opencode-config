@@ -269,6 +269,81 @@
           "name": "DeepSeek V4 Pro (raisonnement avancé, 1M ctx)"
         }
       }
+    },
+
+    // ── Nouveaux providers gratuits (v0.8.0) — voir docs/02-configuration.md §3.6 ──
+    "sambanova": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "SambaNova (FREE, gros modèles rapides)",
+      "options": {
+        "baseURL": "https://api.sambanova.ai/v1",
+        "apiKey": "{file:~/.config/opencode/.sambanova-key}"
+      },
+      "models": {
+        "Meta-Llama-3.3-70B-Instruct": {
+          "name": "Llama 3.3 70B (FREE, 20 req/jour)"
+        },
+        "DeepSeek-V3.1": {
+          "name": "DeepSeek V3.1 (FREE, 20 req/jour, bon en code)"
+        },
+        "gpt-oss-120b": {
+          "name": "GPT-OSS 120B (FREE, 20 req/jour)"
+        }
+      }
+    },
+
+    "pollinations": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Pollinations (FREE, sans clé)",
+      "options": {
+        "baseURL": "https://text.pollinations.ai/openai",
+        // Tier anonyme : aucune vraie clé requise (1 req/15s). Compte gratuit
+        // sur auth.pollinations.ai pour des limites supérieures.
+        "apiKey": "anonymous"
+      },
+      "models": {
+        "openai": {
+          "name": "Auto (FREE, sans clé, backup ultime)"
+        }
+      }
+    },
+
+    "cerebras": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Cerebras (TRIAL $5, ultra-rapide)",
+      "options": {
+        "baseURL": "https://api.cerebras.ai/v1",
+        "apiKey": "{file:~/.config/opencode/.cerebras-key}"
+      },
+      "models": {
+        "gpt-oss-120b": {
+          "name": "GPT-OSS 120B (TRIAL, 1M tokens/jour)"
+        },
+        "llama3.1-8b": {
+          "name": "Llama 3.1 8B (TRIAL, ~2000 tok/s)"
+        }
+      }
+    },
+
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local, 100% gratuit, offline)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1",
+        // Ollama local n'exige aucune clé ; valeur factice pour le SDK.
+        "apiKey": "ollama"
+      },
+      "models": {
+        "devstral": {
+          "name": "Devstral (local, agentique code)"
+        },
+        "qwen2.5-coder": {
+          "name": "Qwen2.5-Coder (local, code)"
+        },
+        "llama3.1": {
+          "name": "Llama 3.1 (local, générique)"
+        }
+      }
     }
   }
 }
