@@ -1,5 +1,24 @@
 # CHANGELOG — EURINHASH Governance Engine
 
+## [0.5.0] - 2026-09-10 — HMAC audit trail + fixed chaos harness (#4, #11)
+
+### 🔐 HMAC audit trail (#4)
+- **Optional HMAC-SHA256 mode** for the Merkle audit: when `EURINHASH_AUDIT_KEY`
+  or a `.morph-key` file is present every leaf/parent/internal hash is an
+  HMAC (prefix `hmac-sha256:`). Without a key the trail stays plain SHA-256.
+- **Forged chains fail:** a trail built with a key does not verify with
+  `sha256` and does not verify with a wrong key; `verifyProof(proof, key)`
+  and `verifyProofInstance(proof)` cover both modes.
+- **External anchoring:** `exportAnchor(path)` / `verifyExternalAnchor(path)` /
+  `loadAnchor(path)` let an anchor be stored out-of-band and later used to
+  detect truncation even when the attacker controls the log directory.
+
+### 🧪 Chaos harness fix (#11)
+- **CHAOS-17 `unsafe` now counts only dangerous approvals** (via
+  `isDangerous(task)`) instead of any `L1:APPROVED`; the lab now reports
+  `unsafeExecutionScenarios: 0` when the engine behaves as expected.
+- **Files:** `src/core/merkle-audit.ts`, `scripts/chaos/chaos-lab.ts`
+
 ## [0.4.0] - 2026-09-10 — Reproducible builds, authentic proofs, CI golden gate
 
 ### 🔧 Reproducible dev tooling (#1)
