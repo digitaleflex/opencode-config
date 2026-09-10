@@ -45,6 +45,8 @@ export { WorkspaceGuard, checkEgress } from "./confinement";
 export { McpGovernance } from "./mcp-governance";
 export type { McpTool, McpManifest } from "./mcp-governance";
 export { VERSION } from "./version";
+export { loadMode, saveMode, loadRegistry, isWorkerAllowed, filterModelPlan } from "./mode";
+export type { EngineMode, ModeState, WorkerTier, WorkerCost, CostRegistry } from "./mode";
 export { redactSecrets, scanSecrets, redactDeep } from "./secret-redactor";
 export type { Redaction, RedactResult } from "./secret-redactor";
 export { scanStatic, bundledRuleCount } from "./static-rules";

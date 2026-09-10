@@ -11,6 +11,7 @@ import {
   ModelPlan,
 } from "./types";
 import { assessRisk } from "./risk-assessor";
+import { filterModelPlan, loadRegistry, type CostRegistry, type EngineMode } from "./mode";
 
 export class PolicyEngine {
   private policies: PolicySpec[] = [];
@@ -89,7 +90,11 @@ export class PolicyEngine {
    * Evaluate a task against loaded policies and return the matching policy decision.
    * Matches by taskType and complexity, then escalates based on assessed risk.
    */
-  evaluatePolicy(task: TaskSpec): PolicyDecision {
+  evaluatePolicy(
+    task: TaskSpec,
+    mode: EngineMode = "free",
+    registry?: CostRegistry
+  ): PolicyDecision {
     if (!task.taskType) {
       return {
         decision: "BLOCKED",
@@ -121,6 +126,21 @@ export class PolicyEngine {
       };
     }
 
+    // Enforce engine mode on the worker plan: in "free" mode only
+    // free/trial workers survive; empty plan => BLOCKED fail-closed.
+    const reg = registry ?? loadRegistry();
+    const effectivePlan = filterModelPlan(matchingPolicy.modelPlan, mode, reg);
+    if (!effectivePlan) {
+      return {
+        decision: "BLOCKED",
+        policy: matchingPolicy,
+        proofsRequired: [...matchingPolicy.proofsRequired],
+        humanApproval: matchingPolicy.humanApproval,
+        reason: `No ${mode}-mode workers left in policy ${matchingPolicy.name} — task blocked`,
+      };
+    }
+    const effectivePolicy: PolicySpec = { ...matchingPolicy, modelPlan: effectivePlan };
+
     // Escalate decision based on assessed risk
     let decision: PolicyDecision["decision"] = "APPROVED";
     let humanApproval = matchingPolicy.humanApproval;
@@ -140,7 +160,7 @@ export class PolicyEngine {
 
     return {
       decision,
-      policy: matchingPolicy,
+      policy: effectivePolicy,
       proofsRequired,
       humanApproval,
       reason: `Matched policy: ${matchingPolicy.name}${taskRisk !== matchingPolicy.risk ? ` (escalated from ${matchingPolicy.risk} to ${taskRisk})` : ""}`,
@@ -191,7 +211,7 @@ export class PolicyEngine {
           taskTypes: (p.taskTypes || p.tasktypes) as TaskType[],
           risk: p.risk as RiskLevel,
           agents: p.agents as string[],
-          modelPlan: p.modelPlan as ModelPlan,
+          modelPlan: PolicyEngine.parseModelPlan(p),
           proofsRequired: (p.proofsRequired || p.proofsrequired || []) as ProofType[],
           humanApproval: p.humanApproval as boolean,
           securityScan: p.securityScan as boolean,
@@ -203,6 +223,29 @@ export class PolicyEngine {
       console.error("[PolicyEngine] Invalid YAML policy, using defaults:", error);
       this.policies = this.getDefaultPolicies();
     }
+  }
+
+  /**
+   * Extract a ModelPlan from a parsed policy object. Handles both inline
+   * `{ primary: [...], fallback: [...] }` values and the nested mapping
+   * form parsed into stray `primary`/`fallback` keys. Missing plan yields
+   * empty lists (callers fail closed on empty plans).
+   */
+  private static parseModelPlan(p: Record<string, unknown>): ModelPlan {
+    const direct = p.modelPlan ?? p.modelplan;
+    if (direct && typeof direct === "object" && !Array.isArray(direct)) {
+      const d = direct as Record<string, unknown>;
+      return {
+        primary: Array.isArray(d.primary) ? (d.primary as string[]) : [],
+        fallback: Array.isArray(d.fallback) ? (d.fallback as string[]) : [],
+      };
+    }
+    const primary = p.primary;
+    const fallback = p.fallback;
+    return {
+      primary: Array.isArray(primary) ? (primary as string[]) : [],
+      fallback: Array.isArray(fallback) ? (fallback as string[]) : [],
+    };
   }
 
   /**

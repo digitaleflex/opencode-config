@@ -10,6 +10,7 @@ import { TaskBudget, TaskBudgetOpts } from "./budget";
 import { StateStore } from "./state-store";
 import { McpGovernance, McpManifest } from "./mcp-governance";
 import { redactDeep, redactSecrets } from "./secret-redactor";
+import { loadMode } from "./mode";
 import { judgeSemantic, JudgeProvider } from "./semantic-judge";
 import { scanStatic } from "./static-rules";
 import { VERSION } from "./version";
@@ -454,7 +455,8 @@ export class GovernanceOrchestrator {
     if (ex.exhausted) return budgetBlocked(ex.reason!, "anomaly");
 
     const startPolicy = Date.now();
-    policyDecision = this.policyEngine.evaluatePolicy(taskWithRisk);
+    const engineMode = loadMode().mode;
+    policyDecision = this.policyEngine.evaluatePolicy(taskWithRisk, engineMode);
     policyMs = Date.now() - startPolicy;
     budget.spend(policyMs);
     this.logAuditEntry({
@@ -776,6 +778,7 @@ export class GovernanceOrchestrator {
         proofStatus,
         anomalyScore: anomalyResult!.score,
         injectionDetected: injectionReport.action !== "ALLOW",
+        engineMode,
         semanticScore: semanticResult.score,
         semanticReasons: semanticResult.reasons,
         staticBlocked: staticReport.blocked,
