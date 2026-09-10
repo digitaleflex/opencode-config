@@ -27,4 +27,9 @@ opencode.json.bak
 logs/
 # Python cache
 __pycache__/
-*.pyc.morph-key
+*.pyc
+.morph-key
+# Tool runtime state
+.omo/
+# Chaos lab generated output
+scripts/chaos/results-*.json
