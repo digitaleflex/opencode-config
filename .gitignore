@@ -14,7 +14,8 @@ node_modules
 .zenmux-key
 .resend-key
 .morph-key
-# Runtime state files
+# Runtime state files (choix locaux, jamais commités)
+mode.json
 provider_circuit.json
 provider_usage.json
 free-models.json

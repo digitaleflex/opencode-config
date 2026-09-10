@@ -58,6 +58,29 @@ def read_key(name):
         return f.read().strip()
 
 
+def read_mode():
+    env = (os.environ.get("EURINHASH_MODE") or "").strip().lower()
+    if env in ("free", "pro"):
+        return {"mode": env}
+    try:
+        with open(os.path.join(CFG, "mode.json"), encoding="utf-8") as f:
+            d = json.load(f)
+            if d.get("mode") in ("free", "pro"):
+                return d
+    except Exception:
+        pass
+    return {"mode": "free"}
+
+
+mode_state = read_mode()
+mode = mode_state.get("mode", "free")
+cap = mode_state.get("proMonthlyCapUsd")
+if mode == "pro":
+    cap_txt = f", plafond {cap:.2f} $" if isinstance(cap, (int, float)) else ", sans plafond défini"
+    print(bold("=== Mode actuel : ") + yellow(bold("PRO (payant autorisé" + cap_txt + ")")))
+else:
+    print(bold("=== Mode actuel : ") + green(bold("FREE (gratuit uniquement)")))
+
 print(bold("=== Mon argent aujourd'hui ==="))
 dbcands = [os.path.join(HOME, ".local", "share", "opencode", "opencode.db")]
 dbpath = next((x for x in dbcands if os.path.isfile(x)), None)
@@ -92,6 +115,13 @@ if total_cost <= 0:
     print("  " + green("0,00 $ dépensé — tout est passé par du gratuit") + " 🎉")
 else:
     print(f"  {bold(f'{total_cost:.2f} $')} dépensés aujourd'hui")
+    if mode == "pro" and isinstance(cap, (int, float)) and cap > 0:
+        pct = min(100.0, total_cost / cap * 100)
+        bar_len = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+        color = red if pct >= 90 else yellow if pct >= 70 else green
+        print(f"  {color(f'plafond mensuel : {bar_len} {pct:.0f}% ({total_cost:.2f} $ / {cap:.2f} $)')}")
+        if pct >= 90:
+            print("  " + red("⛔ Plafond presque atteint — repasse en FREE (`/mode free`) ou augmente le plafond"))
     for k, e in sorted(per_model.items(), key=lambda x: -x[1]["cost"])[:5]:
         print(f"    {k} : {e['n']} appels, {e['cost']:.4f} $")
 
