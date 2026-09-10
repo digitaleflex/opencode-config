@@ -1,5 +1,60 @@
 # CHANGELOG — EURINHASH Governance Engine
 
+## [0.6.0] - 2026-09-10 — Confinement, persistence, approvals, MCP, budgets, fuzzing
+
+### 🛡️ Workspace confinement + egress (#3)
+- **`WorkspaceGuard`** (`src/core/confinement.ts`): resolve + realpath confinement
+  against a workspace root — blocks `..`, absolute paths outside root, Windows
+  absolutes and symlink escapes
+- **`checkEgress`**: parses curl/wget/ssh/scp/URL invocations; **default deny**
+  when `policies/egress.yaml` is missing or its allowlist is empty (fail-closed)
+- **GuardOverrides** now blocks path traversal, sensitive system paths
+  (`/etc`, `/root`, `/proc`, …) and non-allowlisted egress at regex level
+
+### 💾 Persistent detection state (#5)
+- **`StateStore`** (`src/core/state-store.ts`): atomic JSON persistence
+  (tmp + rename)
+- `AnomalyDetector`, `DriftDetector`, `BehavioralFSM` gain `serialize()` /
+  `restore()` / `deserialize()`; orchestrator persistence is **opt-in** via a
+  `StateStore` constructor argument so behavior stays hermetic by default
+
+### ✍️ Signed human-approval tokens (#6 / EU AI Act Art.14)
+- **`approval.ts`**: `issueApproval()` / `verifyApproval()` with HMAC-SHA256
+  signature, TTL, clock-skew, nonce replay protection
+- `ProofVerifier` derives HUMAN_APPROVAL PASS only from a valid signed token;
+  legacy string tokens still accepted (deprecated)
+- Orchestrator reuses the caller-supplied `task.id` so tokens bind to the task
+
+### 🔌 MCP governance (#7)
+- **`McpGovernance`**: registers manifests with per-tool description hashes;
+  rejects changed descriptions (rug-pull), flags added/removed tools, scans
+  tool descriptions for injection
+- Orchestrator: optional `task.data.mcpManifest` pre-scan → BLOCKED on rejection
+
+### ⏱️ Per-task budget + guard timeout (#8)
+- **`TaskBudget`**: maxMs / maxToolCalls / maxTokens with `spend()` /
+  `exhausted()`; orchestrator fails closed on any exhaustion
+- Guard evaluation wrapped with a 50ms hard timeout (`checkWithTimeout` /
+  `checkWithBudget`)
+
+### 🔤 Homoglyph fuzzing findings (#10 → fixes)
+- **Fuzz suites** under `tests/fuzz/`: deterministic (seeded LCG) mutations of
+  shell commands and destructive descriptions — all must stay BLOCKED /
+  DESTRUCTIVE_OP
+- **Fixes from fuzzing**: Cyrillic er is ambiguous between p/r — the
+  normalizer now emits **both readings** (`normalizeForMatchingVariants`) and
+  classifier/guards match all variants; classifier gained destructive keywords
+  (`destroy`, `truncate`, `wipe`, `erase`, `drop table`); canonicalizer now
+  strips quotes wrapping individual tokens (`"rm" -rf /`)
+
+### 🔢 Single version source (#12)
+- **`src/core/version.ts`**: `VERSION` is the one source; `getSummary()`
+  reads it
+
+### 🧪 Validation
+- 117 unit tests + 12 fuzz tests, 0 failing; `tsc --noEmit` clean
+- Golden corpus 33/33; chaos lab 16 scenarios, 0 crashes, 0 unsafe
+
 ## [0.5.0] - 2026-09-10 — HMAC audit trail + fixed chaos harness (#4, #11)
 
 ### 🔐 HMAC audit trail (#4)
