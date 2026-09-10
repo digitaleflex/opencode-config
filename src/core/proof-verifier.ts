@@ -11,8 +11,10 @@ import {
   ProofType,
   PolicySpec,
   EvidenceBundle,
+  ApprovalToken,
 } from "./types";
 import { createHash } from "node:crypto";
+import { verifyApproval } from "./approval";
 
 export class ProofVerifier {
   /**
@@ -146,11 +148,35 @@ export class ProofVerifier {
         if (!a) {
           return { ...base, status: "PENDING", evidence: `Human approval pending for: ${task.description}` };
         }
+        // Structured signed token (preferred — EURINHASH #6 / Art.14)
+        if (typeof a === "object") {
+          const token = a as ApprovalToken;
+          const taskId = task.id || ("" as string);
+          // verifyApproval enforces taskId binding, expiry, clock-skew, sig, replay
+          const result = verifyApproval(token, taskId);
+          if (result.valid) {
+            return {
+              ...base,
+              status: "PASS",
+              source: "human",
+              evidence: `Human approval ${token.approver} scope=${token.scope.join(",") || "default"} nonce=${token.nonce.slice(0, 8)}`,
+              evidenceHash: this.hashEvidence({ approvalToken: token }),
+            };
+          }
+          return {
+            ...base,
+            status: "FAIL",
+            source: "human",
+            evidence: `Human approval rejected: ${result.reason} for ${task.description}`,
+            evidenceHash: this.hashEvidence({ approvalToken: token }),
+          };
+        }
+        // Legacy string token — non-empty => PASS (deprecated, kept for backward compat)
         return {
           ...base,
           status: "PASS",
           source: "human",
-          evidence: `Human approval ${a.slice(0, 16)}`,
+          evidence: `Human approval ${(a as string).slice(0, 16)} (legacy)`,
           evidenceHash: this.hashEvidence({ approvalToken: a }),
         };
       }

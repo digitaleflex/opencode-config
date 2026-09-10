@@ -87,6 +87,17 @@ export interface TestEvidence {
   outputHash: string;
 }
 
+/** Signed human-approval token (EURINHASH #6 / EU AI Act Art.14). */
+export interface ApprovalToken {
+  taskId: string;
+  approver: string;
+  scope: string[];
+  issuedAt: number;
+  expiresAt: number;
+  nonce: string;
+  sig: string;
+}
+
 /** Raw security-scan evidence. */
 export interface ScanEvidence {
   findings: number;
@@ -101,8 +112,8 @@ export interface EvidenceBundle {
   testResult?: TestEvidence;
   reviewHash?: string;
   scanReport?: ScanEvidence;
-  /** Human-approval reference (formal signed token lands in #6). */
-  approvalToken?: string;
+  /** Human-approval token — signed ApprovalToken (preferred) or legacy string. */
+  approvalToken?: ApprovalToken | string;
 }
 
 export interface ProofChain {
