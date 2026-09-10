@@ -1,13 +1,13 @@
 ---
-description: Affiche le monitoring quotas et dépenses (FREE, OpenRouter, jour en cours). Lecture seule.
+description: Tableau de bord lisible (argent dépensé, état des modèles gratuits, conseil du moment). Lecture seule.
 agent: build
 ---
 
-Exécute `python ~/.config/opencode/scripts/quota.py` (bash) et présente le résultat en tableau court FR :
+Exécute `python ~/.config/opencode/scripts/quota.py` (bash) et présente le résultat **en langage simple et non-technique** :
 
-1. État des FREE (avec âge du cache — si >30 min, propose de régénérer via @eurinhash, ne le fais pas tout seul car ça consomme des quotas).
-2. Usage clé OpenRouter vs limite.
-3. Dépense OpenCode du jour par modèle + total.
-4. Rappelle que les autres providers n'ont pas d'API quota (dashboard uniquement).
+1. **Argent** : combien dépensé aujourd'hui (normalement 0,00 $ — le dire clairement et fêter ça).
+2. **État des modèles** : pour chaque worker, une phrase simple (disponible / en pause quota / en panne / jamais testé). Ne jamais sortir de sigles sans explication.
+3. **Conseil** : relaye la recommandation du script (quel modèle utiliser maintenant et pourquoi). Si tout est en pause ou en panne, explique quoi faire (attendre, passer en local Ollama, relancer free-probe via @eurinhash).
+4. Ne reprobe jamais toi-même (ça consomme des quotas). Si le cache a plus de 30 min, propose de régénérer via @eurinhash.
 
 Contexte : $ARGUMENTS
