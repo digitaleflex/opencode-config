@@ -1,5 +1,8 @@
 # MASTER ROADMAP — EURINHASH Agent Governance Engine
 
+> **Note (2026-09-10)** : les effectifs cités (« 4 workers FREE ») ont grandi
+> depuis — voir `free-models.json` et `CONFIG-GUIDE.md` pour le roster actuel.
+
 ## Vision
 Devenir la couche de gouvernance indépendante pour tous les agents IA — déterminant QUAND, POURQUOI et COMMENT utiliser les agents, pas juste fournir des agents.
 

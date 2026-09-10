@@ -1,5 +1,9 @@
 # Analyse Comparative : OpenCode EURINHASH vs Concurrents (Sept 2026)
 
+> **Note (2026-09-10)** : analyse datée — les effectifs cités (« 4 workers »)
+> ont grandi depuis (voir `free-models.json` et `CONFIG-GUIDE.md` pour le
+> roster actuel). Contenu conservé tel quel.
+
 ## 1. Agents de codage IA
 
 ### Marché actuel (basé sur GitHub + recherches web)

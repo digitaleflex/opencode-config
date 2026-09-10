@@ -1,5 +1,9 @@
 # CURRENT STATE AUDIT — EURINHASH / OpenCode Config
 
+> **Note (2026-09-10)** : snapshot historique au 2026-09-06, conservé tel quel.
+> État actuel : voir `docs/02-configuration.md` §3 (quotas réels vérifiés),
+> `free-models.json` (statuts live) et `CONFIG-GUIDE.md` (tables providers/workers).
+
 ## 1. Project Overview
 - **Goal**: 100% FREE AI agent governance, curation, and orchestration
 - **Default agent**: eurinhash (superviseur FREE)
