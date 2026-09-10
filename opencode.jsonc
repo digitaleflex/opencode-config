@@ -354,6 +354,30 @@
       }
     },
 
+    "omniroute": {
+      // Gateway locale : 1 endpoint OpenAI-compatible devant 150+ backends
+      // gratuits avec fallback auto (auto/coding, auto/fast, auto/cheap...).
+      // Nécessite `npm install -g omniroute` + serveur local (voir docs).
+      // Clé dashboard (optionnelle si pools no-auth) :
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "OmniRoute gateway (150+ backends gratuits)",
+      "options": {
+        "baseURL": "http://localhost:20128/v1",
+        "apiKey": "{file:~/.config/opencode/.omniroute-key}"
+      },
+      "models": {
+        "auto/coding": {
+          "name": "Auto coding (qualité code, fallback auto)"
+        },
+        "auto/fast": {
+          "name": "Auto fast (latence minimale)"
+        },
+        "auto/cheap": {
+          "name": "Auto cheap (gratuit d'abord)"
+        }
+      }
+    },
+
     "cohere": {
       // API propriétaire /v2/chat (pas OpenAI-compatible) exposée via
       // l'adaptateur AI SDK — à valider live avec une clé trial.
