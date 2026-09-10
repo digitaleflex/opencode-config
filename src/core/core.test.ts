@@ -400,6 +400,7 @@ import { redactSecrets, redactDeep } from "./secret-redactor";
 import { scanStatic } from "./static-rules";
 import { judgeSemantic, NoopJudgeProvider } from "./semantic-judge";
 import type { JudgeProvider } from "./semantic-judge";
+import { loadMode, saveMode, isWorkerAllowed, filterModelPlan } from "./mode";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { readFileSync } from "node:fs";
@@ -1253,5 +1254,101 @@ describe("SemanticJudge", () => {
       new NoopJudgeProvider()
     );
     expect(r.verdict).toBe("APPROVED");
+  });
+});
+
+describe("EngineMode free/pro", () => {
+  test("loadMode defaults to free (fail-closed)", () => {
+    const prev = process.env.EURINHASH_MODE;
+    delete process.env.EURINHASH_MODE;
+    try {
+      expect(loadMode(mkdtempSync(join(tmpdir(), "eurinhash-mode-"))).mode).toBe("free");
+    } finally {
+      if (prev !== undefined) process.env.EURINHASH_MODE = prev;
+    }
+  });
+
+  test("env overrides file", () => {
+    const prev = process.env.EURINHASH_MODE;
+    process.env.EURINHASH_MODE = "pro";
+    try {
+      expect(loadMode().mode).toBe("pro");
+    } finally {
+      if (prev !== undefined) process.env.EURINHASH_MODE = prev;
+      else delete process.env.EURINHASH_MODE;
+    }
+  });
+
+  test("save/load round-trip with cap", () => {
+    const dir = mkdtempSync(join(tmpdir(), "eurinhash-mode-"));
+    saveMode({ mode: "pro", proMonthlyCapUsd: 10 }, dir);
+    const loaded = loadMode(dir);
+    expect(loaded.mode).toBe("pro");
+    expect(loaded.proMonthlyCapUsd).toBe(10);
+  });
+
+  test("isWorkerAllowed: free allows free/trial, denies paid/unknown", () => {
+    const reg = {
+      "worker-free": { tier: "free" as const },
+      "worker-trial": { tier: "trial" as const },
+      "worker-paid": { tier: "paid" as const },
+    };
+    expect(isWorkerAllowed("worker-free", "free", reg)).toBe(true);
+    expect(isWorkerAllowed("worker-trial", "free", reg)).toBe(true);
+    expect(isWorkerAllowed("worker-paid", "free", reg)).toBe(false);
+    expect(isWorkerAllowed("worker-nope", "free", reg)).toBe(false);
+    expect(isWorkerAllowed("worker-paid", "pro", reg)).toBe(true);
+  });
+
+  test("filterModelPlan drops paid workers in free mode", () => {
+    const reg = {
+      "worker-free": { tier: "free" as const },
+      "worker-paid": { tier: "paid" as const },
+    };
+    const filtered = filterModelPlan(
+      { primary: ["worker-paid", "worker-free"], fallback: [] },
+      "free",
+      reg
+    );
+    expect(filtered).toEqual({ primary: ["worker-free"], fallback: [] });
+    expect(filterModelPlan({ primary: ["worker-paid"], fallback: [] }, "free", reg)).toBeNull();
+    expect(filterModelPlan({ primary: ["worker-paid"], fallback: [] }, "pro", reg)).toEqual({
+      primary: ["worker-paid"],
+      fallback: [],
+    });
+  });
+
+  test("policy with paid-only plan is BLOCKED in free, allowed in pro", () => {
+    const engine = new PolicyEngine();
+    engine.loadPoliciesFromYaml(`
+policies:
+  - name: "PAID-ONLY"
+    complexity: L1
+    task_types: [TYPO]
+    risk: LOW
+    agents: [builder]
+    model_plan:
+      primary: [worker-payant]
+      fallback: []
+    proofs_required: []
+    human_approval: false
+    security_scan: false
+`);
+    const reg = { "worker-payant": { tier: "paid" as const } };
+    const task = { description: "fix typo x", taskType: TaskType.TYPO, risk: RiskLevel.LOW };
+    const freeDecision = engine.evaluatePolicy(task, "free", reg);
+    expect(freeDecision.decision).toBe("BLOCKED");
+    expect(freeDecision.reason || "").toContain("free");
+    const proDecision = engine.evaluatePolicy(task, "pro", reg);
+    expect(proDecision.decision).toBe("APPROVED");
+    expect(proDecision.policy?.modelPlan.primary).toEqual(["worker-payant"]);
+  });
+
+  test("orchestrator records engine mode in audit", async () => {
+    const o = new GovernanceOrchestrator();
+    await o.execute({ description: "fix typo in readme" });
+    const entries = o.getMerkleAudit().getEntries();
+    const last = entries[entries.length - 1].detail as Record<string, unknown>;
+    expect(last["engineMode"]).toBe("free");
   });
 });
