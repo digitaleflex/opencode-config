@@ -10,17 +10,26 @@
           [
             { "type": "model", "color": "accent", "bold": true },
             { "type": "separator" },
+            { "type": "advisor", "bold": true },
+            { "type": "separator" },
             { "type": "tokens" },
             { "type": "separator" },
             { "type": "context-pct" },
             { "type": "context-bar" }
           ],
           [
-            { "type": "cost" },
+            { "type": "provider-health", "color": "success" },
             { "type": "separator" },
-            { "type": "speed" },
+            { "type": "routing-chain", "color": "info" },
             { "type": "separator" },
-            { "type": "duration" },
+            { "type": "risk-level", "color": "warning" }
+          ],
+          [
+            { "type": "cost", "color": "warning" },
+            { "type": "separator" },
+            { "type": "quota-bar", "color": "success" },
+            { "type": "separator" },
+            { "type": "budget", "color": "info" },
             { "type": "separator" },
             { "type": "git-branch" }
           ],

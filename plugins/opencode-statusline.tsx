@@ -33,6 +33,8 @@ interface StatusData {
   budgetLimit: number
   todayCost: number
   topProvider: string
+  advisorLabel: string
+  advisorLevel: "ok" | "warn" | "bad"
 }
 
 const INITIAL_DATA: StatusData = {
@@ -59,6 +61,8 @@ const INITIAL_DATA: StatusData = {
   budgetLimit: 100,
   todayCost: 0,
   topProvider: "",
+  advisorLabel: "→ …",
+  advisorLevel: "warn",
 }
 
 type WidgetType =
@@ -84,6 +88,7 @@ type WidgetType =
   | "sensitive-ops"
   | "risk-level"
   | "budget"
+  | "advisor"
 
 interface WidgetDef {
   type: WidgetType
@@ -107,17 +112,26 @@ const DEFAULT_CONFIG: StatuslineConfig = {
     [
       { type: "model", bold: true },
       { type: "separator" },
+      { type: "advisor", bold: true },
+      { type: "separator" },
       { type: "tokens" },
       { type: "separator" },
       { type: "context-pct" },
     ],
     [{ type: "context-bar" }],
     [
+      { type: "provider-health" },
+      { type: "separator" },
+      { type: "routing-chain" },
+      { type: "separator" },
+      { type: "risk-level" },
+    ],
+    [
       { type: "cost" },
       { type: "separator" },
-      { type: "speed" },
+      { type: "quota-bar" },
       { type: "separator" },
-      { type: "duration" },
+      { type: "budget" },
       { type: "separator" },
       { type: "git-branch" },
     ],
@@ -129,7 +143,7 @@ const ALL_WIDGET_TYPES: WidgetType[] = [
   "git-branch", "duration", "reasoning", "cache-write", "total-tokens",
   "messages", "cache-hit-rate", "separator", "text",
   "provider-health", "routing-chain", "quota-bar", "audit-tail",
-  "sensitive-ops", "risk-level", "budget",
+  "sensitive-ops", "risk-level", "budget", "advisor",
 ]
 
 // ─── i18n ────────────────────────────────────────────────────────────────
@@ -239,7 +253,7 @@ const zhCN: Messages = {
     "total-tokens": "总 Token 用量", messages: "消息数", "cache-hit-rate": "缓存命中率",
     separator: "分隔符", text: "自定义文字",
     "provider-health": "提供商健康", "routing-chain": "路由链", "quota-bar": "今日配额", "audit-tail": "审计尾迹",
-    "sensitive-ops": "敏感操作", "risk-level": "风险等级", "budget": "每日预算",
+    "sensitive-ops": "敏感操作", "risk-level": "风险等级", "budget": "每日预算", "advisor": "建议",
   },
 }
 
@@ -309,7 +323,7 @@ const fr: Messages = {
     "total-tokens": "Total tokens", messages: "Messages", "cache-hit-rate": "Taux cache",
     separator: "Séparateur", text: "Texte personnalisé",
     "provider-health": "Santé provider", "routing-chain": "Chaîne routage", "quota-bar": "Quota quotidien", "audit-tail": "Dernière action",
-    "sensitive-ops": "Ops sensibles", "risk-level": "Niveau risque", "budget": "Budget quotidien",
+    "sensitive-ops": "Ops sensibles", "risk-level": "Niveau risque", "budget": "Budget quotidien", "advisor": "Conseil",
   },
 }
 
@@ -379,7 +393,7 @@ const en: Messages = {
     "total-tokens": "Total Tokens", messages: "Messages", "cache-hit-rate": "Cache Hit Rate",
     separator: "Separator", text: "Custom Text",
     "provider-health": "Provider Health", "routing-chain": "Routing Chain", "quota-bar": "Daily Quota", "audit-tail": "Audit Tail",
-    "sensitive-ops": "Sensitive Ops", "risk-level": "Risk Level", "budget": "Daily Budget",
+    "sensitive-ops": "Sensitive Ops", "risk-level": "Risk Level", "budget": "Daily Budget", "advisor": "Advice",
   },
 }
 
@@ -459,6 +473,8 @@ const PRESET_COLORS: NamedPreset[] = [
       "sensitive-ops": { color: "warning" },
       "git-branch": { color: "info" },
       "cache-hit-rate": { color: "success" },
+      "quota-bar": { color: "success" },
+      budget: { color: "info" },
     },
   },
 ]
@@ -522,7 +538,39 @@ const EURINHASH_DIR = join(homedir(), ".config", "opencode")
 const CIRCUIT_PATH = join(EURINHASH_DIR, "provider_circuit.json")
 const USAGE_PATH = join(EURINHASH_DIR, "provider_usage.json")
 
-const CIRCUIT_ORDER = ["mistral", "groq", "zhipu", "novita", "google", "openrouter", "together", "huggingface"]
+const CIRCUIT_ORDER = ["mistral", "groq", "zhipu", "novita", "google", "openrouter", "together", "huggingface", "sambanova", "pollinations", "cerebras", "ollama", "cohere", "cloudflare", "deepseek", "mammouth"]
+
+// Priority order shared with the EURINHASH supervisor: first "ok" wins.
+const ADVISOR_ORDER = ["codestral", "groq", "novita", "zhipu", "sambanova", "google", "cerebras", "cohere", "ollama", "pollinations"]
+
+// provider id (from model string) -> short worker label
+const PROVIDER_TO_WORKER: Record<string, string> = {
+  mistral: "codestral", groq: "groq", zhipu: "zhipu", novita: "novita",
+  google: "google", openrouter: "router", huggingface: "hf", deepseek: "deepseek",
+  together: "together", mammouth: "mammouth", sambanova: "sambanova",
+  pollinations: "pollinations", cerebras: "cerebras", ollama: "ollama",
+  cohere: "cohere", cloudflare: "cloudflare",
+}
+
+const WORKER_LABELS = ["codestral", "groq", "novita", "zhipu", "sambanova", "google", "cerebras", "cohere", "ollama", "pollinations"]
+
+interface AdvisorSuggestion { label: string; level: "ok" | "warn" | "bad" }
+
+async function readAdvisor(): Promise<AdvisorSuggestion> {
+  try {
+    const raw = await readFile(join(EURINHASH_DIR, "free-models.json"), "utf-8")
+    const json = JSON.parse(raw) as { models?: Record<string, string> }
+    const models = json.models ?? {}
+    const stateOf = (w: string): string => models[`worker-${w}`] ?? models[w] ?? "unknown"
+    const firstOk = ADVISOR_ORDER.find((w) => stateOf(w) === "ok")
+    if (firstOk) return { label: `⇒ ${firstOk}`, level: "ok" }
+    const waiting = ADVISOR_ORDER.filter((w) => stateOf(w) === "rate_limited" || stateOf(w) === "unknown")
+    if (waiting.length > 0) return { label: `⇄ ${waiting[0]}…`, level: "warn" }
+    return { label: "✕ quota — /quota", level: "bad" }
+  } catch {
+    return { label: "⇒ …", level: "warn" }
+  }
+}
 
 type CircuitEntry = { state?: string; failures?: number; last_failure?: number }
 
@@ -634,9 +682,9 @@ async function readBudget(): Promise<BudgetData> {
   }
 }
 
-async function pollEURINHASH(): Promise<{ providerStates: Record<string, string>; fallbackCount: number; quotaToday: number; auditTail: string; sensitiveOpsToday: number; dangerousOpsToday: number; budgetPct: number; budgetLimit: number; todayCost: number; topProvider: string }> {
-  const [states, quota, tail, counts, budget] = await Promise.all([
-    readCircuit(), readQuota(), readAuditTail(), readAuditCounts(), readBudget(),
+async function pollEURINHASH(): Promise<{ providerStates: Record<string, string>; fallbackCount: number; quotaToday: number; auditTail: string; sensitiveOpsToday: number; dangerousOpsToday: number; budgetPct: number; budgetLimit: number; todayCost: number; topProvider: string; advisorLabel: string; advisorLevel: "ok" | "warn" | "bad" }> {
+  const [states, quota, tail, counts, budget, advisor] = await Promise.all([
+    readCircuit(), readQuota(), readAuditTail(), readAuditCounts(), readBudget(), readAdvisor(),
   ])
   const fallbackCount = Object.values(states).filter((s) => s === "OPEN").length
   const budgetPct = budget.limit > 0 ? Math.min(100, Math.round((budget.cost / budget.limit) * 100)) : 0
@@ -644,6 +692,7 @@ async function pollEURINHASH(): Promise<{ providerStates: Record<string, string>
     providerStates: states, fallbackCount, quotaToday: quota, auditTail: tail,
     sensitiveOpsToday: counts.sensitiveOps, dangerousOpsToday: counts.dangerousOps,
     budgetPct, budgetLimit: budget.limit, todayCost: budget.cost, topProvider: budget.topProvider,
+    advisorLabel: advisor.label, advisorLevel: advisor.level,
   }
 }
 
@@ -753,10 +802,15 @@ function renderWidget(w: WidgetDef, data: StatusData, theme: TuiThemeCurrent): S
       return glyphStr ? [seg(`SYS ${glyphStr}`, theme.accent, true)] : null
     }
 
+    case "advisor": {
+      const color = data.advisorLevel === "ok" ? theme.success : data.advisorLevel === "bad" ? theme.error : theme.warning
+      return [val(data.advisorLabel, color, true)]
+    }
+
     case "routing-chain": {
-      const active = data.model ? data.model.split("/")[0].toLowerCase() : "?"
-      const workers = ["codestral", "groq", "zhipu", "novita"]
-      const parts: Segment[] = workers.map((w) => {
+      const providerId = data.model ? data.model.split("/")[0].toLowerCase() : "?"
+      const active = PROVIDER_TO_WORKER[providerId] ?? providerId
+      const parts: Segment[] = WORKER_LABELS.map((w) => {
         const isActive = w === active
         return seg(w + (isActive ? "▸" : ""), isActive ? theme.accent : theme.textMuted, isActive)
       })
@@ -1244,9 +1298,10 @@ function linePreview(line: WidgetDef[], locale?: Locale): string {
         case "routing-chain": return "ROUTE"
         case "quota-bar": return "Q▇"
         case "audit-tail": return "LOG"
-        case "sensitive-ops": return "SENS"
-        case "risk-level": return "RISK"
-        case "budget": return "BGT"
+         case "sensitive-ops": return "SENS"
+         case "risk-level": return "RISK"
+         case "budget": return "BGT"
+         case "advisor": return "⇒"
       }
      })
      .join(" ")
