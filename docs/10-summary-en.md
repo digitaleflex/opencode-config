@@ -58,9 +58,9 @@ We applied three advanced recommendations to strengthen the system:
 
 ```
 opencode
-├── agent/              # 9 specialized agents + 4 workers
-├── command/            # 8 slash commands
-├── plugin/             # audit-logger.ts, guard.ts, context-summarizer.ts
+├── agent/              # 11 role agents + 10 workers
+├── command/            # 7 slash commands
+├── plugin/            # audit-logger.ts, guard.ts
 ├── scripts/            # hash-direct.py, hash-direct-wrapper.py, etc.
 ├── skills/             # hash-agent-matrix, hash-token-efficiency, etc.
 ├── docs/               # 10 English documentation files
@@ -97,11 +97,15 @@ opencode
 - `myfree-eurinhash.py` - Complete model test
 - `view-audit-log.py` - Display audit log
 
-### Plugins (3)
+### Plugins (7 active)
 
+- `better-compact` - Pruning ladder (context)
+- `opencode-mem` - Local persistent memory
+- `envsitter-guard` - .env protection
+- `oh-my-opencode-slim` - Light optimizations
+- `opencode-plugin-preload-skills` - Budget-aware skill loading
 - `audit-logger.ts` - JSONL logging with sensitive ops detection
-- `guard.ts` - Blocks destructive commands
-- `context-summarizer.ts` - Summarizes long conversations
+- `guard.ts` - Blocks destructive commands (+ secret redaction on outputs)
 
 ### Skills (5)
 

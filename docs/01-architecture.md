@@ -40,10 +40,9 @@ EURINHASH est un superviseur intelligent pour OpenCode qui garantit :
 - **`myfree-eurinhash.py`** : Test complet de tous les modèles
 - **`view-audit-log.py`** : Affichage du journal d'audit
 
-### 2.4 Plugins TypeScript (3)
+### 2.4 Plugins TypeScript (2)
 - **`audit-logger.ts`** : Journalisation JSONL avec redaction
-- **`context-summarizer.ts`** : Résumé de contexte
-- **`guard.ts`** : Protection contre les commandes destructives
+- **`guard.ts`** : Protection contre les commandes destructives (+ redaction des secrets en sortie)
 
 ### 2.5 Slash Commands (8)
 - **`/run`** : Wrapper hash-direct

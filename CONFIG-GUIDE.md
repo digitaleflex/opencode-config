@@ -16,24 +16,24 @@
 | `.env` + `.-key` (15 fichiers) | Clés API hors config — **jamais à committer** (`.gitignore` OK) |
 | `agent/` | `eurinhash` (superviseur FREE) + 10 agents rôle + 11 workers (builder, planner, architect, design-lead, docwriter, reviewer…) |
 | `command/` | `/review`, `/commit`, `/quota`, `/myfree-eurinhash` |
-| `skills/` (38 + lazy-skills) | Méthodo hash-*, review, Cloudflare, frontend, 12ui-design... |
+| `skills/` (14 + preload-skills, `arkcli-*` archivés) | Méthodo hash-*, review, Cloudflare, frontend, 12ui-design... |
 | `scripts/` | `free-probe.py` (teste les FREE), `quota.py` (monitoring), `myfree-eurinhash.py` (routeur) |
 | `plugin/guard.ts` | Bloque `rm -rf /`, `mkfs`, `dd`, `push --force` |
 | `free-models.json` | Cache d'état des FREE (régénéré si >30 min) |
 
-### Plugins (`opencode.jsonc` — canonique)
+### Plugins (`opencode.jsonc` — canonique, curés 2026-09-10 : un seul système par rôle)
 
-`opencode-dynamic-context-pruning` • `opencode-mem` • `envsitter-guard` • `oh-my-opencode-slim` • `opencode-router` • `opencode.nvim` • `./plugin/guard.ts` • `./plugin/audit-logger.ts` • `@felipegenef/opencode-lazy-skills` • `@f97/opencode-morph-fast-apply` • `opencode-supermemory` • `@zenobius/opencode-skillful` • `oh-my-openagent` • `./plugin/context-summarizer.ts`
+`better-compact` • `opencode-mem` • `envsitter-guard` • `oh-my-opencode-slim` • `./plugin/guard.ts` • `./plugin/audit-logger.ts` • `opencode-plugin-preload-skills`
 
-- **lazy-skills** (installé) : retire le catalogue `<available_skills>` du prompt système → les skills se chargent à la demande via `skillsearch`/`skillinfo`/`skill`. Économie de tokens à chaque tour.
-- **envsitter-guard** : protection des fichiers `.env` et clés API.
-- **oh-my-opencode-slim** : optimisations légères.
-- **@f97/opencode-morph-fast-apply** (installé 2026-09) : remplace l'éditeur par défaut par Morph Fast Apply → **~10x plus rapide** sur les édits de code.
-- **opencode-supermemory** (installé) : mémoire vectorielle persistante avec Supermemory — capacité à rappeler des faits entre sessions.
-- **@zenobius/opencode-skillful** (installé) : recommandation de skills dynamique basée sur l'Anthropic Agent Skills Spec — automatiquement des skills pertinents.
-- **oh-my-openagent** (installé) : framework polyvalent de création d'agents avec orchestration multi-modèle, agents parallèles et outils LSP/AST.
-- **context-summarizer** (plugin custom) : prune automatiquement le contexte ancien lorsque le nombre de tokens dépasse le seuil — maintient les tokens bas.
-- **Audit senior 2026-09** : `opencode-dynamic-context-pruning`, `./plugin/guard.ts`, `./plugin/audit-logger.ts`, `opencode-router` et `opencode.nvim` identifiés comme redondants mais conservés pour compatibilité ascendante.
+- **better-compact** : ladder de pruning (skills → dédup → stubs → thinking → résumé en dernier recours) **sans dépenser d'appels modèle** ; remplace l'entrée morte `opencode-dynamic-context-pruning` (404 npm) et le stub local `context-summarizer.ts` (supprimé).
+- **opencode-mem** : mémoire vectorielle persistante **locale** (Turso) — gardé, `opencode-supermemory` (cloud) retiré pour éviter les doubles écritures.
+- **opencode-plugin-preload-skills** : chargement smart (déclencheurs type/agent/mot-clé, budget `maxTokens: 10000`, résumés, minification, analytics d'usage) — remplace `lazy-skills` + `skillful`. Config : `.opencode/preload-skills.json`.
+- **envsitter-guard** : protection des fichiers `.env` et clés API (scope unique, gardé).
+- **oh-my-opencode-slim** : optimisations légères (gardé ; `oh-my-openagent` retiré — chevauchait le superviseur maison).
+- `./plugin/guard.ts` + `./plugin/audit-logger.ts` : garde-fou destructeur in-process et audit runtime avec rotation (gardés).
+- `@f97/opencode-morph-fast-apply` : **désactivé** (commenté dans la config) — exige `MORPH_API_KEY`, réactiver après avoir posé la clé.
+- Retirés (inutilisés) : `opencode-router` (bridges Slack/Telegram), `opencode.nvim` (pas d'usage Neovim).
+- Skills `arkcli-*` (BytePlus) : archivés dans `skills-archive/` (hors scan, réversibles en un `mv`).
 
 ## Providers & modèles (`/models` pour choisir)
 
@@ -132,8 +132,8 @@ Chaque demande est classée AVANT d'agir : type, complexité, risque → **minim
 
 ## Économie de tokens
 
-- **Catalogue skills** : ~2 871 tokens économisés par prompt (~82%) grâce à `opencode-lazy-skills`
-- **Édits de code** : ~10x plus rapides avec `@f97/opencode-morph-fast-apply` (Morph Fast Apply)
+- **Catalogue skills** : chargement sous budget (`maxTokens: 10000`, résumés, minification) via `opencode-plugin-preload-skills` + analytics d'usage réel
+- **Édits de code** : `@f97/opencode-morph-fast-apply` désactivé (clé manquante) — réactiver après avoir posé `MORPH_API_KEY`
 - **Prompt caching** : Novita offre un cache 10x discount sur les prompts répétés
 - **Modèle par défaut** : FREE (eurinhash) → zéro coût
 - **Quota** : `opencode stats --days 7 --models` pour suivre l'usage
@@ -229,7 +229,7 @@ Chaque demande est classée AVANT d'agir : type, complexité, risque → **minim
 2. **100% gratuit prêt à l'emploi** : workers gratuits/trial/locaux sondés via `free-probe.py` (statuts dans `free-models.json`), pas de configuration nécessaire au-delà des clés
 3. **Optimisé Windows** : wrapper hash-direct pour contourner les bugs Windows, chemin `%USERPROFILE%`
 4. **Sécurité intégrée** : envsitter-guard + audit-logger + safety guard en une config
-5. **Curated runtime** : sélection des meilleurs composants (Oh My OpenAgent, lazy-skills, morph-fast-apply) intégrés intelligemment
+5. **Curated runtime** : sélection des meilleurs composants (better-compact, opencode-mem, preload-skills, oh-my-opencode-slim) intégrés intelligemment — un seul système par rôle
 
 ### Recommandation
 

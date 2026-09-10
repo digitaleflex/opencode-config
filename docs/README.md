@@ -59,10 +59,9 @@ Ce projet fournit une configuration **production-grade** pour OpenCode, un agent
 │   ├── quota.md                  # Gestion des quotas
 │   ├── review.md                 # Revue de code
 │   └── run.md                    # Wrapper opencode run
-├── 📁 plugin/                    # 3 plugins TypeScript
+├── 📁 plugin/                    # 2 plugins TypeScript
 │   ├── audit-logger.ts           # Journalisation JSONL
-│   ├── context-summarizer.ts     # Résumé de contexte
-│   └── guard.ts                  # Protection destructive
+│   └── guard.ts                  # Protection destructive (+ redaction secrets)
 ├── 📁 scripts/                   # 7 scripts Python
 │   ├── hash-direct.py            # Wrapper principal (circuit breaker + quota)
 │   ├── hash-direct-wrapper.py    # Alias opencode run

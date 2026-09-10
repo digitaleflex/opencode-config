@@ -12,7 +12,7 @@ EURINHASH configuration for OpenCode - free-tier + Novita AI (vraiment gratuit),
 - **hash-direct wrapper**: Bypass of the `opencode run` Windows bug
 - **Audit logger**: JSONL logging of tool calls with sensitive ops detection and redaction
 - **Custom commands**: `/run`, `/hash-direct`, `/audit-log`
-- **Plugins**: `@felipegenef/opencode-lazy-skills`, `envsitter-guard`, guard.ts, audit-logger.ts
+- **Plugins**: `better-compact`, `opencode-mem`, `envsitter-guard`, `oh-my-opencode-slim`, `opencode-plugin-preload-skills`, guard.ts, audit-logger.ts
 - **Skill matrix**: Intelligent routing of tasks by complexity (L1-L4)
 
 ## Architecture

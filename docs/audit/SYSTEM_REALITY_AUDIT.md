@@ -1,5 +1,9 @@
 # SYSTEM REALITY AUDIT — EURINHASH Agent Governance Engine
 
+> **Note (2026-09-10)** : snapshot historique au 2026-09-06, conservé tel quel
+> (son constat « context-summarizer BASIC » a d'ailleurs motivé son remplacement
+> par `better-compact`). État actuel : voir `CONFIG-GUIDE.md` et `docs/05-plugins.md`.
+
 **Date:** 2026-09-06  
 **Auditor:** Senior Software Architect (automated)  
 **Scope:** Complete repository at `~/.config/opencode`  

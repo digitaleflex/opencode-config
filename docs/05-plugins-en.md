@@ -3,7 +3,7 @@
 ## Table of Contents
 1. [audit-logger.ts](#audit-loggerts)
 2. [guard.ts](#guardts)
-3. [context-summarizer.ts](#context-summarizerts)
+3. [better-compact](#better-compactts)
 4. [Third-party Plugins](#third-party-plugins)
 5. [Plugin Configuration](#plugin-configuration)
 6. [How to Add a Plugin](#how-to-add-a-plugin)
@@ -158,49 +158,43 @@ Time: 2026-09-06T12:00:00Z
 
 ---
 
-## 3. context-summarizer.ts — Context Summarizer
+## 3. better-compact — Pruning Ladder (context)
 
 ### Description
-Plugin that automatically summarizes conversation context when it becomes too long for the context window.
+Third-party plugin (`better-compact` on npm, improved fork of
+`@tarquinen/opencode-dcp`): pruning ladder — skills, call dedup, tool
+stubs, thinking, summary as a last resort. Prunes **without spending
+model calls**, unlike classic compaction. Replaces the old
+`opencode-dynamic-context-pruning` entry (nonexistent package name → npm
+404) and the local `context-summarizer.ts` stub (deleted: naive slice,
+no real summarization).
 
 ### Installation
-```typescript
+```jsonc
 // In opencode.jsonc
-"plugins": [
-  "./plugin/context-summarizer.ts"
+"plugin": [
+  "better-compact"
 ]
 ```
 
 ### Operation
-- Triggers when context exceeds 80% of limit
-- Creates a structured summary of previous exchanges
-- Preserves important decisions and modified files
-- Replaces old context with the summary
-
-### Configuration
-```typescript
-const CONTEXT_LIMIT = 200000;  // 200K tokens
-const SUMMARIZE_AT = 0.8;     // 80% of limit
-```
-
-### Output
-The summary is automatically injected into the next prompt:
-```
-[Context Summary]
-- Task: Refactor auth module
-- Modified files: auth.ts, config.ts
-- Decisions: Use OAuth2, no local session
-- To complete: Unit tests, documentation
-```
+- Prunes without a model first (dedup, stubs, thinking), summarizes last
+- Protects critical outputs (subagents, skills, todos)
+- Manual pass via command
 
 ---
 
 ## 4. Third-party Plugins
 
-### opencode-lazy-skills
-- **Source**: `@felipegenef/opencode-lazy-skills`
-- **Function**: Lazy loading of skills
-- **Advantage**: Reduces startup time, loads only needed skills
+### opencode-plugin-preload-skills
+- **Source**: `opencode-plugin-preload-skills` (npm, v1.8.2)
+- **Function**: Smart skill loading (triggers, token budget, summaries, minification, usage analytics)
+- **Advantage**: Replaces `lazy-skills` + `skillful`; config `.opencode/preload-skills.json`
+
+### opencode-mem
+- **Source**: `opencode-mem` (npm)
+- **Function**: Local persistent memory (Turso/libSQL)
+- **Advantage**: Local alternative to `supermemory` (cloud) — no data exfiltration
 
 ### envsitter-guard
 - **Source**: npm
@@ -211,32 +205,50 @@ The summary is automatically injected into the next prompt:
 
 ## 5. Plugin Configuration
 
-### opencode.jsonc
+### opencode.jsonc (curated 2026-09-10: one system per role)
 ```jsonc
 {
-  "plugins": [
-    "@felipegenef/opencode-lazy-skills",
+  "plugin": [
+    "better-compact",
+    "opencode-mem",
     "envsitter-guard",
+    "oh-my-opencode-slim",
     "./plugin/guard.ts",
     "./plugin/audit-logger.ts",
-    "./plugin/context-summarizer.ts"
+    "opencode-plugin-preload-skills"
   ]
 }
 ```
 
 ### Initialization Order
-1. `@felipegenef/opencode-lazy-skills` — Skill loading
+1. `opencode-plugin-preload-skills` — Skill loading (token budget)
 2. `envsitter-guard` — Env protection
 3. `./plugin/guard.ts` — Destructive protection
 4. `./plugin/audit-logger.ts` — Logging
-5. `./plugin/context-summarizer.ts` — Context summarization
+5. `better-compact` — Context pruning
+6. `opencode-mem` — Local persistent memory
 
 ### Hook Execution Order
 ```
 tool.execute.before → guard.ts → audit-logger.ts (before)
-tool.execute.after  → audit-logger.ts (after) → context-summarizer.ts
+tool.execute.after  → guard.ts (secret redaction) → audit-logger.ts (after)
 agent.invoked       → audit-logger.ts (agent)
 ```
+
+---
+
+## 7. Removed Plugins
+
+| Plugin | Removal reason |
+|---|---|
+| `opencode-dynamic-context-pruning` | Nonexistent package name (npm 404) → replaced by `better-compact` |
+| `./plugin/context-summarizer.ts` | Stub (naive slice) → replaced by `better-compact` |
+| `opencode-supermemory` | Cloud duplicate of local `opencode-mem` → double writes |
+| `@felipegenef/opencode-lazy-skills` + `@zenobius/opencode-skillful` | Two loaders → replaced by `opencode-plugin-preload-skills` |
+| `oh-my-openagent` | Overlapped `oh-my-opencode-slim` + the in-house supervisor |
+| `opencode-router` | Unused Slack/Telegram bridges (not a model router) |
+| `opencode.nvim` | No Neovim usage found |
+| `@f97/opencode-morph-fast-apply` | Disabled (commented): requires `MORPH_API_KEY` — re-enable after setting the key |
 
 ---
 

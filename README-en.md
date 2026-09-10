@@ -79,9 +79,9 @@ EURINHASH: Approved.
 
 ```
 opencode/
-├── agent/              # 19 specialized agents
-├── command/           # 8 slash commands
-├── plugin/            # audit-logger.ts, guard.ts, context-summarizer.ts
+├── agent/              # 21 agents (11 role + 10 workers)
+├── command/           # 7 slash commands
+├── plugin/            # audit-logger.ts, guard.ts
 ├── scripts/           # hash-direct.py, free-probe.py, quota.py, etc.
 └── skills/            # hash-agent-matrix, hash-code-navigation, etc.
 ```

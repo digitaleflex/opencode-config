@@ -179,8 +179,7 @@ User
 | Plugin | Purpose |
 |--------|---------|
 | `audit-logger.ts` | JSONL logging with redaction |
-| `context-summarizer.ts` | Context summarization |
-| `guard.ts` | Destructive command protection |
+| `guard.ts` | Destructive command protection (+ secret redaction on outputs) |
 
 ### Commands (8)
 | Command | Purpose |
