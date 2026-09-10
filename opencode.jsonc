@@ -2,17 +2,22 @@
   "$schema": "https://opencode.ai/config.json",
   "shell": "bash",
 
-  // ── Plugins (guardian + audit logging + token efficiency) ──
+  // ── Plugins (canonical list — opencode.json must NOT re-declare) ──
   "plugin": [
-    "@felipegenef/opencode-lazy-skills",
+    "opencode-dynamic-context-pruning",
+    "opencode-mem",
     "envsitter-guard",
+    "oh-my-opencode-slim",
+    "opencode-router",
+    "opencode.nvim",
     "./plugin/guard.ts",
-    "./plugin/audit-logger.ts"
-  ],
-
-  // ── Plugins désactivés (MORPH_API_KEY manquant) ──
-  "_disabled_plugins": [
-    "@f97/opencode-morph-fast-apply"
+    "./plugin/audit-logger.ts",
+    "@felipegenef/opencode-lazy-skills",
+    "@f97/opencode-morph-fast-apply",
+    "opencode-supermemory",
+    "@zenobius/opencode-skillful",
+    "oh-my-openagent",
+    "./plugin/context-summarizer.ts"
   ],
 
   // ── Permissions globales ──

@@ -1,19 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": [
-    "opencode-dynamic-context-pruning",
-    "opencode-mem",
-    "envsitter-guard",
-    "oh-my-opencode-slim",
-    "opencode-router",
-    "opencode.nvim",
-    "./plugin/guard.ts",
-    "./plugin/audit-logger.ts",
-    "@felipegenef/opencode-lazy-skills",
-    "@f97/opencode-morph-fast-apply",
-    "opencode-supermemory",
-    "@zenobius/opencode-skillful",
-    "oh-my-openagent",
-    "./plugin/context-summarizer.ts"
-  ]
+  "_comment": "LEGACY: canonical config is opencode.jsonc. This file is kept for backwards compatibility only.",
+  "plugin": []
 }
