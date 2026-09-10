@@ -1,0 +1,15 @@
+{
+  "_comment": "Worker cost registry for mode enforcement (EURINHASH free/pro modes). tier: free ($0 within quotas) | trial ($0 exhaustible: credits, call caps) | paid (billed). costs are USD per 1M tokens list rates, informational only.",
+  "workers": {
+    "worker-codestral": { "tier": "free", "notes": "Mistral Experiment tier, ~1 req/s" },
+    "worker-groq": { "tier": "free", "notes": "Groq free tier, 1K req/day on chat models" },
+    "worker-novita": { "tier": "free", "notes": "Ling Flash free" },
+    "worker-zhipu": { "tier": "free", "notes": "GLM flash free tier" },
+    "worker-sambanova": { "tier": "free", "notes": "20 req/day/model, no card" },
+    "worker-google": { "tier": "free", "notes": "Gemini free tier, best TPM" },
+    "worker-cerebras": { "tier": "trial", "notes": "$5 credits, 30 days, not permanent" },
+    "worker-cohere": { "tier": "trial", "notes": "1000 calls/month, non-commercial" },
+    "worker-ollama": { "tier": "free", "notes": "Local, unlimited, offline" },
+    "worker-pollinations": { "tier": "free", "notes": "Anonymous tier, 1 req/15s" }
+  }
+}
