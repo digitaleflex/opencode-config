@@ -2,6 +2,9 @@ import { classifyTask } from "./classifier";
 import { assessRisk } from "./risk-assessor";
 import { PolicyEngine } from "./policy-engine";
 import { ProofVerifier } from "./proof-verifier";
+import { MerkleAuditTrail } from "./merkle-audit";
+import { AnomalyDetector } from "./anomaly-detection";
+import { InjectionDetector } from "./injection-detection";
 import { TaskSpec, ExecutionResult, PolicyDecision, TaskType, RiskLevel, ProofChain, Proof, ProofType } from "./types";
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -16,6 +19,7 @@ export interface GovernanceAuditEntry {
   output: unknown;
   decision: "APPROVED" | "BLOCKED" | "WARN" | "PENDING";
   duration_ms: number;
+  reason?: string;
   error?: string;
 }
 
@@ -45,11 +49,17 @@ function percentile(sorted: number[], p: number): number {
 export class GovernanceOrchestrator {
   private policyEngine: PolicyEngine;
   private proofVerifier: ProofVerifier;
+  private merkleAudit: MerkleAuditTrail;
+  private anomalyDetector: AnomalyDetector;
+  private injectionDetector: InjectionDetector;
   private metrics: PerformanceMetrics[];
 
   constructor() {
     this.policyEngine = new PolicyEngine();
     this.proofVerifier = new ProofVerifier();
+    this.merkleAudit = new MerkleAuditTrail();
+    this.anomalyDetector = new AnomalyDetector();
+    this.injectionDetector = new InjectionDetector();
     this.metrics = [];
   }
 
@@ -115,6 +125,41 @@ async execute(task: TaskSpec): Promise<ExecutionResult> {
        decision: "APPROVED",
        duration_ms: riskMs,
      });
+
+     // --- Injection Detection ---
+     const injectionReport = this.injectionDetector.scanTask(task);
+     if (injectionReport.action === "BLOCK") {
+       const totalMs = Date.now() - startTotal;
+       this.merkleAudit.record({
+         timestamp: new Date().toISOString(),
+         taskId,
+         taskDescription: task.description,
+         stage: "injection",
+         decision: "BLOCKED",
+         detail: { categories: injectionReport.categories, riskScore: injectionReport.riskScore },
+       });
+       this.metrics.push({
+         classification_ms: classifyMs,
+         risk_assessment_ms: riskMs,
+         policy_evaluation_ms: 0,
+         guard_check_ms: 0,
+         proof_verification_ms: 0,
+         pipeline_total_ms: totalMs,
+       });
+       return {
+         taskId,
+         taskType,
+         riskLevel,
+         policyDecision: { decision: "BLOCKED", policy: null, proofsRequired: [], humanApproval: false, reason: `Injection detected: ${injectionReport.categories.join(", ")}` },
+         guardDecision: "BLOCKED",
+         proofStatus: "FAIL",
+         verdict: "BLOCKED",
+       };
+     }
+
+      // --- Anomaly Detection ---
+      const anomalyResult = this.anomalyDetector.analyze(taskWithRisk, riskLevel, taskWithType.taskType);
+      this.anomalyDetector.updateBaseline(taskWithType.taskType, riskLevel, task.description.length);
 
      const startPolicy = Date.now();
      const policyDecision = this.policyEngine.evaluatePolicy(taskWithRisk);
@@ -200,19 +245,21 @@ async execute(task: TaskSpec): Promise<ExecutionResult> {
 
      let verdict: "APPROVED" | "BLOCKED" | "REJECTED" = "APPROVED";
 
-     if (guardResult.decision === "BLOCKED") {
-       verdict = "BLOCKED";
-     } else if (guardResult.decision === "WARN") {
-       verdict = "BLOCKED";
-     } else if (proofStatus === "FAIL") {
-       verdict = "BLOCKED";
-     } else if (proofStatus === "PENDING") {
-       verdict = "BLOCKED";
-     } else if (!hasAllRequiredProofs) {
-       verdict = "BLOCKED";
-     } else if (policyDecision.humanApproval && !this.hasHumanApproval(proofChain)) {
-       verdict = "BLOCKED";
-     }
+      if (guardResult.decision === "BLOCKED") {
+        verdict = "BLOCKED";
+      } else if (guardResult.decision === "WARN") {
+        verdict = "BLOCKED";
+      } else if (anomalyResult.isAnomalous && anomalyResult.category === "anomalous") {
+        verdict = "BLOCKED";
+      } else if (proofStatus === "FAIL") {
+        verdict = "BLOCKED";
+      } else if (proofStatus === "PENDING") {
+        verdict = "BLOCKED";
+      } else if (!hasAllRequiredProofs) {
+        verdict = "BLOCKED";
+      } else if (policyDecision.humanApproval && !this.hasHumanApproval(proofChain)) {
+        verdict = "BLOCKED";
+      }
 
      const totalMs = Date.now() - startTotal;
 
@@ -225,6 +272,24 @@ async execute(task: TaskSpec): Promise<ExecutionResult> {
        output: verdict,
        decision: verdict as "APPROVED" | "BLOCKED",
        duration_ms: totalMs,
+     });
+
+     // --- Merkle Audit Trail ---
+     this.merkleAudit.record({
+       timestamp: new Date().toISOString(),
+       taskId,
+       taskDescription: task.description,
+       stage: "final",
+       decision: verdict,
+       detail: {
+         taskType,
+         riskLevel,
+         policyDecision: policyDecision.decision,
+         guardDecision: guardResult.decision,
+         proofStatus,
+         anomalyScore: anomalyResult.score,
+         injectionDetected: injectionReport.action !== "ALLOW",
+       },
      });
 
      this.metrics.push({
@@ -416,7 +481,19 @@ async execute(task: TaskSpec): Promise<ExecutionResult> {
   }
 
   getSummary(): { policiesLoaded: number; version: string } {
-    return { policiesLoaded: this.policyEngine.getPolicyCount(), version: "0.2.0" };
+    return { policiesLoaded: this.policyEngine.getPolicyCount(), version: "0.3.1" };
+  }
+
+  getMerkleAudit(): MerkleAuditTrail {
+    return this.merkleAudit;
+  }
+
+  getAnomalyDetector(): AnomalyDetector {
+    return this.anomalyDetector;
+  }
+
+  getInjectionDetector(): InjectionDetector {
+    return this.injectionDetector;
   }
 
   private auditEntries: GovernanceAuditEntry[] = [];
