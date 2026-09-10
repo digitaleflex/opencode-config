@@ -1,5 +1,26 @@
 # CHANGELOG — EURINHASH Governance Engine
 
+## [0.9.0] - 2026-09-10 — Pilotage visuel : burn temps réel, garde-contexte auto
+
+### 🔥 Widgets temps réel (statusline)
+- **`burn`** : tokens cumulés de la session + débit (tokens/min), calculé à
+  chaque message assistant — la consommation en direct pendant le travail.
+- **`context-guard`** : vert < 60%, orange ≥ 60% (`→ bientôt /compact`),
+  rouge ≥ 80% (`→ /compact ou /new`). Couleurs automatiques selon l'état.
+- **Toast unique anti-spam** à 60% puis 80% de contexte avec l'action
+  recommandée en langage clair ; réarmé après compaction/nouvelle session,
+  max 1 par palier toutes les 10 min.
+
+### 🧭 Layout informatif par défaut (5 lignes)
+Modèle + conseil, barre contexte, santé + routage (10 workers, actif
+surligné via mapping provider→worker corrigé) + risque, coût + quota +
+budget, burn + garde. Miroir `tui.json` aligné ; personnalisable au clic
+via `/statusline` (presets dont EURINHASH, profils, FR/EN/中文).
+
+### 🧪 Validation
+- `tsc` clean (zéro nouvelle erreur vs baseline) ; 133 + 12 tests OK ;
+  `tui.json` valide ; dashboard testé sur fixtures.
+
 ## [0.8.0] - 2026-09-10 — Interface lisible : conseil live, dashboard clair, couleurs d'état
 
 ### 🔭 Statusline informative (widgets dormants activés)
