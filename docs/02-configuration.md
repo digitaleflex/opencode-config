@@ -166,6 +166,20 @@ au clic via la commande `/statusline` (widgets, couleurs, langue FR/EN/中文,
 profils). Un toast unique prévient à 60% puis 80% de contexte avec l'action
 recommandée (`/compact` pour résumer, `/new` pour repartir léger).
 
+#### Comment lire le bandeau
+- **Lignes 1–2 et 5 (débit, garde)** : chiffres de la **session en cours**
+  (remis à zéro à chaque nouvelle session). `🔥 12.4K · 3.1K/min` =
+  tokens consommés depuis l'ouverture et vitesse moyenne.
+- **Lignes 3–4 (santé, quotas, budget, coût)** : état **du jour** tous
+  providers et sessions confondus (sondés toutes les 2 s).
+- **Seuils** : contexte < 60% vert (rien à faire), 60–79% orange
+  (`/compact` bientôt), ≥ 80% rouge (`/compact` ou `/new` maintenant).
+  Le toast ne se répète pas : 1 fois par palier, minimum 10 min d'intervalle,
+  réarmé après compaction ou nouvelle session.
+- **Commandes utiles** : `/quota` (tableau complet + conseil),
+  `/statusline` (reconfigurer le bandeau), `/compact` (résumer),
+  `/models` (changer de modèle à la main).
+
 ---
 
 ## 3. Clés API
