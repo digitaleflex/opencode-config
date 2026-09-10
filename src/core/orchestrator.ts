@@ -5,7 +5,7 @@ import { ProofVerifier } from "./proof-verifier";
 import { MerkleAuditTrail } from "./merkle-audit";
 import { AnomalyDetector } from "./anomaly-detection";
 import { InjectionDetector } from "./injection-detection";
-import { TaskSpec, ExecutionResult, PolicyDecision, TaskType, RiskLevel, ProofChain, Proof, ProofType } from "./types";
+import { TaskSpec, ExecutionResult, PolicyDecision, TaskType, RiskLevel, ProofChain, Proof, ProofType, EvidenceBundle } from "./types";
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { normalizeForMatching } from "./unicode-normalize";
@@ -63,7 +63,7 @@ export class GovernanceOrchestrator {
     this.metrics = [];
   }
 
-async execute(task: TaskSpec): Promise<ExecutionResult> {
+async execute(task: TaskSpec, evidence: EvidenceBundle = {}): Promise<ExecutionResult> {
      const startTotal = Date.now();
      const taskId = this.generateId();
 
@@ -222,15 +222,16 @@ async execute(task: TaskSpec): Promise<ExecutionResult> {
        reason: guardResult.reason,
      });
 
-     const startProof = Date.now();
-     const proofChain = this.proofVerifier.generateProofChain(
-       { ...taskWithRisk, id: taskId },
-       policyDecision.policy!
-     );
+      const startProof = Date.now();
+      const proofChain = this.proofVerifier.generateProofChain(
+        { ...taskWithRisk, id: taskId },
+        policyDecision.policy!,
+        evidence
+      );
 
-     const proofStatus = this.proofVerifier.verifyProofChain(proofChain, { ...taskWithRisk, id: taskId });
-     const requiredProofs = policyDecision.proofsRequired || [];
-     const hasAllRequiredProofs = this.checkMinimumProofs(proofChain, requiredProofs);
+      const proofStatus = this.proofVerifier.verifyProofChain(proofChain, { ...taskWithRisk, id: taskId }, evidence);
+      const requiredProofs = policyDecision.proofsRequired || [];
+      const hasAllRequiredProofs = this.proofVerifier.checkMinimumProofs(proofChain, requiredProofs);
      const proofMs = Date.now() - startProof;
      this.logAuditEntry({
        timestamp: new Date().toISOString(),
@@ -286,9 +287,10 @@ async execute(task: TaskSpec): Promise<ExecutionResult> {
          riskLevel,
          policyDecision: policyDecision.decision,
          guardDecision: guardResult.decision,
-         proofStatus,
-         anomalyScore: anomalyResult.score,
-         injectionDetected: injectionReport.action !== "ALLOW",
+          proofStatus,
+          anomalyScore: anomalyResult.score,
+          injectionDetected: injectionReport.action !== "ALLOW",
+          evidenceProvided: Object.keys(evidence),
        },
      });
 
@@ -313,23 +315,7 @@ async execute(task: TaskSpec): Promise<ExecutionResult> {
    }
 
   private checkMinimumProofs(chain: ProofChain, required: ProofType[]): boolean {
-    if (required.length === 0) return true;
-    for (const req of required) {
-      const proof = chain.proofs.find(p => p.type === req);
-      if (!proof || proof.status !== "PASS") return false;
-      if (this.isPlaceholderEvidence(proof.evidence)) return false;
-    }
-    return true;
-  }
-
-  private isPlaceholderEvidence(evidence: string): boolean {
-    const placeholders = [
-      "Test suite executed for:",
-      "Code review completed for:",
-      "Security scan completed for:",
-      "Human approval pending for:",
-    ];
-    return placeholders.some(p => evidence.includes(p));
+    return this.proofVerifier.checkMinimumProofs(chain, required);
   }
 
   getBenchmarkResults(): BenchmarkResult | null {

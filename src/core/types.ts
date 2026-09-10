@@ -71,8 +71,38 @@ export interface Proof {
   type: ProofType;
   status: "PASS" | "FAIL" | "PENDING";
   evidence: string;
+  /** Content-bound hash of the task + proof type (tamper detection). */
   hash: string;
+  /** Hash of the raw evidence payload this proof was derived from. */
+  evidenceHash?: string;
+  /** Origin of the evidence, e.g. "ci", "human", "scanner". */
+  source?: string;
   timestamp: number;
+}
+
+/** Raw test-run evidence supplied by a trusted producer (CI, local runner). */
+export interface TestEvidence {
+  passed: number;
+  failed: number;
+  outputHash: string;
+}
+
+/** Raw security-scan evidence. */
+export interface ScanEvidence {
+  findings: number;
+  outputHash: string;
+}
+
+/**
+ * Evidence supplied to the orchestrator. Proofs are no longer fabricated:
+ * a required proof is only PASS when authentic evidence is provided.
+ */
+export interface EvidenceBundle {
+  testResult?: TestEvidence;
+  reviewHash?: string;
+  scanReport?: ScanEvidence;
+  /** Human-approval reference (formal signed token lands in #6). */
+  approvalToken?: string;
 }
 
 export interface ProofChain {

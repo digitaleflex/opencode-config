@@ -27,6 +27,9 @@ export type {
   PolicyDecision,
   GuardOverride,
   ExecutionResult,
+  EvidenceBundle,
+  TestEvidence,
+  ScanEvidence,
 } from "./types";
 
 // Re-export new types

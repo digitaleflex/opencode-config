@@ -1,4 +1,8 @@
 // src/core/proof-verifier.ts — Proof Verification Engine
+//
+// Proofs are derived from authentic evidence supplied by trusted producers
+// (CI, human reviewer, scanner). A required proof is never fabricated:
+// missing evidence yields PENDING, and the orchestrator fails closed.
 
 import {
   TaskSpec,
@@ -6,72 +10,29 @@ import {
   Proof,
   ProofType,
   PolicySpec,
+  EvidenceBundle,
 } from "./types";
 import { createHash } from "node:crypto";
 
 export class ProofVerifier {
   /**
-   * Generate a proof chain for a completed task
+   * Generate a proof chain for a task from the supplied evidence.
    */
-  generateProofChain(task: TaskSpec, policy: PolicySpec): ProofChain {
+  generateProofChain(
+    task: TaskSpec,
+    policy: PolicySpec,
+    evidence: EvidenceBundle = {}
+  ): ProofChain {
     const proofs: Proof[] = [];
 
-    // Add tests proof if required
-    if (policy.proofsRequired.includes(ProofType.TESTS)) {
-      const testProof: Proof = {
-        type: ProofType.TESTS,
-        status: "PASS", // Will be validated by actual test run
-        evidence: `Test suite executed for: ${task.description}`,
-        hash: this.generateHash(task, ProofType.TESTS),
-        timestamp: Date.now(),
-      };
-      proofs.push(testProof);
+    for (const type of policy.proofsRequired) {
+      proofs.push(this.buildProof(task, type, evidence));
     }
 
-    // Add code review proof if required
-    if (policy.proofsRequired.includes(ProofType.CODE_REVIEW)) {
-      const reviewProof: Proof = {
-        type: ProofType.CODE_REVIEW,
-        status: "PASS", // Will be validated by actual review
-        evidence: `Code review completed for: ${task.description}`,
-        hash: this.generateHash(task, ProofType.CODE_REVIEW),
-        timestamp: Date.now(),
-      };
-      proofs.push(reviewProof);
-    }
-
-    // Add security scan proof if required
-    if (policy.proofsRequired.includes(ProofType.SECURITY_SCAN)) {
-      const securityProof: Proof = {
-        type: ProofType.SECURITY_SCAN,
-        status: "PASS", // Will be validated by actual security scan
-        evidence: `Security scan completed for: ${task.description}`,
-        hash: this.generateHash(task, ProofType.SECURITY_SCAN),
-        timestamp: Date.now(),
-      };
-      proofs.push(securityProof);
-    }
-
-    // Add human approval proof if required
-    if (policy.proofsRequired.includes(ProofType.HUMAN_APPROVAL)) {
-      const approvalProof: Proof = {
-        type: ProofType.HUMAN_APPROVAL,
-        status: "PENDING", // Requires human action
-        evidence: `Human approval pending for: ${task.description}`,
-        hash: this.generateHash(task, ProofType.HUMAN_APPROVAL),
-        timestamp: Date.now(),
-      };
-      proofs.push(approvalProof);
-    }
-
-    // Compute root hash of the chain
     const rootHash = this.computeRootHash(proofs);
 
-    // Determine verdict based on complexity level
     let verdict: "PASS" | "FAIL" = "PASS";
-    if (task.complexity === "L4" && proofs.length < 4) {
-      verdict = "FAIL";
-    } else if (proofs.length === 0) {
+    if (proofs.some((p) => p.status === "FAIL")) {
       verdict = "FAIL";
     }
 
@@ -85,15 +46,20 @@ export class ProofVerifier {
 
   /**
    * Verify an existing proof chain.
-   * task must be provided to recompute content-bound hashes; without it the
+   * `task` is required to recompute content-bound hashes; without it the
    * chain cannot be authenticated and the result is FAIL (fail-closed).
+   * `evidence` is required to re-bind any evidence hashes.
    */
-  verifyProofChain(chain: ProofChain, task?: TaskSpec): "PASS" | "FAIL" | "PENDING" {
+  verifyProofChain(
+    chain: ProofChain,
+    task?: TaskSpec,
+    evidence?: EvidenceBundle
+  ): "PASS" | "FAIL" | "PENDING" {
     if (!task) {
       return "FAIL";
     }
 
-    // Verify all proofs have valid hashes bound to taskId + description + type
+    // 1. Content-bound tamper check on every proof.
     for (const proof of chain.proofs) {
       const expectedHash = this.generateHash({ ...task, id: chain.taskId }, proof.type);
       if (proof.hash !== expectedHash) {
@@ -101,30 +67,116 @@ export class ProofVerifier {
       }
     }
 
-    // Verify all proofs passed
-    // Distinguish PENDING (human approval waiting) from FAIL (proof rejected)
-    const hasPending = chain.proofs.some((p) => p.status === "PENDING");
-    if (hasPending) {
-      return "PENDING";
+    // 2. Re-bind evidence hashes when the chain carries them.
+    for (const proof of chain.proofs) {
+      if (!proof.evidenceHash) continue;
+      const raw = this.rawForType(proof.type, evidence);
+      if (raw === undefined) return "FAIL";
+      if (this.hashEvidence(raw) !== proof.evidenceHash) return "FAIL";
     }
 
-    const allPassed = chain.proofs.every((p) => p.status === "PASS");
-    if (!allPassed) {
-      return "FAIL";
-    }
-
-    return "PASS";
+    // 3. Aggregate statuses.
+    if (chain.proofs.some((p) => p.status === "FAIL")) return "FAIL";
+    if (chain.proofs.some((p) => p.status === "PENDING")) return "PENDING";
+    return chain.proofs.every((p) => p.status === "PASS") ? "PASS" : "FAIL";
   }
 
   /**
-   * Check if task meets minimum proof requirements
+   * Check that all required proof types are present and not rejected.
    */
-  checkMinimumProofs(task: TaskSpec, chain: ProofChain): "PASS" | "FAIL" {
-    const minProofs = this.getMinimumProofsForComplexity(task.complexity || "L1");
-    if (chain.proofs.length < minProofs) {
-      return "FAIL";
+  checkMinimumProofs(chain: ProofChain, required: ProofType[]): boolean {
+    for (const type of required) {
+      const proof = chain.proofs.find((p) => p.type === type);
+      if (!proof || proof.status === "FAIL") return false;
     }
-    return "PASS";
+    return true;
+  }
+
+  // --- Private helpers ---
+
+  private buildProof(task: TaskSpec, type: ProofType, evidence: EvidenceBundle): Proof {
+    const base = {
+      type,
+      hash: this.generateHash(task, type),
+      timestamp: Date.now(),
+    };
+
+    switch (type) {
+      case ProofType.TESTS: {
+        const t = evidence.testResult;
+        if (!t) {
+          return { ...base, status: "PENDING", evidence: `No test evidence for: ${task.description}` };
+        }
+        return {
+          ...base,
+          status: t.failed === 0 && t.passed > 0 ? "PASS" : "FAIL",
+          source: "ci",
+          evidence: `Tests passed=${t.passed} failed=${t.failed} (output ${t.outputHash.slice(0, 16)})`,
+          evidenceHash: this.hashEvidence(t),
+        };
+      }
+      case ProofType.CODE_REVIEW: {
+        const h = evidence.reviewHash;
+        if (!h) {
+          return { ...base, status: "PENDING", evidence: `No code review evidence for: ${task.description}` };
+        }
+        return {
+          ...base,
+          status: "PASS",
+          source: "human",
+          evidence: `Code review ${h.slice(0, 16)}`,
+          evidenceHash: this.hashEvidence({ reviewHash: h }),
+        };
+      }
+      case ProofType.SECURITY_SCAN: {
+        const s = evidence.scanReport;
+        if (!s) {
+          return { ...base, status: "PENDING", evidence: `No security scan evidence for: ${task.description}` };
+        }
+        return {
+          ...base,
+          status: s.findings === 0 ? "PASS" : "FAIL",
+          source: "scanner",
+          evidence: `Security scan findings=${s.findings} (output ${s.outputHash.slice(0, 16)})`,
+          evidenceHash: this.hashEvidence(s),
+        };
+      }
+      case ProofType.HUMAN_APPROVAL: {
+        const a = evidence.approvalToken;
+        if (!a) {
+          return { ...base, status: "PENDING", evidence: `Human approval pending for: ${task.description}` };
+        }
+        return {
+          ...base,
+          status: "PASS",
+          source: "human",
+          evidence: `Human approval ${a.slice(0, 16)}`,
+          evidenceHash: this.hashEvidence({ approvalToken: a }),
+        };
+      }
+      default:
+        return { ...base, status: "PENDING", evidence: `No evidence for: ${task.description}` };
+    }
+  }
+
+  private rawForType(type: ProofType, evidence?: EvidenceBundle): unknown {
+    if (!evidence) return undefined;
+    switch (type) {
+      case ProofType.TESTS:
+        return evidence.testResult;
+      case ProofType.CODE_REVIEW:
+        return evidence.reviewHash !== undefined ? { reviewHash: evidence.reviewHash } : undefined;
+      case ProofType.SECURITY_SCAN:
+        return evidence.scanReport;
+      case ProofType.HUMAN_APPROVAL:
+        return evidence.approvalToken !== undefined ? { approvalToken: evidence.approvalToken } : undefined;
+      default:
+        return undefined;
+    }
+  }
+
+  private hashEvidence(value: unknown): string {
+    return "sha256:" + createHash("sha256").update(JSON.stringify(value)).digest("hex");
   }
 
   private generateHash(task: TaskSpec, proofType: ProofType): string {
@@ -137,22 +189,7 @@ export class ProofVerifier {
   }
 
   private computeRootHash(proofs: Proof[]): string {
-  const hashContent = proofs.map((p) => p.hash).join("|");
-  return "sha256:" + createHash("sha256").update(hashContent).digest("hex");
-}
-
-  private getMinimumProofsForComplexity(complexity: string): number {
-    switch (complexity) {
-      case "L1":
-        return 0;
-      case "L2":
-        return 2;
-      case "L3":
-        return 3;
-      case "L4":
-        return 4;
-      default:
-        return 1;
-    }
+    const hashContent = proofs.map((p) => p.hash).join("|");
+    return "sha256:" + createHash("sha256").update(hashContent).digest("hex");
   }
 }
