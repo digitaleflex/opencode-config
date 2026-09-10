@@ -5,7 +5,7 @@
     [
       "./plugins/opencode-statusline.tsx",
       {
-        "locale": "en",
+        "locale": "fr",
         "lines": [
           [
             { "type": "model", "color": "accent", "bold": true },
@@ -46,9 +46,26 @@
             { "type": "total-tokens" },
             { "type": "separator" },
             { "type": "cache-hit-rate" }
+          ],
+          [
+            { "type": "provider-health" },
+            { "type": "separator" },
+            { "type": "routing-chain" },
+            { "type": "separator" },
+            { "type": "quota-bar" },
+            { "type": "separator" },
+            { "type": "audit-tail" }
+          ],
+          [
+            { "type": "sensitive-ops" },
+            { "type": "separator" },
+            { "type": "risk-level" },
+            { "type": "separator" },
+            { "type": "budget" }
           ]
         ]
       }
-    ]
+    ],
+    "@tarquinen/opencode-dcp@latest"
   ]
 }

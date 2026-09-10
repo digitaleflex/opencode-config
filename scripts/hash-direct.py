@@ -351,6 +351,7 @@ KEY_FILES = {
     "huggingface": CONFIG_DIR / ".hf-key",
     "novita": CONFIG_DIR / ".novita-key",
     "together": CONFIG_DIR / ".together-key",
+    "zenmux": CONFIG_DIR / ".zenmux-key",
 }
 
 MODELS = {
@@ -362,6 +363,7 @@ MODELS = {
     "huggingface": ["Qwen/Qwen3-Coder-480B-A35B-Instruct:cheapest", "deepseek-ai/DeepSeek-V4-Flash:cheapest"],
     "novita": ["deepseek-ai/DeepSeek-V4-Flash", "inclusionai/ling-3.0-flash-fin", "inclusionai/ling-3.0-flash-sante"],
     "together": ["moonshotai/Kimi-K2.7-Code", "meta-llama/Llama-4-Maverick"],
+    "zenmux": ["zenmux/free"],
 }
 
 ENDPOINTS = {
@@ -373,6 +375,7 @@ ENDPOINTS = {
     "huggingface": "https://router.huggingface.co/v1/chat/completions",
     "novita": "https://api.novita.ai/v3/openai/chat/completions",
     "together": "https://api.together.xyz/v1/chat/completions",
+    "zenmux": "https://zenmux.ai/v1/chat/completions",
 }
 
 # ============================================================================
@@ -438,7 +441,7 @@ def record_failure(provider: str) -> None:
 
 QUOTA_LIMITS = {
     "groq": 50, "mistral": 30, "zhipu": 20, "openrouter": 30,
-    "huggingface": 20, "novita": 30, "together": 20,
+    "huggingface": 20, "novita": 30, "together": 20, "zenmux": 20,
 }
 
 
@@ -542,10 +545,15 @@ def call_together(model, messages, max_tokens=2048, temperature=0.2):
     return call_provider("together", model, messages, max_tokens, temperature)
 
 
+def call_zenmux(model, messages, max_tokens=2048, temperature=0.2):
+    return call_provider("zenmux", model, messages, max_tokens, temperature)
+
+
 PROVIDER_CALLS = {
     "groq": call_groq, "mistral": call_mistral, "zhipu": call_zhipu,
     "openrouter": call_openrouter, "huggingface": call_huggingface,
     "novita": call_novita, "together": call_together,
+    "zenmux": call_zenmux,
 }
 
 

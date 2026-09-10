@@ -29,7 +29,7 @@ policies:
     agents: [builder]
     model_plan:
       primary: [worker-codestral, worker-groq]
-      fallback: [worker-zhipu, worker-novita]
+      fallback: [worker-zhipu, worker-novita, worker-google]
     proofs_required: []
     human_approval: false
     security_scan: false
@@ -41,7 +41,7 @@ policies:
     agents: [planner, builder, reviewer]
     model_plan:
       primary: [worker-codestral, worker-groq]
-      fallback: [worker-zhipu, worker-novita]
+      fallback: [worker-zhipu, worker-novita, worker-google]
     proofs_required: [tests, code_review]
     human_approval: false
     security_scan: false
@@ -53,7 +53,7 @@ policies:
     agents: [planner, architect, builder, reviewer]
     model_plan:
       primary: [worker-codestral, worker-groq]
-      fallback: [worker-zhipu, worker-novita]
+      fallback: [worker-zhipu, worker-novita, worker-google]
     proofs_required: [tests, code_review, security_scan]
     human_approval: true
     security_scan: true
@@ -65,7 +65,7 @@ policies:
     agents: [planner, architect, security, builder, reviewer]
     model_plan:
       primary: [worker-codestral, worker-groq]
-      fallback: [worker-zhipu, worker-novita]
+      fallback: [worker-zhipu, worker-novita, worker-google]
     proofs_required: [tests, code_review, security_scan, human_approval]
     human_approval: true
     security_scan: true

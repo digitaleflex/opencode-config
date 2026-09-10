@@ -30,7 +30,7 @@ export class PolicyEngine {
         agents: ["builder"],
         modelPlan: {
           primary: ["worker-codestral", "worker-groq"],
-          fallback: ["worker-zhipu", "worker-novita"],
+          fallback: ["worker-zhipu", "worker-novita", "worker-google"],
         },
         proofsRequired: [],
         humanApproval: false,
@@ -44,7 +44,7 @@ export class PolicyEngine {
         agents: ["planner", "builder", "reviewer"],
         modelPlan: {
           primary: ["worker-codestral", "worker-groq"],
-          fallback: ["worker-zhipu", "worker-novita"],
+          fallback: ["worker-zhipu", "worker-novita", "worker-google"],
         },
         proofsRequired: [ProofType.TESTS, ProofType.CODE_REVIEW],
         humanApproval: false,
@@ -58,7 +58,7 @@ export class PolicyEngine {
         agents: ["planner", "architect", "builder", "reviewer"],
         modelPlan: {
           primary: ["worker-codestral", "worker-groq"],
-          fallback: ["worker-zhipu", "worker-novita"],
+          fallback: ["worker-zhipu", "worker-novita", "worker-google"],
         },
         proofsRequired: [ProofType.TESTS, ProofType.CODE_REVIEW, ProofType.SECURITY_SCAN],
         humanApproval: true,
@@ -72,7 +72,7 @@ export class PolicyEngine {
         agents: ["planner", "architect", "security", "builder", "reviewer"],
         modelPlan: {
           primary: ["worker-codestral", "worker-groq"],
-          fallback: ["worker-zhipu", "worker-novita"],
+          fallback: ["worker-zhipu", "worker-novita", "worker-google"],
         },
         proofsRequired: [
           ProofType.TESTS,

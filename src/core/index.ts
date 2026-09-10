@@ -13,6 +13,11 @@ export { BehavioralFSM } from "./behavioral-fsm";
 export { classifyTask } from "./classifier";
 export { assessRisk, getRiskFromComplexity } from "./risk-assessor";
 export { TaskComplexity, RiskLevel, TaskType, ProofType } from "./types";
+export { CircuitBreaker } from "./provider-breaker";
+export { ProviderHealth } from "./provider-health";
+export { resolveStrategy } from "./strategies";
+export { RetryLogic, createHttpRetryableChecker, generateIdempotencyKey } from "./retry-backoff";
+export { classifyError, shouldFailover, countsAgainstBreaker } from "./error-classifier";
 export type {
   TaskSpec,
   PolicySpec,
