@@ -24,6 +24,9 @@ jobs:
       - name: Unit tests
         run: bun test src/core/core.test.ts
 
+      - name: Fuzz tests (canonicalizer + unicode)
+        run: bun run test:fuzz
+
       - name: Golden attack corpus
         run: bun run test:golden
 
