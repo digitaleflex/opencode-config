@@ -16,7 +16,7 @@
 | `.env` + `.-key` (15 fichiers) | Clés API hors config — **jamais à committer** (`.gitignore` OK) |
 | `agent/` | `eurinhash` (superviseur FREE) + 10 agents rôle + 11 workers (builder, planner, architect, design-lead, docwriter, reviewer…) |
 | `command/` | `/review`, `/commit`, `/quota`, `/myfree-eurinhash` |
-| `skills/` (14 + preload-skills, `arkcli-*` archivés) | Méthodo hash-*, review, Cloudflare, frontend, 12ui-design... |
+| `skills/` (30 : 14 maison + 16 tierces scannées, `arkcli-*` archivés) | Méthodo hash-*, superpowers, mattpocock, caveman, skill-creator... |
 | `scripts/` | `free-probe.py` (teste les FREE), `quota.py` (monitoring), `myfree-eurinhash.py` (routeur) |
 | `plugin/guard.ts` | Bloque `rm -rf /`, `mkfs`, `dd`, `push --force` |
 | `free-models.json` | Cache d'état des FREE (régénéré si >30 min) |

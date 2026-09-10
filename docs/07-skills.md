@@ -6,7 +6,8 @@
 3. [hash-code-navigation](#hash-code-navigation)
 4. [hash-verification](#hash-verification)
 5. [hash-enterprise-development](#hash-enterprise-development)
-6. [Créer une nouvelle skill](#créer-une-nouvelle-skill)
+5. [Skills tierces installées](#5-skills-tierces-installées-2026-09-10)
+6. [Créer une nouvelle skill](#6-créer-une-nouvelle-skill)
 
 ---
 
@@ -360,7 +361,38 @@ La skill est définie dans `skills/hash-enterprise-development/SKILL.md` avec :
 
 ---
 
-## 5. Créer une nouvelle skill
+## 5. Skills tierces installées (2026-09-10)
+
+16 skills tierces, scannées avec `InjectionDetector` avant installation
+(voir `skills/INSTALLED.md` pour provenance + résultats ; 2 faux positifs
+bénins revus et acceptés). Chargées via `opencode-plugin-preload-skills`
+(config `.opencode/preload-skills.json`, budget 10K tokens).
+
+| Skill | Source | Agents connectés |
+|---|---|---|
+| systematic-debugging | obra/superpowers | builder, tester |
+| verification-before-completion | obra/superpowers | reviewer, quality-engineer |
+| test-driven-development | obra/superpowers | builder, tester |
+| requesting-code-review | obra/superpowers | reviewer |
+| executing-plans | obra/superpowers | planner, architect |
+| finishing-a-development-branch | obra/superpowers | reviewer (via trigger) |
+| code-review | mattpocock/skills | reviewer |
+| diagnosing-bugs | mattpocock/skills | tester, quality-engineer |
+| resolving-merge-conflicts | mattpocock/skills | git-engineer |
+| git-guardrails-claude-code | mattpocock/skills | security, git-engineer |
+| setup-pre-commit | mattpocock/skills | git-engineer |
+| caveman-commit | juliusbrussee/caveman | git-engineer |
+| caveman-review | juliusbrussee/caveman | reviewer |
+| caveman-compress | juliusbrussee/caveman | trigger "compress context" |
+| skill-creator | anthropics/skills | trigger "create a skill" |
+| supabase-postgres-best-practices | supabase/agent-skills | trigger "supabase/postgres" |
+
+Mise à jour : re-cloner la source, copier le dossier, re-scanner, bumper
+`skills/INSTALLED.md`.
+
+---
+
+## 6. Créer une nouvelle skill
 
 ### Structure de base
 ```markdown
