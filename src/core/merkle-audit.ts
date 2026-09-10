@@ -9,6 +9,7 @@
 import { createHash, createHmac } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { redactDeep, Redaction } from "./secret-redactor";
 
 export interface AuditEntry {
   seq: number;
@@ -20,6 +21,8 @@ export interface AuditEntry {
   detail: unknown;
   leafHash: string;
   parentHash: string;
+  /** Redaction summary (types + counts only — never values). */
+  redactions?: Redaction[];
 }
 
 export interface MerkleRoot {
@@ -94,16 +97,27 @@ export class MerkleAuditTrail {
    * Record an audit entry with Merkle hash chain (RFC 6962 domain-separated).
    * When an HMAC key is configured every hash is HMAC-SHA256.
    */
-  record(entry: Omit<AuditEntry, "seq" | "leafHash" | "parentHash">): AuditEntry {
+  record(entry: Omit<AuditEntry, "seq" | "leafHash" | "parentHash" | "redactions">): AuditEntry {
+    // Redact secrets BEFORE hashing/persisting: the trail records that a
+    // redaction occurred (types + counts) but never the secret value.
+    const cleanDesc = typeof entry.taskDescription === "string"
+      ? redactDeep(entry.taskDescription)
+      : { value: entry.taskDescription, redactions: [] as Redaction[] };
+    const cleanDetail = redactDeep(entry.detail);
+    const redactions = [...cleanDesc.redactions, ...cleanDetail.redactions];
+
     const seq = this.leaves.length;
-    const leafHash = this.computeLeafHash(entry.taskId, entry.stage, entry.decision, entry.detail);
+    const leafHash = this.computeLeafHash(entry.taskId, entry.stage, entry.decision, cleanDetail.value);
     const parentHash = this.computeParentHash(seq, leafHash);
 
     const fullEntry: AuditEntry = {
       ...entry,
+      taskDescription: cleanDesc.value,
+      detail: cleanDetail.value,
       seq,
       leafHash,
       parentHash,
+      ...(redactions.length > 0 ? { redactions } : {}),
     };
 
     this.leaves.push(fullEntry);
