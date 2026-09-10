@@ -11,12 +11,14 @@ import {
   ProofVerifier,
   GuardOverrides,
   classifyTask,
+  ProofType,
+} from "../../src/core/index.ts";
+import type {
   ProofChain,
   Proof,
-  ProofType,
   TaskSpec,
   ExecutionResult,
-} from "C:/Users/PC/.config/opencode/src/core/index.ts";
+} from "../../src/core/index.ts";
 
 import * as fs from "fs";
 import * as path from "path";
