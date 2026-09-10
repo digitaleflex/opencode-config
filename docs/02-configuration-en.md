@@ -149,6 +149,13 @@ All API keys in `~/.config/opencode/` as `.<provider>-key`:
 .together-key   # Together AI API key
 .deepseek-key   # DeepSeek API key (optional)
 .mammouth-key   # Mammouth API key (paid fallback)
+.sambanova-key  # SambaNova API key (FREE, 20 req/day)
+.cerebras-key   # Cerebras API key (TRIAL $5, optional)
+.pollinations-key # Pollinations (optional: anonymous tier needs no key)
+.cohere-key     # Cohere trial key (1000 calls/month, no card)
+.cloudflare-key     # Cloudflare API token (Workers AI, 10K neurons/day)
+.cloudflare-account # Cloudflare account ID (required with the token)
+# Ollama: no key (local, http://localhost:11434)
 ```
 
 ### File Format
@@ -162,7 +169,13 @@ cat .groq-key
 
 | Provider | Sign-up URL | Free Tier |
 |---------|-------------|-----------|
-| Groq | https://console.groq.com/ | 30 req/min, 14400 req/day |
+| Groq | https://console.groq.com/ | 30 req/min; **1,000 req/day on chat models** (14,400 = small models only) |
+| SambaNova | https://cloud.sambanova.ai/ | 20 req/min, 20 req/day, 200K tokens/day per model |
+| Pollinations | https://auth.pollinations.ai/ (optional) | No key: 1 req/15s; free account: 1 req/5s |
+| Cerebras | https://cloud.cerebras.ai/ | $5 / 30-day trial (no permanent free tier) |
+| Ollama | None (local) | Unlimited (bound by your machine) |
+| Cohere | https://dashboard.cohere.com/api-keys | Trial: 1000 calls/month, no card, **non-commercial use only** |
+| Cloudflare | https://dash.cloudflare.com/ (Workers AI) | 10K neurons/day (API token + account ID) |
 | Mistral | https://console.mistral.ai/ | 30M tokens/month |
 | Google | https://aistudio.google.com/ | 20 req/min |
 | Zhipu | https://bigmodel.cn/ | 200 req/day |
@@ -175,6 +188,87 @@ cat .groq-key
 - `.*-key` files are in `.gitignore` (never committed)
 - Never share keys in logs or errors
 - Renew exposed keys immediately
+
+### New free providers — step-by-step setup
+
+#### SambaNova (large models, 20 free req/day)
+```bash
+# 1. Sign up (no card): https://cloud.sambanova.ai/
+# 2. Create an API key in the dashboard, then:
+echo "your-sambanova-key" > ~/.config/opencode/.sambanova-key
+chmod 600 ~/.config/opencode/.sambanova-key
+# 3. Verify: python ~/.config/opencode/scripts/free-probe.py
+```
+Configured models: `DeepSeek-V3.1`, `Meta-Llama-3.3-70B-Instruct`,
+`gpt-oss-120b`. Free quotas: 20 req/min, 20 req/day, 200K tokens/day
+**per model**. Best as a quality fallback when Groq/Mistral hit 429.
+
+#### Pollinations (no key, ultimate backup)
+No key needed: the anonymous tier (`apiKey: "anonymous"` in
+`opencode.jsonc`) works at 1 req/15s. For higher limits (1 req/5s), register
+free at https://auth.pollinations.ai/ and:
+```bash
+echo "your-pollinations-key" > ~/.config/opencode/.pollinations-key
+# then in opencode.jsonc, pollinations provider:
+# "apiKey": "{file:~/.config/opencode/.pollinations-key}"
+```
+
+#### Cerebras ($5 trial, ultra-fast)
+```bash
+# 1. Sign up: https://cloud.cerebras.ai/ ($5 credit, 30 days)
+# 2. Create an API key
+echo "your-cerebras-key" > ~/.config/opencode/.cerebras-key
+chmod 600 ~/.config/opencode/.cerebras-key
+```
+Configured models: `gpt-oss-120b` (1M tokens/day during trial),
+`llama3.1-8b` (~2000 tok/s). **No permanent free tier** — access stops
+when the $5 runs out until credits are purchased.
+
+#### Ollama (local, 100% free, offline)
+```bash
+# 1. Install: https://ollama.com/ (or: curl -fsSL https://ollama.com/install.sh | sh)
+# 2. Start: ollama serve
+# 3. Pull models:
+ollama pull devstral        # agentic coding, recommended
+ollama pull qwen2.5-coder   # code
+ollama pull llama3.1        # general
+# No key to create. Verify: curl http://localhost:11434/api/tags
+```
+
+#### Cohere (1000-call/month trial, all models)
+```bash
+# 1. Sign up (no card): https://dashboard.cohere.com/
+# 2. Create a TRIAL key at https://dashboard.cohere.com/api-keys
+echo "your-cohere-key" > ~/.config/opencode/.cohere-key
+chmod 600 ~/.config/opencode/.cohere-key
+# 3. Verify: python ~/.config/opencode/scripts/free-probe.py
+```
+Configured models: `command-a-03-2025`, `command-r-plus-08-2024`,
+`north-mini-code-1-0` (code). **Constraints**: 1000 calls/month across ALL
+endpoints, 20 req/min, **non-commercial use only**. Proprietary `/v2/chat`
+API exposed via the AI SDK adapter — validate live on first real call.
+
+#### Cloudflare Workers AI (10K neurons/day)
+```bash
+# 1. Free Cloudflare account: https://dash.cloudflare.com/
+# 2. Create an API token (Workers AI) and note the account ID
+echo "your-cloudflare-token" > ~/.config/opencode/.cloudflare-key
+echo "your-account-id" > ~/.config/opencode/.cloudflare-account
+chmod 600 ~/.config/opencode/.cloudflare-*
+# 3. Verify: python ~/.config/opencode/scripts/free-probe.py
+```
+Free models observed: `@cf/zai-org/glm-4.7-flash`, `@cf/google/gemma-4-*`,
+`@cf/nvidia/nemotron-3-*` (heavy Kimi/GLM-5.2 moved to paid).
+**Integration note**: Workers AI is a proprietary REST API
+(`/client/v4/accounts/{id}/ai/run/...`), not OpenAI-compatible — the probe
+above tests it directly, but the OpenCode provider mapping is **pending
+live validation** before routing workers to it.
+
+#### After adding a provider
+1. Quit + restart OpenCode (config reload).
+2. `python ~/.config/opencode/scripts/free-probe.py` → `free-models.json`
+   flips the worker to `ok` (or `rate_limited`/`error` with the reason).
+3. `/models` inside OpenCode to pick the model manually.
 
 ---
 

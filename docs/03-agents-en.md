@@ -436,6 +436,34 @@ Technical documentation. README, API docs, user guides.
 - `zhipu/glm-4.7-flash`
 - Zhipu fallback (note: often returns 429)
 
+### worker-novita.md
+- `novita/inclusionai/ling-3.0-flash-sante`
+- Novita fallback (free)
+
+### worker-sambanova.md
+- `sambanova/DeepSeek-V3.1`
+- SambaNova fallback (FREE, 20 req/day/model)
+
+### worker-pollinations.md
+- `pollinations/openai`
+- Keyless backup (anonymous tier, 1 req/15s, keep answers short)
+
+### worker-cerebras.md
+- `cerebras/gpt-oss-120b`
+- Speed (TRIAL $5, use sparingly)
+
+### worker-ollama.md
+- `ollama/devstral`
+- Local (100% free offline, requires `ollama serve`)
+
+### worker-cohere.md
+- `cohere/command-a-03-2025`
+- Trial (1000 calls/month, no card, non-commercial)
+
+> Cloudflare Workers AI has no worker: probed via `free-probe.py`
+> (`worker-cloudflare` in `free-models.json`) but the OpenCode provider
+> mapping is pending live validation — do not route to it.
+
 ---
 
 ## 13. Routing matrix (hash-agent-matrix)

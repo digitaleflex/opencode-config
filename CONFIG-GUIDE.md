@@ -9,18 +9,19 @@
 | Fichier | Rôle |
 |---|---|
 | `opencode.jsonc` | Config principale : providers, modèles, permissions, MCP |
-| `opencode.json` | Plugins globaux (14) — chargé + fusionné avec le jsonc |
+| `opencode.jsonc` | Config principale + 14 plugins (canonique) |
+| `opencode.json` | Stub legacy vide (compatibilité uniquement) |
 | `tui.json` | Thème `tokyonight` + bandeau stats live |
 | `AGENTS.md` | Règles globales + matrice de routage intelligent (L1→L4, UI, modèles) |
-| `.env` + `.-key` (9 fichiers) | Clés API hors config — **jamais à committer** (`.gitignore` OK) |
-| `agent/` | `eurinhash` (superviseur FREE) + 10 agents (builder, planner, architect, design-lead, docwriter, reviewer, 4 workers) |
+| `.env` + `.-key` (15 fichiers) | Clés API hors config — **jamais à committer** (`.gitignore` OK) |
+| `agent/` | `eurinhash` (superviseur FREE) + 10 agents rôle + 11 workers (builder, planner, architect, design-lead, docwriter, reviewer…) |
 | `command/` | `/review`, `/commit`, `/quota`, `/myfree-eurinhash` |
 | `skills/` (38 + lazy-skills) | Méthodo hash-*, review, Cloudflare, frontend, 12ui-design... |
 | `scripts/` | `free-probe.py` (teste les FREE), `quota.py` (monitoring), `myfree-eurinhash.py` (routeur) |
 | `plugin/guard.ts` | Bloque `rm -rf /`, `mkfs`, `dd`, `push --force` |
 | `free-models.json` | Cache d'état des FREE (régénéré si >30 min) |
 
-### Plugins (`opencode.json`)
+### Plugins (`opencode.jsonc` — canonique)
 
 `opencode-dynamic-context-pruning` • `opencode-mem` • `envsitter-guard` • `oh-my-opencode-slim` • `opencode-router` • `opencode.nvim` • `./plugin/guard.ts` • `./plugin/audit-logger.ts` • `@felipegenef/opencode-lazy-skills` • `@f97/opencode-morph-fast-apply` • `opencode-supermemory` • `@zenobius/opencode-skillful` • `oh-my-openagent` • `./plugin/context-summarizer.ts`
 
@@ -41,7 +42,7 @@
 | `google` | 12 modèles (2.5-flash/pro, 3.5→3.8...) | **FREE** (quotas/jour, anti-blocage réglé) |
 | `zhipu` | GLM 4.7-flash + 5.3-flash, 5, 4.7 | Flash **FREE**, autres payants |
 | `mistral` | Codestral, Code, Medium, Small | **FREE** (tier Experiment ; medium/small parfois en 429) |
-| `groq` | Qwen 3.8-27B (testé OK), GPT-OSS 120B/20B, Qwen 3.6 | **FREE** (rapide ; 1 000 req/jour sur chat-models) |
+| `groq` | Qwen 3.8-27B, GPT-OSS 120B/20B, Qwen 3.6 | **FREE** (rapide ; 1 000 req/jour sur chat-models, OK le 2026-09-05) |
 | `sambanova` | DeepSeek-V3.1, Llama-3.3-70B, GPT-OSS-120B | **FREE** (20 req/jour/modèle, sans carte) |
 | `pollinations` | Auto (routeur) | **FREE sans clé** (1 req/15s anonyme) |
 | `cerebras` | GPT-OSS-120B, Llama-3.1-8B | **TRIAL $5/30j** (pas de free permanent) |
@@ -50,7 +51,7 @@
 | `cloudflare` | GLM-4.7-flash, Gemma, Nemotron (via REST) | **10K neurons/jour** (compte + token, provider à valider) |
 | `openrouter` | Routeur auto `openrouter/free` | **FREE**, 50 req/jour → bouche-trou |
 | `huggingface` | Qwen3-480B, GPT-OSS-120B, DeepSeek-Flash, Hermes-3-70B | 0,10 $/mois partagé (~10-30 appels) |
-| `novita` | Ling-3.0-Flash-Santé (GRATUIT ✅ testé OK), Ling-3.0-Flash-Fin (GRATUIT), DeepSeek-V4-Flash, GLM-5-Flash | **GRATUIT** + $0.075–$0.14/M (clé configurée ✅, endpoint: `https://api.novita.ai/openai/v1`) |
+| `novita` | Ling-3.0-Flash-Santé (GRATUIT, OK le 2026-09-05), Ling-3.0-Flash-Fin (GRATUIT), DeepSeek-V4-Flash, GLM-5-Flash | **GRATUIT** + $0.075–$0.14/M (clé configurée ✅, endpoint: `https://api.novita.ai/openai/v1`) |
 | `together` | Kimi-K2.7-Code, Llama-4-Maverick, DeepSeek-V4-Pro | $0.27–$0.95/M, crédits épuisés ❌ (clé valide, ajouter crédit) |
 | `mammouth` | 18 modèles (Claude, GPT, DeepSeek, Qwen...) | Payant crédits — **non utilisé par défaut** |
 
@@ -76,7 +77,7 @@ Ordre de bataille **prioritaire** pour les workers gratuits :
 | 12 | `worker-cohere` | `cohere/command-a-03-2025` | **TRIAL** (1000/mois) | ❓ à prober |
 | — | `worker-cloudflare` | REST directe (pas de worker) | **10K neurons/jour** | ❓ probe OK, provider à valider |
 
-> **Clés API requises (9 fichiers)** :
+> **Clés API requises (15 fichiers, voir table § Clés API)** :
 > - `.gemini-key` → Google Gemini
 > - `.zhipu-key` → Z.AI GLM
 > - `.mistral-key` → Mistral
@@ -92,7 +93,7 @@ Ordre de bataille **prioritaire** pour les workers gratuits :
 
 ## Ordre de bataille anti-quota (EURINHASH)
 
-**EURINHASH Pro** (prioritaire, 5 workers gratuits validés) :
+**EURINHASH Pro** (prioritaire, workers gratuits — statuts live dans `free-models.json`) :
 `mistral/codestral` → `groq/qwen3.8` → `novita/ling-3.0-flash-sante` (GRATUIT) → `zhipu/glm-4.7-flash` → `google/2.5-flash` → `openrouter/free` → crédits Mammouth (dernier recours).
 
 Ou automatique : `@eurinhash <tâche>` (teste la disponibilité en temps réel, choisit, rebascule seul en cas de 429).
@@ -146,9 +147,9 @@ Chaque demande est classée AVANT d'agir : type, complexité, risque → **minim
 - Clé Gemini `AQ.` : nouveau format valide. Clé MiniMax : pas câblée (même prix que Mammouth, pas de gratuit).
 - Statusline : menu config en anglais (`/statusline`), widgets modifiables.
 - **EURINHASH** : superviseur FREE qui orchestre les workers gratuits. Si un worker KO (429/quota/auth), il rebascule automatiquement sur le suivant sans demander.
-- **Keys API** : 9 fichiers `.key` dans `~/.config/opencode/` — voir ci-dessous.
+- **Keys API** : 15 fichiers `.key` dans `~/.config/opencode/` — voir ci-dessous.
 
-## Clés API requises (9 fichiers)
+## Clés API requises (15 fichiers)
 
 | Fichier | Provider | Où obtenir | Status | Sécurité |
 |---|---|---|---|---|
@@ -162,6 +163,11 @@ Chaque demande est classée AVANT d'agir : type, complexité, risque → **minim
 | `.together-key` | Together AI | https://api.together.xyz/ | ✓ présent | ✅ Fichier `.gitignore` + recommandé chmod 600 |
 | `.deepseek-key` | DeepSeek | https://platform.deepseek.com/ | ❌ placeholder | ✅ Fichier `.gitignore` + recommandé chmod 600 |
 | `.mammouth-key` | Mammouth (payant) | https://mammouth.ai/ | ✓ présent (non utilisé par défaut) | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.sambanova-key` | SambaNova | https://cloud.sambanova.ai/ | ❓ à créer (FREE, 20 req/jour) | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.cerebras-key` | Cerebras | https://cloud.cerebras.ai/ | ❓ à créer (TRIAL $5) | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.pollinations-key` | Pollinations | https://auth.pollinations.ai/ | optionnel (tier anonyme sans clé) | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.cohere-key` | Cohere | https://dashboard.cohere.com/api-keys | ❓ à créer (trial 1000 appels/mois) | ✅ Fichier `.gitignore` + recommandé chmod 600 |
+| `.cloudflare-key` + `.cloudflare-account` | Cloudflare Workers AI | https://dash.cloudflare.com/ | ❓ à créer (10K neurons/jour) | ✅ Fichier `.gitignore` + recommandé chmod 600 |
 
 ### Sécurité des secrets — multi-OS
 
@@ -211,7 +217,7 @@ Chaque demande est classée AVANT d'agir : type, complexité, risque → **minim
 | Sécurité `.env` | ✅ envsitter-guard | ⚠️ Variable | ✅ | ⚠️ Variable |
 | Windows wrapper | ✅ hash-direct | ❓ | ❓ | ❌ |
 | Simplicité / config | ✅ 1 config unifiée | ❌ Complexe | ❌ Complexe | ✅ Simple |
-| **100% gratuit** | ✅ 4 workers FREE | ⚠️ Dépend des clés | ⚠️ Dépend des clés | ✅ |
+| **100% gratuit** | ✅ 10 workers FREE/trial/locaux | ⚠️ Dépend des clés | ⚠️ Dépend des clés | ✅ |
 
 ### Notre positionnement réel
 
@@ -220,7 +226,7 @@ Chaque demande est classée AVANT d'agir : type, complexité, risque → **minim
 **Notre valeur ajoutée réelle :**
 
 1. **Assemblage cohérent** : au lieu de configurer 5 plugins séparés, une config unifiée `~/.config/opencode/` qui fonctionne immédiatement
-2. **100% gratuit prêt à l'emploi** : 4 workers gratuits validés et testés, pas de configuration nécessaire
+2. **100% gratuit prêt à l'emploi** : workers gratuits/trial/locaux sondés via `free-probe.py` (statuts dans `free-models.json`), pas de configuration nécessaire au-delà des clés
 3. **Optimisé Windows** : wrapper hash-direct pour contourner les bugs Windows, chemin `%USERPROFILE%`
 4. **Sécurité intégrée** : envsitter-guard + audit-logger + safety guard en une config
 5. **Curated runtime** : sélection des meilleurs composants (Oh My OpenAgent, lazy-skills, morph-fast-apply) intégrés intelligemment
@@ -256,7 +262,7 @@ EURINHASH évolue selon une stratégie **composition over competition** : utilis
 | **Superviseur EURINHASH** | Identité unique, orchestration simple mais efficace |
 | **Matrice L1→L4** | Gouvernance claire des tâches, signature du projet |
 | **Sécurité** (`envsitter-guard` + `guard.ts` + audit) | Protection essentielle, pas de doublon open source |
-| **4 workers gratuits validés** | Valeur immédiate, 100% gratuit, testé OK |
+| **Workers gratuits validés** | Valeur immédiate, free tiers à quotas stricts (sondés via `free-probe.py`, statuts dans `free-models.json`) |
 
 ### INTEGRATE — Ce que nous intégrons
 

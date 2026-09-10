@@ -4,9 +4,9 @@ EURINHASH configuration for OpenCode - free-tier + Novita AI (vraiment gratuit),
 
 ## Features
 
-- **Models (free tier)**: Groq (294ms), Google (1339ms), Zhipu (1533ms), Novita AI (**GRATUIT**, 256K ctx)
+- **Models (free tiers, strict quotas)**: Groq, Google, Zhipu, Novita AI (**GRATUIT**, 256K ctx), SambaNova, Pollinations (keyless), Cerebras (trial), Ollama (local), Cohere (trial) — see `docs/02-configuration.md` §3
 - **EURINHASH Supervisor**: Automatic provider rotation on quota/error
-- **9 specialized agents**: planner, architect, design-lead, builder, quality-engineer, tester, security, reviewer, git-engineer
+- **21 agents**: 11 role agents (planner, architect, design-lead, builder, quality-engineer, tester, security, reviewer, git-engineer, docwriter) + 10 free/trial workers
 - **Circuit breaker**: Protection against failing providers (CLOSED/OPEN/HALF_OPEN state)
 - **Local quota tracking**: Daily count per provider/model to prevent overuse
 - **hash-direct wrapper**: Bypass of the `opencode run` Windows bug
@@ -124,9 +124,9 @@ opencode /hash-direct --reset-quota
 ### opencode.jsonc
 The main configuration defines:
 - `default_agent`: "eurinhash"
-- `small_model`: "groq/qwen/qwen3.8-27b"
+- `small_model`: "mistral/mistral-code-latest"
 - Bash and skills permissions
-- Free providers only (Mammouth as optional fallback)
+- Free/trial providers by default, paid entries clearly marked (Mammouth as optional fallback)
 - MCP servers (Postgres for memory)
 
 ### Custom Skills
