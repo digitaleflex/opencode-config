@@ -41,7 +41,11 @@
 | `google` | 12 modèles (2.5-flash/pro, 3.5→3.8...) | **FREE** (quotas/jour, anti-blocage réglé) |
 | `zhipu` | GLM 4.7-flash + 5.3-flash, 5, 4.7 | Flash **FREE**, autres payants |
 | `mistral` | Codestral, Code, Medium, Small | **FREE** (tier Experiment ; medium/small parfois en 429) |
-| `groq` | Qwen 3.8-27B (testé OK), GPT-OSS 120B/20B, Qwen 3.6 | **FREE** (rapide, petits contextes) |
+| `groq` | Qwen 3.8-27B (testé OK), GPT-OSS 120B/20B, Qwen 3.6 | **FREE** (rapide ; 1 000 req/jour sur chat-models) |
+| `sambanova` | DeepSeek-V3.1, Llama-3.3-70B, GPT-OSS-120B | **FREE** (20 req/jour/modèle, sans carte) |
+| `pollinations` | Auto (routeur) | **FREE sans clé** (1 req/15s anonyme) |
+| `cerebras` | GPT-OSS-120B, Llama-3.1-8B | **TRIAL $5/30j** (pas de free permanent) |
+| `ollama` | Devstral, Qwen2.5-Coder, Llama-3.1 | **Local, 100% gratuit** (`ollama serve` + `ollama pull`) |
 | `openrouter` | Routeur auto `openrouter/free` | **FREE**, 50 req/jour → bouche-trou |
 | `huggingface` | Qwen3-480B, GPT-OSS-120B, DeepSeek-Flash, Hermes-3-70B | 0,10 $/mois partagé (~10-30 appels) |
 | `novita` | Ling-3.0-Flash-Santé (GRATUIT ✅ testé OK), Ling-3.0-Flash-Fin (GRATUIT), DeepSeek-V4-Flash, GLM-5-Flash | **GRATUIT** + $0.075–$0.14/M (clé configurée ✅, endpoint: `https://api.novita.ai/openai/v1`) |
@@ -63,6 +67,10 @@ Ordre de bataille **prioritaire** pour les workers gratuits :
 | 5 | `worker-google` | `google/gemini-2.5-flash` | **FREE** | ⚠️ rate_limited |
 | 6 | `worker-together` | `together/moonshotai/Kimi-K2.7-Code` | $0.95/M | ❌ crédits épuisés |
 | 7 | `worker-deepseek` | `deepseek/deepseek-v4-flash` | $0.14/M | ⏭️ pas de clé |
+| 8 | `worker-sambanova` | `sambanova/DeepSeek-V3.1` | **FREE** (20 req/jour) | ❓ à prober |
+| 9 | `worker-pollinations` | `pollinations/openai` | **FREE sans clé** | ❓ à prober |
+| 10 | `worker-cerebras` | `cerebras/gpt-oss-120b` | **TRIAL** | ❓ à prober |
+| 11 | `worker-ollama` | `ollama/devstral` | **Local gratuit** | ❓ si `ollama serve` |
 
 > **Clés API requises (9 fichiers)** :
 > - `.gemini-key` → Google Gemini

@@ -170,6 +170,10 @@ Toutes les clés API sont dans `~/.config/opencode/` avec le format `.<provider>
 .together-key   # Together AI API key
 .deepseek-key   # DeepSeek API key (optionnel)
 .mammouth-key   # Mammouth API key (fallback payant)
+.sambanova-key  # SambaNova API key (FREE, 20 req/jour)
+.cerebras-key   # Cerebras API key (TRIAL $5, optionnel)
+.pollinations-key # Pollinations (optionnel : tier anonyme sans clé)
+# Ollama : aucune clé (local, http://localhost:11434)
 ```
 
 ### 3.2 Format des fichiers
@@ -183,7 +187,11 @@ cat .groq-key
 
 | Provider | URL d'inscription | Tier gratuit |
 |----------|-------------------|-------------|
-| Groq | https://console.groq.com/ | 30 req/min, 14400 req/jour |
+| Groq | https://console.groq.com/ | 30 req/min ; **1 000 req/jour sur les chat-models** (14 400 = petits modèles uniquement) |
+| SambaNova | https://cloud.sambanova.ai/ | 20 req/min, 20 req/jour, 200K tokens/jour par modèle |
+| Pollinations | https://auth.pollinations.ai/ (optionnel) | Sans clé : 1 req/15s ; compte gratuit : 1 req/5s |
+| Cerebras | https://cloud.cerebras.ai/ | Trial $5 / 30 jours (pas de free permanent) |
+| Ollama | Aucune (local) | Illimité (limité par ta machine) |
 | Mistral | https://console.mistral.ai/ | 30M tokens/mois |
 | Google | https://aistudio.google.com/ | 20 req/min |
 | Zhipu | https://bigmodel.cn/ | 200 req/jour |
@@ -196,6 +204,63 @@ cat .groq-key
 - Les fichiers `.*-key` sont dans `.gitignore` (jamais commités)
 - Ne jamais partager les clés dans les logs ou les erreurs
 - Renouveler les clés exposées immédiatement
+
+### 3.5 Nouveaux providers gratuits — configuration pas à pas
+
+#### SambaNova (gros modèles, 20 req/jour gratuites)
+```bash
+# 1. Créer un compte (sans carte) : https://cloud.sambanova.ai/
+# 2. Générer une clé API dans le dashboard
+# 3. La stocker :
+echo "votre-cle-sambanova" > ~/.config/opencode/.sambanova-key
+chmod 600 ~/.config/opencode/.sambanova-key
+# 4. Vérifier : python ~/.config/opencode/scripts/free-probe.py
+```
+Modèles configurés : `DeepSeek-V3.1`, `Meta-Llama-3.3-70B-Instruct`,
+`gpt-oss-120b`. Quotas gratuits : 20 req/min, 20 req/jour, 200K tokens/jour
+**par modèle**. Idéal en fallback qualité quand Groq/Mistral sont en 429.
+
+#### Pollinations (sans clé, backup ultime)
+Aucune clé requise : le tier anonyme (`apiKey: "anonymous"` dans
+`opencode.jsonc`) fonctionne à 1 req/15s. Pour des limites supérieures
+(1 req/5s), crée un compte gratuit sur https://auth.pollinations.ai/ et :
+```bash
+echo "votre-cle-pollinations" > ~/.config/opencode/.pollinations-key
+# puis dans opencode.jsonc, provider pollinations :
+# "apiKey": "{file:~/.config/opencode/.pollinations-key}"
+```
+Vérifier : `python ~/.config/opencode/scripts/free-probe.py` (aucune clé
+requise pour le probe anonyme).
+
+#### Cerebras (trial $5, ultra-rapide)
+```bash
+# 1. Créer un compte : https://cloud.cerebras.ai/ ($5 offerts, 30 jours)
+# 2. Générer une clé API
+echo "votre-cle-cerebras" > ~/.config/opencode/.cerebras-key
+chmod 600 ~/.config/opencode/.cerebras-key
+```
+Modèles configurés : `gpt-oss-120b` (1M tokens/jour pendant le trial),
+`llama3.1-8b` (~2000 tok/s). **Attention : pas de free permanent** —
+une fois les $5 consommés, l'accès coupe jusqu'à achat de crédits.
+
+#### Ollama (local, 100% gratuit, offline)
+```bash
+# 1. Installer : https://ollama.com/ (ou : curl -fsSL https://ollama.com/install.sh | sh)
+# 2. Démarrer : ollama serve
+# 3. Télécharger les modèles :
+ollama pull devstral        # agentique code, recommandé
+ollama pull qwen2.5-coder   # code
+ollama pull llama3.1        # générique
+# Aucune clé à créer. Vérifier : curl http://localhost:11434/api/tags
+```
+Aucun quota, aucune donnée envoyée : parfait pour les tâches sensibles et
+comme futur rôle juge local. Limité par ta RAM/VRAM.
+
+#### Après ajout d'un provider
+1. Quitter + relancer OpenCode (rechargement config).
+2. `python ~/.config/opencode/scripts/free-probe.py` → `free-models.json`
+   passe le worker à `ok` (ou `rate_limited`/`error` avec la raison).
+3. `/models` dans OpenCode pour choisir le modèle à la main.
 
 ---
 
