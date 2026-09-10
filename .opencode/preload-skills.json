@@ -4,7 +4,14 @@
   "agentSkills": {
     "plan": ["verification-planning"],
     "build": ["hash-token-efficiency", "hash-enterprise-development"],
-    "reviewer": ["hash-verification"]
+    "reviewer": ["hash-verification", "code-review", "requesting-code-review", "caveman-review", "verification-before-completion"],
+    "planner": ["verification-planning", "executing-plans"],
+    "builder": ["hash-token-efficiency", "hash-enterprise-development", "test-driven-development", "systematic-debugging"],
+    "tester": ["test-driven-development", "systematic-debugging", "diagnosing-bugs"],
+    "architect": ["executing-plans"],
+    "quality-engineer": ["verification-before-completion", "diagnosing-bugs"],
+    "security": ["git-guardrails-claude-code"],
+    "git-engineer": ["resolving-merge-conflicts", "git-guardrails-claude-code", "caveman-commit", "setup-pre-commit"]
   },
   "fileTypeSkills": {
     ".py": ["hash-enterprise-development"],
@@ -14,7 +21,18 @@
     "worktree": ["worktrees"],
     "simplify OR refactor for clarity": ["simplify"],
     "codemap OR unfamiliar repository": ["codemap"],
-    "deep work OR large refactor": ["deepwork"]
+    "deep work OR large refactor": ["deepwork"],
+    "code review OR review the diff OR review this PR": ["code-review", "caveman-review", "requesting-code-review"],
+    "debug OR diagnose OR failing OR broken OR slow": ["systematic-debugging", "diagnosing-bugs"],
+    "commit message OR conventional commit": ["caveman-commit"],
+    "merge conflict OR rebase conflict": ["resolving-merge-conflicts"],
+    "pre-commit OR husky OR lint-staged": ["setup-pre-commit"],
+    "TDD OR test-driven OR test first": ["test-driven-development"],
+    "supabase OR postgres": ["supabase-postgres-best-practices"],
+    "create a skill OR new skill": ["skill-creator"],
+    "compress context OR reduce context": ["caveman-compress"],
+    "verify before commit OR claim complete": ["verification-before-completion"],
+    "finish branch OR merge strategy": ["finishing-a-development-branch"]
   },
   "maxTokens": 10000,
   "useSummaries": true,
