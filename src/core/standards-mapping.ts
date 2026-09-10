@@ -42,7 +42,8 @@ const EU_AI_ACT = [
   { id: "Art.11", name: "Technical Documentation", riskLevels: ["LOW", "HIGH", "CRITICAL"], controls: ["merkle-audit", "proof-verifier"] },
   { id: "Art.12", name: "Record Keeping / Logging", riskLevels: ["HIGH", "CRITICAL"], controls: ["merkle-audit", "audit-logger"] },
   { id: "Art.13", name: "Transparency & Information", riskLevels: ["LOW", "HIGH", "CRITICAL"], controls: ["merkle-audit"] },
-  { id: "Art.14", name: "Human Oversight", riskLevels: ["HIGH", "CRITICAL"], controls: ["policy-engine", "proof-verifier"] },
+  // Art.14 Human Oversight — satisfied by signed ApprovalToken (EURINHASH #6) via proof-verifier HUMAN_APPROVAL; unsigned or missing token = gap
+  { id: "Art.14", name: "Human Oversight", riskLevels: ["HIGH", "CRITICAL"], controls: ["policy-engine", "proof-verifier", "approval-token"] },
   { id: "Art.15", name: "Accuracy, Robustness, Cybersecurity", riskLevels: ["CRITICAL"], controls: ["guard-overrides", "anomaly-detection", "injection-detection"] },
 ];
 
@@ -165,15 +166,15 @@ export class StandardsMapper {
     const controls: string[] = ["classifier", "policy-engine", "guard-overrides", "risk-assessor"];
 
     if (task.risk === RiskLevel.CRITICAL || riskLevel === RiskLevel.CRITICAL) {
-      controls.push("proof-verifier", "merkle-audit", "anomaly-detection");
+      controls.push("proof-verifier", "merkle-audit", "anomaly-detection", "approval-token");
     }
 
     if (riskLevel === RiskLevel.HIGH || riskLevel === RiskLevel.CRITICAL) {
-      controls.push("proof-verifier", "merkle-audit");
+      controls.push("proof-verifier", "merkle-audit", "approval-token");
     }
 
     if (task.taskType === TaskType.DESTRUCTIVE_OP || task.taskType === TaskType.PRODUCTION_DEPLOY) {
-      controls.push("audit-logger");
+      controls.push("audit-logger", "approval-token");
     }
 
     if (task.operation?.includes("rm -rf") || task.operation?.includes("DROP")) {
