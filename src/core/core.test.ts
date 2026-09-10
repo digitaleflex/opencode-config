@@ -357,6 +357,52 @@ describe("MerkleAuditTrail", () => {
     badTrail.loadFromDisk();
     expect(badTrail.getEntryCount()).toBe(0);
   });
+
+  test("HMAC mode produces hmac-sha256 prefix", () => {
+    const h = new MerkleAuditTrail("/tmp/merkle-hmac-" + Date.now(), "test-secret-key");
+    expect(h.isHmacMode()).toBe(true);
+    h.record({ timestamp: new Date().toISOString(), taskId: "t1", taskDescription: "hmac", stage: "final", decision: "APPROVED", detail: {} });
+    expect(h.getEntries()[0].leafHash.startsWith("hmac-sha256:")).toBe(true);
+    expect(h.verifyChain().valid).toBe(true);
+  });
+
+  test("HMAC proof verifies with correct key and fails without", () => {
+    const key = "hmac-key-" + Date.now();
+    const h = new MerkleAuditTrail("/tmp/merkle-hmac2-" + Date.now(), key);
+    h.record({ timestamp: new Date().toISOString(), taskId: "t1", taskDescription: "a", stage: "final", decision: "APPROVED", detail: {} });
+    h.record({ timestamp: new Date().toISOString(), taskId: "t2", taskDescription: "b", stage: "final", decision: "BLOCKED", detail: {} });
+    const proof = h.generateProof(0)!;
+    expect(h.verifyProofInstance(proof)).toBe(true);
+    expect(MerkleAuditTrail.verifyProof(proof)).toBe(false); // plain verifier cannot satisfy HMAC root
+    expect(MerkleAuditTrail.verifyProof(proof, key)).toBe(true);
+    expect(MerkleAuditTrail.verifyProof(proof, "wrong-key")).toBe(false);
+  });
+
+  test("plain trail still uses sha256 and verifies", () => {
+    const p = new MerkleAuditTrail("/tmp/merkle-plain-" + Date.now());
+    expect(p.isHmacMode()).toBe(false);
+    p.record({ timestamp: new Date().toISOString(), taskId: "t1", taskDescription: "plain", stage: "final", decision: "APPROVED", detail: {} });
+    expect(p.getEntries()[0].leafHash.startsWith("sha256:")).toBe(true);
+    const proof = p.generateProof(0)!;
+    expect(MerkleAuditTrail.verifyProof(proof)).toBe(true);
+    expect(p.verifyProofInstance(proof)).toBe(true);
+  });
+
+  test("external anchor detects truncation", () => {
+    const dir = "/tmp/merkle-anchor-" + Date.now();
+    const h = new MerkleAuditTrail(dir, "anchor-key");
+    h.record({ timestamp: new Date().toISOString(), taskId: "t1", taskDescription: "x", stage: "final", decision: "APPROVED", detail: {} });
+    h.record({ timestamp: new Date().toISOString(), taskId: "t2", taskDescription: "y", stage: "final", decision: "APPROVED", detail: {} });
+    const anchorPath = dir + "/external-anchor.json";
+    const exported = h.exportAnchor(anchorPath)!;
+    expect(exported.entryCount).toBe(2);
+    expect(h.verifyExternalAnchor(anchorPath)).toBe(true);
+    // Tamper in-memory (simulate truncation): drop last leaf by creating a new trail that loads only first entry
+    const truncated = new MerkleAuditTrail(dir + "-truncated", "anchor-key");
+    // No leaves -> head null -> verify must fail
+    expect(truncated.verifyHead(exported)).toBe(false);
+    expect(MerkleAuditTrail.loadAnchor(anchorPath)!.entryCount).toBe(2);
+  });
 });
 
 describe("AnomalyDetector", () => {

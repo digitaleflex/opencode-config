@@ -2,9 +2,12 @@
 // Tamper-evident audit trail using Merkle tree of SHA-256 hashes.
 // Domain separation: 0x00 for leaf hashes, 0x01 for internal nodes (RFC 6962 §2.1).
 // Head anchoring: head() returns latest entry hash, verifyHead() detects truncation.
+// Optional HMAC mode: when a key is supplied (or EURINHASH_AUDIT_KEY / .morph-key
+// is present) every hash is HMAC-SHA256 with prefix "hmac-sha256:"; without a
+// key the trail uses plain SHA-256 with prefix "sha256:".
 
-import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { createHash, createHmac } from "node:crypto";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 export interface AuditEntry {
@@ -46,15 +49,50 @@ export class MerkleAuditTrail {
   private logFile: string;
   private headFile: string;
   private latestHead: HeadAnchor | null = null;
+  private auditKey?: Buffer;
 
-  constructor(logDir?: string) {
+  constructor(logDir?: string, key?: Buffer | string) {
     this.logDir = logDir || join(process.cwd(), "logs");
     this.logFile = join(this.logDir, "merkle-audit.jsonl");
     this.headFile = join(this.logDir, "merkle-head.json");
+    if (key !== undefined) {
+      this.auditKey = typeof key === "string" ? Buffer.from(key, "utf8") : key;
+    } else {
+      const resolved = MerkleAuditTrail.resolveKey();
+      if (resolved) this.auditKey = resolved;
+    }
+  }
+
+  /**
+   * Resolve an audit HMAC key from the environment or `.morph-key`.
+   * Priority: explicit constructor key > EURINHASH_AUDIT_KEY env var >
+   * file `.morph-key` in cwd > undefined (plain SHA-256 mode).
+   */
+  private static resolveKey(): Buffer | undefined {
+    const envKey = process.env.EURINHASH_AUDIT_KEY;
+    if (envKey && envKey.trim().length > 0) {
+      return Buffer.from(envKey, "utf8");
+    }
+    try {
+      const file = join(process.cwd(), ".morph-key");
+      if (existsSync(file)) {
+        const raw = readFileSync(file, "utf8").trim();
+        if (raw.length > 0) return Buffer.from(raw, "utf8");
+      }
+    } catch {
+      // ignore
+    }
+    return undefined;
+  }
+
+  /** Whether this instance operates in HMAC mode. */
+  isHmacMode(): boolean {
+    return this.auditKey !== undefined;
   }
 
   /**
    * Record an audit entry with Merkle hash chain (RFC 6962 domain-separated).
+   * When an HMAC key is configured every hash is HMAC-SHA256.
    */
   record(entry: Omit<AuditEntry, "seq" | "leafHash" | "parentHash">): AuditEntry {
     const seq = this.leaves.length;
@@ -121,6 +159,50 @@ export class MerkleAuditTrail {
   }
 
   /**
+   * Export the current head anchor to an external path (outside the log
+   * directory). Callers should store this anchor out-of-band and later
+   * pass it to `verifyHead` or `verifyExternalAnchor` to detect truncation
+   * even when the attacker controls the log files.
+   */
+  exportAnchor(targetPath: string): HeadAnchor | null {
+    if (!this.latestHead) return null;
+    try {
+      const dir = join(targetPath, "..");
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      writeFileSync(targetPath, JSON.stringify(this.latestHead, null, 2), "utf8");
+      return this.latestHead;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Load an anchor previously written by `exportAnchor` and verify it
+   * against the current in-memory head. Returns false if the anchor file
+   * is missing, malformed, or does not match the current head.
+   */
+  verifyExternalAnchor(anchorPath: string): boolean {
+    try {
+      if (!existsSync(anchorPath)) return false;
+      const raw = readFileSync(anchorPath, "utf8");
+      const anchor = JSON.parse(raw) as HeadAnchor;
+      return this.verifyHead(anchor);
+    } catch {
+      return false;
+    }
+  }
+
+  /** Load an anchor from disk without needing a trail instance. */
+  static loadAnchor(anchorPath: string): HeadAnchor | null {
+    try {
+      if (!existsSync(anchorPath)) return null;
+      return JSON.parse(readFileSync(anchorPath, "utf8")) as HeadAnchor;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Verify a single entry against the Merkle tree.
    */
   verifyEntry(index: number): boolean {
@@ -184,7 +266,7 @@ export class MerkleAuditTrail {
             position: pos,
           });
         }
-        nextLevel.push(MerkleAuditTrail.hashInternalNode(left, right));
+        nextLevel.push(this.hashInternalNode(left, right));
       }
       currentIdx = Math.floor(currentIdx / 2);
       level = nextLevel;
@@ -200,19 +282,31 @@ export class MerkleAuditTrail {
 
   /**
    * Verify a Merkle proof (RFC 6962 §2.1.1).
+   * In HMAC mode pass the same key so internal-node hashes are recomputed
+   * with HMAC. In plain mode call without a key.
    */
-  static verifyProof(proof: AuditProof): boolean {
+  static verifyProof(proof: AuditProof, key?: Buffer | string): boolean {
     let currentHash = proof.entry.leafHash;
+    const k = typeof key === "string" ? Buffer.from(key, "utf8") : key;
 
     for (const step of proof.path) {
       if (step.position === "left") {
-        currentHash = MerkleAuditTrail.hashInternalNode(step.hash, currentHash);
+        currentHash = k
+          ? MerkleAuditTrail.hashInternalNodeWithKey(step.hash, currentHash, k)
+          : MerkleAuditTrail.hashInternalNodePlain(step.hash, currentHash);
       } else {
-        currentHash = MerkleAuditTrail.hashInternalNode(currentHash, step.hash);
+        currentHash = k
+          ? MerkleAuditTrail.hashInternalNodeWithKey(currentHash, step.hash, k)
+          : MerkleAuditTrail.hashInternalNodePlain(currentHash, step.hash);
       }
     }
 
     return currentHash === proof.rootHash;
+  }
+
+  /** Instance variant that uses this trail's configured key automatically. */
+  verifyProofInstance(proof: AuditProof): boolean {
+    return MerkleAuditTrail.verifyProof(proof, this.auditKey);
   }
 
   /**
@@ -254,15 +348,20 @@ export class MerkleAuditTrail {
     return this.leaves;
   }
 
-  // --- Private helpers (RFC 6962 domain separation) ---
+  // --- Private helpers (RFC 6962 domain separation + optional HMAC) ---
 
   /**
    * Compute leaf hash with 0x00 domain prefix (RFC 6962 §2.1).
    * H(0x00 || taskId || stage || decision || detail)
+   * or HMAC-SHA256 when a key is configured.
    */
   private computeLeafHash(taskId: string, stage: string, decision: string, detail: unknown): string {
     const content = `${taskId}|${stage}|${decision}|${JSON.stringify(detail)}`;
-    return "sha256:" + createHash("sha256").update(Buffer.concat([Buffer.from([0x00]), Buffer.from(content)])).digest("hex");
+    const payload = Buffer.concat([Buffer.from([0x00]), Buffer.from(content)]);
+    if (this.auditKey) {
+      return "hmac-sha256:" + createHmac("sha256", this.auditKey).update(payload).digest("hex");
+    }
+    return "sha256:" + createHash("sha256").update(payload).digest("hex");
   }
 
   /**
@@ -270,12 +369,17 @@ export class MerkleAuditTrail {
    * H(0x01 || left || right)
    */
   private computeParentHash(seq: number, leafHash: string): string {
-    const prevHash = seq > 0 ? this.leaves[seq - 1].parentHash : "sha256:" + "0".repeat(64);
-    return MerkleAuditTrail.hashInternalNode(prevHash, leafHash);
+    const prevHash = seq > 0 ? this.leaves[seq - 1].parentHash : this.zeroParent();
+    return this.hashInternalNode(prevHash, leafHash);
+  }
+
+  private zeroParent(): string {
+    if (this.auditKey) return "hmac-sha256:" + "0".repeat(64);
+    return "sha256:" + "0".repeat(64);
   }
 
   private computeMerkleRoot(): string {
-    if (this.leaves.length === 0) return "sha256:" + "0".repeat(64);
+    if (this.leaves.length === 0) return this.zeroParent();
     if (this.leaves.length === 1) return this.leaves[0].leafHash;
 
     let level = this.leaves.map((l) => l.leafHash);
@@ -284,7 +388,7 @@ export class MerkleAuditTrail {
       for (let i = 0; i < level.length; i += 2) {
         const left = level[i];
         const right = i + 1 < level.length ? level[i + 1] : level[i];
-        nextLevel.push(MerkleAuditTrail.hashInternalNode(left, right));
+        nextLevel.push(this.hashInternalNode(left, right));
       }
       level = nextLevel;
     }
@@ -293,9 +397,19 @@ export class MerkleAuditTrail {
 
   /**
    * Hash two child nodes with 0x01 domain prefix (RFC 6962).
-   * Prevents second-preimage attacks by distinguishing leaves from internals.
+   * Uses HMAC when a key is configured.
    */
-  private static hashInternalNode(left: string, right: string): string {
+  private hashInternalNode(left: string, right: string): string {
+    if (this.auditKey) return MerkleAuditTrail.hashInternalNodeWithKey(left, right, this.auditKey);
+    return MerkleAuditTrail.hashInternalNodePlain(left, right);
+  }
+
+  private static hashInternalNodeWithKey(left: string, right: string, key: Buffer): string {
+    const data = Buffer.concat([Buffer.from([0x01]), Buffer.from(left + "|" + right)]);
+    return "hmac-sha256:" + createHmac("sha256", key).update(data).digest("hex");
+  }
+
+  private static hashInternalNodePlain(left: string, right: string): string {
     const data = Buffer.concat([Buffer.from([0x01]), Buffer.from(left + "|" + right)]);
     return "sha256:" + createHash("sha256").update(data).digest("hex");
   }
@@ -318,7 +432,6 @@ export class MerkleAuditTrail {
       mkdirSync(this.logDir, { recursive: true });
     }
     try {
-      const { writeFileSync } = require("node:fs");
       writeFileSync(this.headFile, JSON.stringify(this.latestHead, null, 2), "utf8");
     } catch {
       // Non-fatal
