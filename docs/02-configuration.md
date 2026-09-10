@@ -326,6 +326,27 @@ reste **à valider live** avant d'y router des workers.
    passe le worker à `ok` (ou `rate_limited`/`error` avec la raison).
 3. `/models` dans OpenCode pour choisir le modèle à la main.
 
+### 3.6 Modes FREE / PRO (ne jamais être bloqué, ne jamais payer par surprise)
+
+Le moteur démarre en **FREE** : seules les politiques dont le plan contient
+des workers gratuits/trial (`policies/models.json`) peuvent s'exécuter ;
+sinon la tâche est BLOQUÉE (fail-closed). Le bandeau affiche FREE en vert.
+
+Pour autoriser le payant un jour (choix explicite uniquement) :
+```bash
+# Via la commande (recommandée — exige confirmation forte) :
+/mode pro 10        # pro + plafond 10 $/mois
+/mode free          # retour gratuit
+# Manuel : ~/.config/opencode/mode.json
+{"mode": "pro", "proMonthlyCapUsd": 10}
+# Temporaire : EURINHASH_MODE=pro opencode
+```
+- Fichier absent/illisible = FREE. En PRO, `/quota` suit la dépense vs
+  plafond (alerte 70/90%) et le bandeau affiche PRO en orange.
+- Ajouter un worker payant : entrée `"worker-x": {"tier": "paid", …}`
+  dans `policies/models.json` + agent + clé, puis mode PRO.
+- Voir `command/mode.md` pour le protocole de bascule.
+
 ---
 
 ## 4. Agents

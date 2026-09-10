@@ -77,7 +77,7 @@ Ordre de bataille **prioritaire** pour les workers gratuits :
 | 12 | `worker-cohere` | `cohere/command-a-03-2025` | **TRIAL** (1000/mois) | ❓ à prober |
 | — | `worker-cloudflare` | REST directe (pas de worker) | **10K neurons/jour** | ❓ probe OK, provider à valider |
 
-> **Clés API requises (15 fichiers, voir table § Clés API)** :
+> **Clés API requises (15 fichiers, voir table § Clés API)** + `mode.json` (choix local FREE/PRO, jamais commité) :
 > - `.gemini-key` → Google Gemini
 > - `.zhipu-key` → Z.AI GLM
 > - `.mistral-key` → Mistral
@@ -90,6 +90,12 @@ Ordre de bataille **prioritaire** pour les workers gratuits :
 > - `.deepseek-key` → DeepSeek — clé placeholder ❌
 
 > **⚠️ Les clés présentes sont réelles et testées.** Les workers désactivés (together, deepseek) sont marqués ❌ dans le tableau.
+>
+> **Modes FREE / PRO** : FREE par défaut (gratuit/trial uniquement, appliqué
+> par le moteur — une politique sans workers autorisés est BLOQUÉE).
+> `/mode pro 10` (confirmation forte exigée) autorise le payant avec plafond
+> 10 $/mois suivi dans `/quota` ; `/mode free` revient en arrière. Détails :
+> `docs/02-configuration.md` §3.6, `command/mode.md`.
 
 ## Ordre de bataille anti-quota (EURINHASH)
 

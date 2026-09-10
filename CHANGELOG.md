@@ -1,5 +1,22 @@
 # CHANGELOG — EURINHASH Governance Engine
 
+## [0.10.0] - 2026-09-10 — Modes FREE / PRO : jamais bloqué, jamais de surprise
+
+### 🔀 Modes explicites (jamais bloqué, jamais de surprise)
+- **`policies/models.json`** : registre des coûts par worker
+  (`free` / `trial` / `paid`) ; **`src/core/mode.ts`** : résolution
+  `EURINHASH_MODE` > `mode.json` > `free` (défaut fail-closed), `saveMode`,
+  `filterModelPlan`, registre embarqué de secours.
+- **Enforcement** : `evaluatePolicy(task, mode)` filtre le plan sur les
+  workers autorisés ; plan vide → `BLOCKED`. Le `modelPlan` retourné ne
+  contient que des workers autorisés ; le mode est tracé dans l'audit Merkle.
+- **Interface** : widget `mode` (FREE vert / PRO orange), `/quota` affiche
+  le mode + dépense vs plafond (alertes 70/90%), commande `/mode` (bascule
+  PRO uniquement sur confirmation forte + plafond).
+- **Correctifs trouvés en route** : le loader YAML ne parsait pas le
+  `model_plan` imbriqué (plans `undefined`) et lisait la mauvaise casse —
+  `default.yaml` charge désormais avec des plans fonctionnels.
+
 ## [0.9.0] - 2026-09-10 — Pilotage visuel : burn temps réel, garde-contexte auto
 
 ### 🔥 Widgets temps réel (statusline)
