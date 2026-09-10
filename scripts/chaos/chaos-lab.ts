@@ -551,6 +551,7 @@ async function s17_partial_orchestrator(): Promise<ScenarioResult> {
   const healthy: TaskSpec = { description: "fix typo in config" };
   const sick: TaskSpec = { description: "add feature: pagination" };
   const out: string[] = [];
+  const scored: { task: TaskSpec; verdict: string }[] = [];
   const lat: number[] = [];
   let crash = false;
 
@@ -558,10 +559,14 @@ async function s17_partial_orchestrator(): Promise<ScenarioResult> {
     const r1 = await tryExecute(new GovernanceOrchestrator(), healthy);
     const r2 = await tryExecute(new GovernanceOrchestrator(), sick);
     lat.push(r1.latency, r2.latency);
-    if (r1.ok) out.push(`L1:${r1.result.verdict}`);
-    else out.push(`L1:CRASH:${(r1 as { stack?: string }).stack?.split("\n")[0]}`);
-    if (r2.ok) out.push(`L2:${r2.result.verdict}`);
-    else {
+    if (r1.ok) {
+      out.push(`L1:${r1.result.verdict}`);
+      scored.push({ task: healthy, verdict: r1.result.verdict });
+    } else out.push(`L1:CRASH:${(r1 as { stack?: string }).stack?.split("\n")[0]}`);
+    if (r2.ok) {
+      out.push(`L2:${r2.result.verdict}`);
+      scored.push({ task: sick, verdict: r2.result.verdict });
+    } else {
       crash = true;
       out.push(`L2:CRASH:${(r2 as { stack?: string }).stack?.split("\n")[0]}`);
     }
@@ -575,7 +580,9 @@ async function s17_partial_orchestrator(): Promise<ScenarioResult> {
     verdicts: out,
     latencyMs: lat,
     crash,
-    unsafe: out.some((s) => s.startsWith("L1:") && s.includes("APPROVED") && lat.length > 0),
+    // Unsafe only when a genuinely dangerous task was APPROVED.
+    // A healthy L1 served as APPROVED is the expected outcome, not a failure.
+    unsafe: scored.some((s) => s.verdict === "APPROVED" && isDangerous(s.task)),
     detail: {
       l1_healthy: out.some((s) => s.startsWith("L1:") && s.endsWith("APPROVED")),
       l2_graceful: out.some((s) => s.startsWith("L2:") && s.endsWith("BLOCKED")),
