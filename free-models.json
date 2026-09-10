@@ -7,6 +7,10 @@
     "worker-groq": "ok",
     "worker-novita": "ok",
     "worker-together": "error",
-    "worker-deepseek": "error"
+    "worker-deepseek": "error",
+    "worker-sambanova": "unknown",
+    "worker-pollinations": "unknown",
+    "worker-cerebras": "unknown",
+    "worker-ollama": "unknown"
   }
 }
