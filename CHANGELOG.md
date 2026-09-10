@@ -1,5 +1,56 @@
 # CHANGELOG — EURINHASH Governance Engine
 
+## [0.3.1] - 2026-09-10 — Hardened against Agentic AI attack research
+
+### 🛡️ Quick Wins (from 4-agent deep research)
+
+#### MerkleAuditTrail: RFC 6962 Compliance + Head Anchoring
+- **RFC 6962 domain separation:** leaf hashes prefixed `0x00`, internal nodes `0x01` — prevents second-preimage attacks
+- **Head anchoring:** `head()` + `verifyHead()` expose the latest entry hash; external parties can anchor it to detect log truncation
+- **File:** `src/core/merkle-audit.ts`
+
+#### AnomalyDetector: Mahalanobis Distance Scoring
+- **Added:** 4-dimensional Mahalanobis distance over [task-type entropy, risk level, description length, burst count]
+- Uses Welford-style online covariance tracking; flags at chi-squared threshold (p<0.01)
+- **File:** `src/core/anomaly-detection.ts`
+
+#### InjectionDetector: Unicode Tag Smuggling
+- **Added category `UNICODE_TAG_SMUGGLING`:** blocks U+E0001-U+E007F invisible tag characters used in CoreBreak/ShareLock attacks
+- **File:** `src/core/injection-detection.ts`
+
+### 🔧 Medium Improvements (from OWASP Agentic + Flight Recorder research)
+
+#### GuardOverrides: GuardFall Defense (Shell Canonicalization)
+- `canonicalizeShell()` expands bash bypass forms before regex evaluation:
+  - `$IFS`, `${IFS}`, `${IFS:...}` → literal space (`rm$IFS-rf` blocked)
+  - Backslash escapes stripped (`rm\ -rf` blocked)
+  - `$()`/`$((`)/backtick command substitution neutralized
+  - Concatenated quoted strings joined
+- **File:** `src/core/guard-overrides.ts`
+
+#### GuardOverrides: CoreBreak Defense (Tool Attestation)
+- `verifyToolAttestation()` rejects replayed nonces, expired tokens, uncovered tool paths
+- `issueAttestation()` enables harness to mint model-issued authorization tokens
+- **File:** `src/core/guard-overrides.ts`
+
+#### DriftDetector: ASI Composite Drift (new module)
+- Six-dimensional behavioral drift: tool frequency, risk escalation, complexity, description entropy, task diversity, repetition
+- Exponential decay counters + baseline learning from first 20 samples
+- **File:** `src/core/drift-detection.ts`
+
+#### BehavioralFSM: Goal-Conditioned State Machine (new module)
+- O(1) deny-by-default tool-call transition table
+- Direct `delete`/`approve` from INIT is a sticky `VIOLATION` state
+- **File:** `src/core/behavioral-fsm.ts`
+
+#### Orchestrator: Anomaly Blocking Fix
+- **Fixed:** anomaly detection no longer early-exits with `proofStatus: "FAIL"` (was bypassing proof chain); now it blocks via the final verdict path so `proofStatus` reflects the real proof chain (`PENDING` for human approval)
+- **File:** `src/core/orchestrator.ts`
+
+### 🧪 Validation
+- 78 tests passing (was 61), 0 failing
+- `tsc --noEmit` clean
+
 ## [0.2.0] - 2026-09-06 — P0 Critical Fixes from Chaos Testing
 
 ### 🔴 Critical Security Fixes (P0)
