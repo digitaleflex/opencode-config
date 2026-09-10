@@ -467,7 +467,7 @@ async execute(task: TaskSpec, evidence: EvidenceBundle = {}): Promise<ExecutionR
   }
 
   getSummary(): { policiesLoaded: number; version: string } {
-    return { policiesLoaded: this.policyEngine.getPolicyCount(), version: "0.3.1" };
+    return { policiesLoaded: this.policyEngine.getPolicyCount(), version: "0.4.0" };
   }
 
   getMerkleAudit(): MerkleAuditTrail {

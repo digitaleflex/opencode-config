@@ -1,5 +1,41 @@
 # CHANGELOG — EURINHASH Governance Engine
 
+## [0.4.0] - 2026-09-10 — Reproducible builds, authentic proofs, CI golden gate
+
+### 🔧 Reproducible dev tooling (#1)
+- **Tracked `package.json` + `bun.lock`** (previously gitignored) with `test`,
+  `typecheck`, `chaos`, `test:golden` and `verify` scripts
+- **Dropped orphaned `package-lock.json`** (no manifest, unrelated project)
+- A fresh clone can now run `bun install && bun run verify`
+
+### 🧾 Authentic proof evidence (#2)
+- **No more fabricated proofs:** `generateProofChain(task, policy, evidence)`
+  derives each status from an `EvidenceBundle` (testResult, reviewHash,
+  scanReport, approvalToken) — PASS only on real evidence, PENDING when
+  missing, FAIL when the evidence is negative
+- **`verifyProofChain` re-binds `evidenceHash`** against the supplied evidence
+  and keeps task-bound hash tamper checks; evidence swap detected
+- **Orchestrator** accepts optional evidence, records provided keys in the
+  Merkle detail, and delegates minimum-proof checks to the verifier
+- **Files:** `src/core/types.ts`, `src/core/proof-verifier.ts`,
+  `src/core/orchestrator.ts`, `src/core/index.ts`
+
+### 🚦 CI + golden attack corpus (#9)
+- **`tests/fixtures/attacks.jsonl`:** 33 golden cases (rm variants, `$IFS`
+  bypass, homoglyphs, Unicode tags, traversal, egress, injections, fork
+  bomb, destructive ops) — all must produce the expected verdict
+- **`scripts/verify-golden.ts`:** fresh orchestrator per case, exit 1 on
+  mismatch — a CI gate against guard-bypass regressions
+- **`.github/workflows/ci.yml`:** install (frozen) → typecheck → tests →
+  golden → chaos
+- **Files:** `tests/fixtures/attacks.jsonl`,
+  `scripts/verify-golden.ts`, `.github/workflows/ci.yml`
+
+### 🧪 Validation
+- 83 tests passing, 0 failing; `tsc --noEmit` clean; golden 33/33
+- Chaos lab: 16 scenarios, 0 crashes (CHAOS-17 UNSAFE flag is a known
+  pre-existing harness false positive, see ROADMAP #11)
+
 ## [0.3.1] - 2026-09-10 — Hardened against Agentic AI attack research
 
 ### 🛡️ Quick Wins (from 4-agent deep research)
