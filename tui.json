@@ -18,6 +18,8 @@
             { "type": "context-bar" }
           ],
           [
+            { "type": "mode", "bold": true },
+            { "type": "separator" },
             { "type": "provider-health", "color": "success" },
             { "type": "separator" },
             { "type": "routing-chain", "color": "info" },

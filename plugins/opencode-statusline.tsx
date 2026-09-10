@@ -35,6 +35,8 @@ interface StatusData {
   topProvider: string
   advisorLabel: string
   advisorLevel: "ok" | "warn" | "bad"
+  modeText: string
+  modeLevel: "free" | "pro"
   sessionTokens: number
   sessionStartMs: number
 }
@@ -65,6 +67,8 @@ const INITIAL_DATA: StatusData = {
   topProvider: "",
   advisorLabel: "→ …",
   advisorLevel: "warn",
+  modeText: "FREE",
+  modeLevel: "free",
   sessionTokens: 0,
   sessionStartMs: 0,
 }
@@ -95,6 +99,7 @@ type WidgetType =
   | "advisor"
   | "burn"
   | "context-guard"
+  | "mode"
 
 interface WidgetDef {
   type: WidgetType
@@ -126,6 +131,8 @@ const DEFAULT_CONFIG: StatuslineConfig = {
     ],
     [{ type: "context-bar" }],
     [
+      { type: "mode", bold: true },
+      { type: "separator" },
       { type: "provider-health" },
       { type: "separator" },
       { type: "routing-chain" },
@@ -154,7 +161,7 @@ const ALL_WIDGET_TYPES: WidgetType[] = [
   "git-branch", "duration", "reasoning", "cache-write", "total-tokens",
   "messages", "cache-hit-rate", "separator", "text",
   "provider-health", "routing-chain", "quota-bar", "audit-tail",
-  "sensitive-ops", "risk-level", "budget", "advisor", "burn", "context-guard",
+  "sensitive-ops", "risk-level", "budget", "advisor", "burn", "context-guard", "mode",
 ]
 
 // ─── i18n ────────────────────────────────────────────────────────────────
@@ -264,7 +271,7 @@ const zhCN: Messages = {
     "total-tokens": "总 Token 用量", messages: "消息数", "cache-hit-rate": "缓存命中率",
     separator: "分隔符", text: "自定义文字",
     "provider-health": "提供商健康", "routing-chain": "路由链", "quota-bar": "今日配额", "audit-tail": "审计尾迹",
-    "sensitive-ops": "敏感操作", "risk-level": "风险等级", "budget": "每日预算", "advisor": "建议", "burn": "速率", "context-guard": "上下文",
+    "sensitive-ops": "敏感操作", "risk-level": "风险等级", "budget": "每日预算", "advisor": "建议", "burn": "速率", "context-guard": "上下文", "mode": "模式",
   },
 }
 
@@ -334,7 +341,7 @@ const fr: Messages = {
     "total-tokens": "Total tokens", messages: "Messages", "cache-hit-rate": "Taux cache",
     separator: "Séparateur", text: "Texte personnalisé",
     "provider-health": "Santé provider", "routing-chain": "Chaîne routage", "quota-bar": "Quota quotidien", "audit-tail": "Dernière action",
-    "sensitive-ops": "Ops sensibles", "risk-level": "Niveau risque", "budget": "Budget quotidien", "advisor": "Conseil", "burn": "Débit", "context-guard": "Garde ctx",
+    "sensitive-ops": "Ops sensibles", "risk-level": "Niveau risque", "budget": "Budget quotidien", "advisor": "Conseil", "burn": "Débit", "context-guard": "Garde ctx", "mode": "Mode",
   },
 }
 
@@ -404,7 +411,7 @@ const en: Messages = {
     "total-tokens": "Total Tokens", messages: "Messages", "cache-hit-rate": "Cache Hit Rate",
     separator: "Separator", text: "Custom Text",
     "provider-health": "Provider Health", "routing-chain": "Routing Chain", "quota-bar": "Daily Quota", "audit-tail": "Audit Tail",
-    "sensitive-ops": "Sensitive Ops", "risk-level": "Risk Level", "budget": "Daily Budget", "advisor": "Advice", "burn": "Burn", "context-guard": "Ctx guard",
+    "sensitive-ops": "Sensitive Ops", "risk-level": "Risk Level", "budget": "Daily Budget", "advisor": "Advice", "burn": "Burn", "context-guard": "Ctx guard", "mode": "Mode",
   },
 }
 
@@ -694,9 +701,23 @@ async function readBudget(): Promise<BudgetData> {
   }
 }
 
-async function pollEURINHASH(): Promise<{ providerStates: Record<string, string>; fallbackCount: number; quotaToday: number; auditTail: string; sensitiveOpsToday: number; dangerousOpsToday: number; budgetPct: number; budgetLimit: number; todayCost: number; topProvider: string; advisorLabel: string; advisorLevel: "ok" | "warn" | "bad" }> {
-  const [states, quota, tail, counts, budget, advisor] = await Promise.all([
-    readCircuit(), readQuota(), readAuditTail(), readAuditCounts(), readBudget(), readAdvisor(),
+async function readEngineMode(): Promise<{ text: string; level: "free" | "pro" }> {
+  try {
+    const env = (typeof process !== "undefined" ? process.env.EURINHASH_MODE : "") || ""
+    if (env.toLowerCase() === "pro") return { text: "PRO", level: "pro" }
+    if (env.toLowerCase() === "free") return { text: "FREE", level: "free" }
+    const raw = await readFile(join(EURINHASH_DIR, "mode.json"), "utf-8")
+    const json = JSON.parse(raw) as { mode?: string }
+    if (json.mode === "pro") return { text: "PRO", level: "pro" }
+    return { text: "FREE", level: "free" }
+  } catch {
+    return { text: "FREE", level: "free" }
+  }
+}
+
+async function pollEURINHASH(): Promise<{ providerStates: Record<string, string>; fallbackCount: number; quotaToday: number; auditTail: string; sensitiveOpsToday: number; dangerousOpsToday: number; budgetPct: number; budgetLimit: number; todayCost: number; topProvider: string; advisorLabel: string; advisorLevel: "ok" | "warn" | "bad"; modeText: string; modeLevel: "free" | "pro" }> {
+  const [states, quota, tail, counts, budget, advisor, engineMode] = await Promise.all([
+    readCircuit(), readQuota(), readAuditTail(), readAuditCounts(), readBudget(), readAdvisor(), readEngineMode(),
   ])
   const fallbackCount = Object.values(states).filter((s) => s === "OPEN").length
   const budgetPct = budget.limit > 0 ? Math.min(100, Math.round((budget.cost / budget.limit) * 100)) : 0
@@ -705,6 +726,7 @@ async function pollEURINHASH(): Promise<{ providerStates: Record<string, string>
     sensitiveOpsToday: counts.sensitiveOps, dangerousOpsToday: counts.dangerousOps,
     budgetPct, budgetLimit: budget.limit, todayCost: budget.cost, topProvider: budget.topProvider,
     advisorLabel: advisor.label, advisorLevel: advisor.level,
+    modeText: engineMode.text, modeLevel: engineMode.level,
   }
 }
 
@@ -894,6 +916,11 @@ function renderWidget(w: WidgetDef, data: StatusData, theme: TuiThemeCurrent): S
       if (pct >= 80) return [seg(`🛡 ${pct}% → /compact ou /new`, theme.error, true)]
       if (pct >= 60) return [seg(`🛡 ${pct}% → bientôt /compact`, theme.warning, true)]
       return [seg(`🛡 ${pct}%`, theme.success, false)]
+    }
+
+    case "mode": {
+      const color = data.modeLevel === "pro" ? theme.warning : theme.success
+      return [val(data.modeText, color, true)]
     }
 
     case "reasoning":
@@ -1335,6 +1362,7 @@ function linePreview(line: WidgetDef[], locale?: Locale): string {
          case "budget": return "BGT"
          case "burn": return "BURN"
          case "context-guard": return "GUARD"
+         case "mode": return "MODE"
          case "advisor": return "⇒"
       }
      })
