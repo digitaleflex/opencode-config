@@ -145,7 +145,7 @@ Chaque demande est classée AVANT d'agir : type, complexité, risque → **minim
 - Groq : un blocage 403 initial venait du user-agent du test, pas de ta clé.
 - Z.AI : la doc annonçait `/api/openai/v1` (404) → vraie base `/api/paas/v4` (testée).
 - Clé Gemini `AQ.` : nouveau format valide. Clé MiniMax : pas câblée (même prix que Mammouth, pas de gratuit).
-- Statusline : menu config en anglais (`/statusline`), widgets modifiables.
+- Statusline : bandeau informatif en 5 lignes (modèle + conseil, contexte, santé providers + routage + risque, coût + quotas + budget, débit + garde-contexte). Menu de config au clic via `/statusline` (profils, couleurs, FR/EN/中文). Toast automatique à 60% (`/compact` suggéré) et 80% (`/compact` ou `/new`) du contexte, une seule fois par palier.
 - **EURINHASH** : superviseur FREE qui orchestre les workers gratuits. Si un worker KO (429/quota/auth), il rebascule automatiquement sur le suivant sans demander.
 - **Keys API** : 15 fichiers `.key` dans `~/.config/opencode/` — voir ci-dessous.
 

@@ -153,6 +153,19 @@ opencode /run "test"
 }
 ```
 
+### 2.4 Bandeau d'état (statusline)
+Le fichier `tui.json` de ce dépôt active un bandeau en 5 lignes :
+1. modèle + **conseil du moment** (`⇒ groq` vert, `⇄ attente` jaune, `✕ quota` rouge) + tokens + contexte ;
+2. barre de contexte ;
+3. santé des providers + chaîne des workers (actif surligné) + niveau de risque ;
+4. coût + quota + budget + branche git ;
+5. débit session (tokens/min) + **garde-contexte** (`🛡 82% → /compact ou /new`).
+
+Couleurs automatiques vert → orange → rouge selon l'état. Personnalisation
+au clic via la commande `/statusline` (widgets, couleurs, langue FR/EN/中文,
+profils). Un toast unique prévient à 60% puis 80% de contexte avec l'action
+recommandée (`/compact` pour résumer, `/new` pour repartir léger).
+
 ---
 
 ## 3. Clés API
