@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/juhas96/opencode-plugin-preload-skills/main/schema.json",
+  "_comment": "Smart skill loading: skills chargées sur déclencheurs (type de fichier, agent, mot-clé), sous budget tokens. Voir https://github.com/juhas96/opencode-plugin-preload-skills",
+  "agentSkills": {
+    "plan": ["verification-planning"],
+    "build": ["hash-token-efficiency", "hash-enterprise-development"],
+    "reviewer": ["hash-verification"]
+  },
+  "fileTypeSkills": {
+    ".py": ["hash-enterprise-development"],
+    ".ts,.tsx,.js": ["hash-code-navigation", "hash-token-efficiency"]
+  },
+  "contentTriggers": {
+    "worktree": ["worktrees"],
+    "simplify OR refactor for clarity": ["simplify"],
+    "codemap OR unfamiliar repository": ["codemap"],
+    "deep work OR large refactor": ["deepwork"]
+  },
+  "maxTokens": 10000,
+  "useSummaries": true,
+  "useMinification": "standard",
+  "persistAfterCompaction": true,
+  "showToasts": false,
+  "enableTools": true,
+  "analytics": true
+}
