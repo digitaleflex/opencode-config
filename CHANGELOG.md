@@ -1,5 +1,32 @@
 # CHANGELOG — EURINHASH Governance Engine
 
+## [0.8.0] - 2026-09-10 — Interface lisible : conseil live, dashboard clair, couleurs d'état
+
+### 🔭 Statusline informative (widgets dormants activés)
+- Le plugin statusline savait déjà tout faire (santé providers, chaîne de
+  routage, risque, quotas, budget) mais n'affichait que modèle/tokens/coût.
+  Le layout par défaut (`tui.json` + `DEFAULT_CONFIG`) montre maintenant :
+  modèle + **conseil** + tokens + contexte, barre contexte, santé + routage
+  + risque, coût + quota + budget + branche.
+- **Nouveau widget `advisor`** : lit `free-models.json` toutes les 2s et
+  affiche le worker recommandé (`⇒ groq` vert, `⇄ attente` jaune,
+  `✕ quota` rouge) — le conseil de bascule en temps réel, dans l'interface.
+- Chaîne de routage complète (10 workers) avec vrai surlignage du worker
+  actif (mapping provider → worker corrigé) ; circuit étendu aux 16 providers.
+
+### 💬 Dashboard non-technique + conseil (`quota.py`, `/quota`)
+- Réécrit en français courant avec couleurs : argent dépensé (« 0,00 $
+  dépensé — tout est passé par du gratuit »), état de chaque worker en
+  phrase simple (disponible / en pause quota / en panne / jamais testé),
+  et **« 👉 Utilise X en ce moment »** avec secours.
+- Zéro coût, lecture seule ; avertit quand le cache dépasse 30 min.
+
+### 🎨 Couleurs
+- Sémantique verte/orange/rouge sur conseil, risque, quotas, budget,
+  contexte — via les rôles du thème, donc compatibles avec n'importe quel
+  thème. Thème de base conservé : `tokyonight` (seule valeur vérifiée du
+  schéma ; le choisir via `/themes` dans le TUI pour changer).
+
 ## [0.7.0] - 2026-09-10 — Borrowed strengths: redaction, static rules, semantic judge
 
 ### 🤫 Secret redaction (pattern Microsoft AGT, 100% local)
