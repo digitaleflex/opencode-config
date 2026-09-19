@@ -184,3 +184,8 @@ MIT — Adapt to your needs.
 ---
 
 *EURINHASH — Govern. Build. Prove.*
+
+---
+
+*Configuration maintained with love by digitalefish*
+*Last update: 2026-09-13*

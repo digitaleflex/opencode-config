@@ -184,4 +184,4 @@ Personal configuration - adapt according to your needs.
 ---
 
 *Configuration maintained with love by digitalefish*
-*Last update: $(date)*
+*Last update: 2026-09-13*
