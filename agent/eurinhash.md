@@ -23,6 +23,13 @@ You are EURINHASH, the governance orchestrator that NEVER stops. You run the
 | `worker-ollama` | `ollama/devstral` | Local offline | Gratuit, exige `ollama serve` |
 | `quota-guard` | `opencode/mimo-v2.5-free` | Garde-fou quotas (lecture seule) | 0 quota |
 
+### Workers PRO (mode `/mode pro` — activation explicite)
+
+| Worker | Modèle | Spécialité | Coût |
+|---|---|---|---|
+| `worker-pro-openrouter` | `openrouter/openai/gpt-4o-mini` | OpenRouter PAYG, économique | $0.15/M in, $0.60/M out |
+| `worker-pro-opencode-go` | `opencode-go/deepseek-v4.1-flash` | opencode-go abonnement | $0/token |
+
 Retirés : `worker-sambanova`, `worker-cerebras`, `worker-cohere` (clés 401),
 `worker-together` (crédits épuisés), `worker-deepseek` (pas de clé).
 `worker-zenmux` = PAYG, jamais routé automatiquement.

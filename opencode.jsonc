@@ -457,5 +457,162 @@
         "llama3.1": { "name": "Llama 3.1 (local, générique)" },
       },
     },
+
+    "nvidia": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "NVIDIA (GRATUIT, Nemotron)",
+      "options": {
+        "baseURL": "https://integrate.api.nvidia.com/v1",
+        // Clé API NVIDIA (gratuit, 1000 req/jour).
+        "apiKey": "{file:~/.config/opencode/.nvidia-key}",
+      },
+      "models": {
+        "nvidia/nemotron-3-ultra-550b-a55b:free": {
+          "name": "Nemotron 3 Ultra 550B (GRATUIT, 1M ctx)",
+          "ctx": 1000000,
+          "types": ["heavy", "review", "general"],
+          "note": "le plus puissant, 1M ctx"
+        },
+        "nvidia/nemotron-3-super-120b-a12b:free": {
+          "name": "Nemotron 3 Super 120B (GRATUIT, 256K ctx)",
+          "ctx": 262144,
+          "types": ["code", "general", "quick"],
+          "note": "bon équilibre puissance/rapidité"
+        },
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {
+          "name": "Nemotron 3 Nano Omni 30B (GRATUIT, 256K ctx)",
+          "ctx": 256000,
+          "types": ["quick", "general"],
+          "note": "léger et rapide"
+        },
+        "nvidia/nemotron-3.5-lightning:free": {
+          "name": "Nemotron 3.5 Lightning (GRATUIT, 1M ctx)",
+          "ctx": 1000000,
+          "types": ["long", "general", "review"],
+          "note": "long contexte, rapide"
+        },
+        "nvidia/nemotron-3.5-content-safety:free": {
+          "name": "Nemotron 3.5 Content Safety (GRATUIT, 128K ctx)",
+          "ctx": 128000,
+          "types": ["review", "general"],
+          "note": "spécialisé sécurité"
+        }
+      }
+    },
   },
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  EURINHASH PRO MODE — modèles payants économiques (OpenRouter + opencode-go)
+  // ═══════════════════════════════════════════════════════════════════
+  //
+  // Philosophie : 100% FREE par défaut, mode PRO optionnel.
+  //   - OpenRouter : PAYG (pay-as-you-go), modèles économiques
+  //   - opencode-go : inclus dans l'abonnement, $0 par token
+  //   - Coûts contrôlés : budget journalier/mensuel + alertes
+  //   - Fallback auto : si PRO épuisé → bascule vers FREE
+  //
+  // Modèles PRO économiques (OpenRouter) :
+  //   - openai/gpt-4o-mini        → $0.15/M in, $0.60/M out  (128K ctx)
+  //   - google/gemini-1.5-flash   → $0.075/M in, $0.30/M out (1M ctx)
+  //   - mistral/mistral-small      → $0.60/M in, $2.40/M out  (32K ctx)
+  //   - anthropic/claude-3.5-sonnet → $3/M in, $15/M out (200K ctx)
+  //   - openai/gpt-4o              → $5/M in, $15/M out (128K ctx)
+  //
+  // Écartés (trop chers / trop gourmands) :
+  //   - anthropic/claude-3-opus  → $15/M in, $75/M out
+  //   - google/gemini-1.5-pro    → $3.50/M in, $10.50/M out
+  //   - mistral/mistral-large     → $4/M in, $12/M out
+  //
+  // Fichiers clés :
+  //   - ~/.config/opencode/agent/worker-pro-openrouter.md
+  //   - ~/.config/opencode/agent/worker-pro-opencode-go.md
+  //   - ~/.config/opencode/command/mode.md
+  //   - ~/.config/opencode/scripts/quota.py
+  //
+  "pro": {
+    "enabled": false,
+    "default_mode": "free",
+
+    // ── Budget de dépenses ─────────────────────────────────────────
+    "budget": {
+      "daily_limit": 50.0,
+      "monthly_limit": 500.0,
+      "alert_threshold": 0.8,
+      "hard_stop": true
+    },
+
+    // ── OpenRouter (PAYG) ──────────────────────────────────────────
+    "openrouter": {
+      "api_key": "{file:~/.config/opencode/.openrouter-key}",
+      "base_url": "https://openrouter.ai/api/v1/chat/completions",
+      "models": {
+        "openai/gpt-4o-mini": {
+          "name": "GPT-4o Mini (PRO, économique)",
+          "cost_in": 0.15,
+          "cost_out": 0.60,
+          "ctx": 128000,
+          "types": ["code", "general", "quick"]
+        },
+        "google/gemini-1.5-flash": {
+          "name": "Gemini 1.5 Flash (PRO, économique)",
+          "cost_in": 0.075,
+          "cost_out": 0.30,
+          "ctx": 1000000,
+          "types": ["long", "general", "review"]
+        },
+        "mistral/mistral-small": {
+          "name": "Mistral Small (PRO, rapide)",
+          "cost_in": 0.60,
+          "cost_out": 2.40,
+          "ctx": 32768,
+          "types": ["quick", "general"]
+        },
+        "anthropic/claude-3.5-sonnet": {
+          "name": "Claude 3.5 Sonnet (PRO, raisonnement)",
+          "cost_in": 3.00,
+          "cost_out": 15.00,
+          "ctx": 200000,
+          "types": ["heavy", "review", "general"]
+        },
+        "openai/gpt-4o": {
+          "name": "GPT-4o (PRO, complet)",
+          "cost_in": 5.00,
+          "cost_out": 15.00,
+          "ctx": 128000,
+          "types": ["code", "heavy", "general"]
+        }
+      }
+    },
+
+    // ── opencode-go (abonnement, $0/token) ────────────────────────
+    "opencode_go": {
+      "enabled": true,
+      "models": {
+        "opencode-go/glm-5.3": {
+          "name": "GLM 5.3 (PRO, architect/raisons)",
+          "ctx": 204800,
+          "types": ["heavy", "review", "general"],
+          "note": "inclus dans l'abonnement, $0/token"
+        },
+        "opencode-go/deepseek-v4.1-flash": {
+          "name": "DeepSeek V4.1 Flash (PRO, builder/code)",
+          "ctx": 200000,
+          "types": ["code", "general", "quick"],
+          "note": "inclus dans l'abonnement, $0/token"
+        },
+        "opencode-go/glm-5.3-flash": {
+          "name": "GLM 5.3 Flash (PRO, planner/reviewer)",
+          "ctx": 204800,
+          "types": ["general", "review", "quick"],
+          "note": "inclus dans l'abonnement, $0/token"
+        },
+        "opencode-go/qwen3.8-flash": {
+          "name": "Qwen 3.8 Flash (PRO, docwriter/git)",
+          "ctx": 204800,
+          "types": ["quick", "general"],
+          "note": "inclus dans l'abonnement, $0/token"
+        }
+      }
+    }
+  }
 }

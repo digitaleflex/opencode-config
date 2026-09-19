@@ -36,3 +36,7 @@ __pycache__/
 scripts/chaos/results-*.json
 *.bak
 *.bak-*
+# Runtime analytics (auto-generated, jamais commités)
+.opencode/preload-skills-analytics.json
+.oh-my-opencode-slim/skills-manifest.json
+.opencode/better-compact/

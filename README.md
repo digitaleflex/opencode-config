@@ -246,6 +246,38 @@ python ~/.config/opencode/scripts/route.py list
 python ~/.config/opencode/scripts/route.py record worker-groq success
 ```
 
+### Mode EURINHASH PRO (OpenRouter + opencode-go)
+
+Le mode PRO est **optionnel** et activé uniquement sur demande explicite (`/mode pro`).
+Il utilise des modèles payants **économiques** via OpenRouter (PAYG) et opencode-go (abonnement, $0/token).
+
+| Worker | Modèle | Coût | Usage |
+|--------|--------|------|-------|
+| `worker-pro-opencode-go` | `opencode-go/deepseek-v4.1-flash` | $0/token | Builder, code, général |
+| `worker-pro-opencode-go` | `opencode-go/glm-5.3` | $0/token | Architect, raisonnement |
+| `worker-pro-openrouter` | `openrouter/openai/gpt-4o-mini` | $0.15/M in, $0.60/M out | Code, général, rapide |
+| `worker-pro-openrouter` | `openrouter/google/gemini-1.5-flash` | $0.075/M in, $0.30/M out | Long contexte, revue |
+| `worker-pro-openrouter` | `openrouter/anthropic/claude-3.5-sonnet` | $3/M in, $15/M out | Raisonnement complexe |
+
+**Modèles écartés (trop chers / trop gourmands)** :
+`anthropic/claude-3-opus`, `google/gemini-1.5-pro`, `mistral/mistral-large`.
+
+```bash
+# Basculer vers PRO
+opencode /mode pro
+
+# Vérifier le statut du mode
+opencode /mode status
+
+# Basculer vers FREE (par défaut)
+opencode /mode free
+
+# Routeur PRO
+python ~/.config/opencode/scripts/route.py code --pro
+```
+
+Budget journalier : `$50` | Budget mensuel : `$500` | Alertes à 80%
+
 ---
 
 ## 🔒 Sécurité

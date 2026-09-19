@@ -1,10 +1,10 @@
 {
-  "updated": 1789809821,
-  "updated_human": "2026-09-19 10:23:41",
+  "updated": 1789832373,
+  "updated_human": "2026-09-19 16:39:33",
   "models": {
     "worker-google": "ok",
-    "worker-zhipu": "error",
-    "worker-codestral": "rate_limited",
+    "worker-zhipu": "ok",
+    "worker-codestral": "ok",
     "worker-groq": "ok",
     "worker-novita": "ok",
     "worker-pollinations": "ok",
@@ -12,13 +12,13 @@
     "worker-cloudflare": "skipped"
   },
   "latencies_ms": {
-    "worker-google": 1183,
-    "worker-zhipu": 31073,
-    "worker-codestral": 1400,
-    "worker-groq": 245,
-    "worker-novita": 1223,
-    "worker-pollinations": 630,
-    "worker-ollama": 4077,
+    "worker-google": 1089,
+    "worker-zhipu": 1179,
+    "worker-codestral": 1582,
+    "worker-groq": 437,
+    "worker-novita": 1126,
+    "worker-pollinations": 614,
+    "worker-ollama": 4456,
     "worker-cloudflare": 0
   }
 }

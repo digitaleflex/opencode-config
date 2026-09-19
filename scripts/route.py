@@ -39,6 +39,7 @@ USAGE_LOG = os.path.join(CFG, "route-usage.json")
 # ── Qualité baseline par worker (0-1) — famille de modèle + réputation ──
 # Source : myfree-eurinhash.py QUALITY_BASELINE + connaissance des familles.
 QUALITY = {
+    # FREE workers
     "worker-opencode": 0.90,        # deepseek-v4-flash-free — workhorse éprouvé
     "worker-opencode-heavy": 0.93,  # glm-5-free — raisonnement fort
     "worker-codestral": 0.88,       # poolside laguna — code spécialisé
@@ -47,10 +48,15 @@ QUALITY = {
     "worker-zhipu": 0.85,           # glm-4.7-flash — générique
     "worker-google": 0.96,          # gemini-2.5-flash — le plus costaud
     "worker-pollinations": 0.70,    # anonyme, réponses concises
+    "worker-nvidia": 0.88,          # NVIDIA Nemotron GRATUIT
+    # PRO workers (OpenRouter PAYG)
+    "worker-pro-openrouter": 0.92,  # OpenRouter — modèles économiques
+    "worker-pro-opencode-go": 0.94, # opencode-go — $0/token, inclus abonnement
 }
 
 # ── Registre des workers ────────────────────────────────────────────────
 WORKERS = {
+    # FREE workers
     "worker-opencode": {
         "model": "opencode/deepseek-v4-flash-free",
         "kind": "integrated",
@@ -113,16 +119,51 @@ WORKERS = {
         "probe": "worker-pollinations",
         "note": "sans clé, 1 req/15s, réponses concises",
     },
+    "worker-nvidia": {
+        "model": "nvidia/nemotron-3-super-120b-a12b:free",
+        "kind": "external",
+        "ctx": 262_144,
+        "types": ["code", "general", "quick", "long", "review"],
+        "probe": "worker-nvidia",
+        "note": "NVIDIA Nemotron GRATUIT, 1000 req/jour",
+    },
+    # PRO workers (OpenRouter PAYG + opencode-go)
+    "worker-pro-openrouter": {
+        "model": "openrouter/openai/gpt-4o-mini",  # modèle par défaut
+        "kind": "external",
+        "ctx": 128_000,
+        "types": ["code", "general", "quick", "long", "review", "heavy"],
+        "probe": "worker-pro-openrouter",
+        "note": "OpenRouter PAYG, modèles économiques",
+    },
+    "worker-pro-opencode-go": {
+        "model": "opencode-go/deepseek-v4.1-flash",  # modèle par défaut
+        "kind": "external",
+        "ctx": 200_000,
+        "types": ["code", "general", "quick", "long", "review", "heavy"],
+        "probe": "worker-pro-opencode-go",
+        "note": "opencode-go abonnement, $0/token",
+    },
 }
 
-# Types de tâche → workers pertinents
+# Types de tâche → workers pertinents (FREE par défaut)
 TYPE_ORDER = {
-    "code": ["worker-opencode", "worker-codestral", "worker-groq", "worker-novita"],
-    "general": ["worker-opencode", "worker-groq", "worker-novita", "worker-pollinations", "worker-zhipu", "worker-google"],
-    "quick": ["worker-groq", "worker-opencode", "worker-pollinations"],
-    "long": ["worker-novita", "worker-opencode", "worker-codestral", "worker-google"],
-    "heavy": ["worker-opencode-heavy", "worker-codestral", "worker-zhipu"],
-    "review": ["worker-opencode-heavy", "worker-opencode", "worker-zhipu", "worker-codestral"],
+    "code": ["worker-opencode", "worker-codestral", "worker-groq", "worker-novita", "worker-nvidia"],
+    "general": ["worker-opencode", "worker-groq", "worker-novita", "worker-pollinations", "worker-zhipu", "worker-google", "worker-nvidia"],
+    "quick": ["worker-groq", "worker-opencode", "worker-pollinations", "worker-nvidia"],
+    "long": ["worker-novita", "worker-opencode", "worker-codestral", "worker-google", "worker-nvidia"],
+    "heavy": ["worker-opencode-heavy", "worker-codestral", "worker-zhipu", "worker-nvidia"],
+    "review": ["worker-opencode-heavy", "worker-opencode", "worker-zhipu", "worker-codestral", "worker-nvidia"],
+}
+
+# Types de tâche → workers PRO (économiques)
+TYPE_ORDER_PRO = {
+    "code": ["worker-pro-opencode-go", "worker-pro-openrouter", "worker-opencode", "worker-nvidia"],
+    "general": ["worker-pro-opencode-go", "worker-pro-openrouter", "worker-opencode", "worker-novita", "worker-nvidia"],
+    "quick": ["worker-pro-opencode-go", "worker-pro-openrouter", "worker-groq", "worker-opencode", "worker-nvidia"],
+    "long": ["worker-pro-openrouter", "worker-pro-opencode-go", "worker-novita", "worker-opencode", "worker-nvidia"],
+    "heavy": ["worker-pro-opencode-go", "worker-pro-openrouter", "worker-opencode-heavy", "worker-nvidia"],
+    "review": ["worker-pro-opencode-go", "worker-pro-openrouter", "worker-opencode-heavy", "worker-opencode", "worker-nvidia"],
 }
 
 # Disponibilité par statut probe (facteur multiplicatif)
@@ -170,15 +211,16 @@ def load_status():
         return json.load(f)
 
 
-def compute_ev(task_type):
+def compute_ev(task_type, pro=False):
     """Retourne [(worker, ev, detail)] trié par EV décroissant."""
     status = load_status()
     lat = status.get("latencies_ms", {})
     models = status.get("models", {})
     usage = load_usage()
+    workers = TYPE_ORDER_PRO if pro else TYPE_ORDER
 
     results = []
-    for name in TYPE_ORDER.get(task_type, []):
+    for name in workers.get(task_type, []):
         w = WORKERS[name]
         q = effective_quality(name, usage)
         if w["kind"] == "integrated":
@@ -199,7 +241,7 @@ def compute_ev(task_type):
 def main():
     args = sys.argv[1:]
     if not args:
-        sys.stderr.write(__doc__)
+        sys.stderr.write(__doc__ or "Usage: route.py <type> [--next]\n")
         return 1
 
     # Feedback loop : enregistrer un résultat
@@ -243,6 +285,11 @@ def main():
         subprocess.run([sys.executable, PROBE], timeout=120)
         return 0
 
+    # Check for --pro flag
+    pro_mode = "--pro" in args
+    if pro_mode:
+        args = [a for a in args if a != "--pro"]
+
     task_type = args[0]
     if task_type not in TYPE_ORDER:
         sys.stderr.write(f"Type inconnu '{task_type}'. Types: {', '.join(TYPE_ORDER)}\n")
@@ -255,13 +302,21 @@ def main():
             if a.startswith("--next="):
                 skip = int(a.split("=")[1])
 
-    results = compute_ev(task_type)
+    results = compute_ev(task_type, pro=pro_mode)
     if skip >= len(results):
-        sys.stderr.write("AUCUN_WORKER_DISPO — tous KO. Fallback payant (validation utilisateur requise).\n")
-        return 2
+        if pro_mode:
+            sys.stderr.write("AUCUN_WORKER_PRO_DISPO — fallback vers FREE.\n")
+            results = compute_ev(task_type, pro=False)
+            if skip >= len(results):
+                sys.stderr.write("AUCUN_WORKER_DISPO — tous KO. Fallback payant (validation utilisateur requise).\n")
+                return 2
+        else:
+            sys.stderr.write("AUCUN_WORKER_DISPO — tous KO. Fallback payant (validation utilisateur requise).\n")
+            return 2
 
     name, ev, q, avail, latency, st, w = results[skip]
-    print(f"{name}|{w['model']}|{w['note']}|EV={ev:.3f}|qualité={q:.2f}|latence={latency:.0f}ms|statut={st}")
+    mode_str = "PRO" if pro_mode else "FREE"
+    print(f"{name}|{w['model']}|{w['note']}|EV={ev:.3f}|qualité={q:.2f}|latence={latency:.0f}ms|statut={st}|mode={mode_str}")
     return 0
 
 
