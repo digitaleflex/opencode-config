@@ -97,7 +97,7 @@
   //   context-summarizer → stub, remplacé par auto-compact.ts
   //
   "plugin": [
-    "better-compact",
+    // "better-compact", ← DESACTIVE (conflit avec auto-compact.ts)
     "opencode-mem",
     "envsitter-guard",
     "oh-my-opencode-slim",
