@@ -9,7 +9,7 @@ EURINHASH configuration for OpenCode - free-tier + Novita AI (vraiment gratuit),
 - **21 agents**: 11 role agents (planner, architect, design-lead, builder, quality-engineer, tester, security, reviewer, git-engineer, docwriter) + 10 free/trial workers
 - **Circuit breaker**: Protection against failing providers (CLOSED/OPEN/HALF_OPEN state)
 - **Local quota tracking**: Daily count per provider/model to prevent overuse
-- **hash-direct wrapper**: Bypass of the `opencode run` Windows bug
+- **hash-direct wrapper**: Bypass of the `opencode run` bug (Windows SDK workaround, optional on macOS/Linux)
 - **Audit logger**: JSONL logging of tool calls with sensitive ops detection and redaction
 - **Custom commands**: `/run`, `/hash-direct`, `/audit-log`
 - **Plugins**: `better-compact`, `opencode-mem`, `envsitter-guard`, `oh-my-opencode-slim`, `opencode-plugin-preload-skills`, guard.ts, audit-logger.ts
@@ -43,12 +43,12 @@ opencode
 - API keys for free providers (see `.gitignore` for file names)
 
 ### Steps
-1. Clone this repository:
+1. Clone this repository to `~/.config/opencode`:
    ```bash
-   git clone https://github.com/digitaleflex/opencode-config.git %USERPROFILE%\.config\opencode
+   git clone https://github.com/digitaleflex/opencode-config.git ~/.config/opencode
    ```
 
-2. Create API key files in `%USERPROFILE%\.config\opencode\`:
+2. Create API key files in `~/.config/opencode/`:
    - `.groq-key`
    - `.mistral-key`
    - `.gemini-key`
@@ -139,7 +139,7 @@ The main configuration defines:
 
 ### Common Issues
 1. **"Creating a session failed"** → Check that `opencode.json` (legacy) does not have `permission.task: "deny"` (rename to `.bak`)
-2. **Opencode run hang** → Use `/run` or `/hash-direct` instead (Windows SDK bug workaround)
+2. **Opencode run hang** → Use `/run` or `/hash-direct` instead (Windows SDK bug workaround — macOS/Linux: `opencode run` works natively)
 3. **Quota exhausted** → The circuit breaker automatically switches to the next provider
 4. **Provider error 429** → Check `provider_circuit.json` and wait for timeout to end
 

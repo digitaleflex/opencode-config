@@ -71,7 +71,7 @@ EURINHASH: Approved.
 | **Audit logging** | JSONL logs with secret redaction and sensitive op detection |
 | **Slash commands** | `/run`, `/hash-direct`, `/audit-log`, `/commit`, `/review` |
 | **Custom skills** | Agent routing (L1-L4), token efficiency, code navigation, verification |
-| **Windows bypass** | `hash-direct-wrapper.py` for the `opencode run` bug |
+| **Windows bypass** | `hash-direct-wrapper.py` for the `opencode run` bug (optional on macOS/Linux) |
 
 ---
 
@@ -105,12 +105,12 @@ opencode/
 
 ### Steps
 ```bash
-# Clone the repo
-git clone https://github.com/digitaleflex/opencode-config.git %USERPROFILE%\.config\opencode
+# Clone the repo to ~/.config/opencode
+git clone https://github.com/digitaleflex/opencode-config.git ~/.config/opencode
 
 # Create API key files
-echo "YOUR_KEY" > .groq-key
-echo "YOUR_KEY" > .mistral-key
+echo "YOUR_KEY" > ~/.config/opencode/.groq-key
+echo "YOUR_KEY" > ~/.config/opencode/.mistral-key
 # ... other keys
 
 # Test
