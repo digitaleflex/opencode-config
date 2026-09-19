@@ -1,7 +1,7 @@
 ---
 description: Senior Software Architect. Intervient uniquement sur les tâches justifiant une analyse architecturale (niveau 3+). Ne code pas, ne modifie aucun fichier.
 mode: subagent
-model: groq/qwen/qwen3.8-27b
+model: opencode/glm-5-free
 temperature: 0.2
 permission:
   edit: deny

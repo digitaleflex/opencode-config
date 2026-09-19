@@ -131,7 +131,7 @@ Le plugin `audit-logger.ts` enregistre tous les événements dans `logs/audit-YY
   "command": "ls -la",
   "status": "success",
   "duration_ms": 5,
-  "model": "groq/qwen/qwen3.8-27b",
+  "model": "google/gemini-2.5-flash",
   "session_id": "ses_abc123",
   "redaction": false
 }

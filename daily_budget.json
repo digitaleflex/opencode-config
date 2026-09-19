@@ -1,0 +1,6 @@
+{
+  "limit": 500,
+  "period": "day",
+  "currency": "calls",
+  "note": "Daily call limit per provider. Adjust 'limit' to match your free-tier quota."
+}

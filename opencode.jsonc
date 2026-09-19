@@ -2,16 +2,100 @@
   "$schema": "https://opencode.ai/config.json",
   "shell": "bash",
 
+  // ═══════════════════════════════════════════════════════════════════
+  //  EURINHASH GOVERNANCE ENGINE v2 — CONFIGURATION CANONIQUE
+  // ═══════════════════════════════════════════════════════════════════
+  //
+  // Philosophie : 100% FREE, zéro dépense, privacy respectée.
+  //   - Modèles : uniquement FREE tier / intégrés 0 quota
+  //   - Privacy : interdit muse-spark-*-contributor-free, nemotron-*-free
+  //     (prompts/complétions utilisés pour entraîner des modèles)
+  //   - Architecture : superviseur EURINHASH → route.py (EV scoring)
+  //     → workers gratuits → feedback loop bayésien
+  //
+  // Fichiers clés :
+  //   - ~/.config/opencode/scripts/route.py     → routage EV + feedback
+  //   - ~/.config/opencode/scripts/quota.py      → dashboard quotas
+  //   - ~/.config/opencode/scripts/free-probe.py → probe workers
+  //   - ~/.config/opencode/free-models.json      → statut live workers
+  //   - ~/.config/opencode/route-usage.json      → historique succès/échec
+  //   - ~/.config/opencode/plugin/auto-compact.ts → compaction intelligente
+  //   - ~/.config/opencode/agent/eurinhash.md    → superviseur pipeline
+  //
+  // ═══════════════════════════════════════════════════════════════════
+
   // ── Instructions (Morph tools routing — conservé du stash local 2026-09-10) ──
   "instructions": ["github:JRedeker/opencode-morph-fast-apply/instructions/morph-tools.md"],
 
-  // ── Plugins (canonical list — opencode.json must NOT re-declare) ──
-  // Curated 2026-09-10 : un seul système par rôle (mémoire, skills-loader,
-  // orchestration). Retirés : DCP (mauvais nom de paquet → better-compact),
-  // supermemory (cloud, doublon de opencode-mem), lazy-skills + skillful
-  // (remplacés par preload-skills), opencode-router (bridges inutilisés),
-  // opencode.nvim (pas d'usage Neovim), oh-my-openagent (chevauche slim +
-  // le superviseur maison), context-summarizer local (stub, remplacé).
+  // ── Plugins ─────────────────────────────────────────────────────
+  // Liste canonique : un seul système par rôle. opencode.json ne
+  // doit PAS re-déclarer ces plugins (déclarés ici uniquement).
+  //
+  // ┌─────────────────────────────────────────────────────────────┐
+  // │ COMPACTION (2 plugins coexistent — rôles complémentaires)   │
+  // ├─────────────────────────────────────────────────────────────┤
+  // │ better-compact          │ Pruning par étapes, préservation   │
+  // │                         │ de l'intention utilisateur, TUI.     │
+  // │                         │ ⚠️ Bug Windows fsync (EPERM) →     │
+  // │                         │ patché dans le cache npm (voir     │
+  // │                         │ ~/.config/opencode/scripts/        │
+  // │                         │ patch-better-compact.py).          │
+  // ├─────────────────────────────────────────────────────────────┤
+  // │ auto-compact.ts (local) │ Directive de préservation context. │
+  // │                         │ + reprise AUTOMATIQUE après        │
+  // │                         │ compaction (autocontinue: true).   │
+  // │                         │ Hook: experimental.session.        │
+  // │                         │ compacting + experimental.         │
+  // │                         │ compaction.autocontinue.           │
+  // └─────────────────────────────────────────────────────────────┘
+  //
+  // ┌─────────────────────────────────────────────────────────────┐
+  // │ SÉCURITÉ & TRAÇABILITÉ                                     │
+  // ├─────────────────────────────────────────────────────────────┤
+  // │ guard.ts (local)          │ Blocage commandes destructrices  │
+  // │                           │ (rm -rf, mkfs, dd, npm publish). │
+  // │                           │ Hook: tool.execute.before/after. │
+  // ├─────────────────────────────────────────────────────────────┤
+  // │ audit-logger.ts (local)   │ Traçabilité décisions + hooks    │
+  // │                           │ experimental.session.compacting,   │
+  // │                           │ experimental.compaction.autocont.  │
+  // ├─────────────────────────────────────────────────────────────┤
+  // │ envsitter-guard           │ Protection fichiers .env (lecture  │
+  // │                           │ seule via EnvSitter, fingerprints) │
+  // └─────────────────────────────────────────────────────────────┘
+  //
+  // ┌─────────────────────────────────────────────────────────────┐
+  // │ ORCHESTRATION & MÉMOIRE                                    │
+  // ├─────────────────────────────────────────────────────────────┤
+  // │ opencode-arise              │ Orchestrateur parallèle : lance    │
+  // │                             │ des agents en arrière-plan         │
+  // │                             │ simultanés (exploration + code).   │
+  // │                             │ Modèles customisables par agent.   │
+  // ├─────────────────────────────────────────────────────────────┤
+  // │ opencode-mem                │ Mémoire persistante entre sessions │
+  // ├─────────────────────────────────────────────────────────────┤
+  // │ opencode-antigravity-multi  │ Gemini 3 Pro + Claude 4.5 GRATUITS │
+  // │ -auth                       │ via Google Antigravity IDE auth.   │
+  // │                             │ Rotation auto entre comptes Google │
+  // │                             │ quand rate-limited.                │
+  // ├─────────────────────────────────────────────────────────────┤
+  // │ oh-my-opencode-slim         │ Optimisation agents (modèles       │
+  // │                             │ forcés sur FREE, pas de fallback   │
+  // │                             │ vers payants).                     │
+  // ├─────────────────────────────────────────────────────────────┤
+  // │ opencode-plugin-preload-skills│ Pré-charge les skills au démarrage│
+  // └─────────────────────────────────────────────────────────────┘
+  //
+  // Plugins retirés (pourquoi) :
+  //   DCP            → mauvais nom de paquet (→ better-compact)
+  //   supermemory    → cloud, doublon de opencode-mem
+  //   lazy-skills    → remplacés par preload-skills
+  //   skillful       → remplacés par preload-skills
+  //   opencode-router → bridges inutilisés
+  //   opencode.nvim  → pas d'usage Neovim
+  //   oh-my-openagent → chevauche oh-my-opencode-slim + superviseur
+  //   context-summarizer → stub, remplacé par auto-compact.ts
+  //
   "plugin": [
     "better-compact",
     "opencode-mem",
@@ -19,76 +103,219 @@
     "oh-my-opencode-slim",
     "./plugin/guard.ts",
     "./plugin/audit-logger.ts",
-    "opencode-plugin-preload-skills"
+    "./plugin/auto-compact.ts",
+    "opencode-plugin-preload-skills",
+    "@bluelovers/opencode-arise",
+    // "opencode-antigravity-multi-auth" — RETIRÉ 2026-09-19 :
+    // dépôt archivé par le propriétaire (read-only, plus maintenu).
+    // Le multi-compte fonctionne mais sans support ni mises à jour.
+    // Alternative : workers gratuits existants (groq, novita, google,
+    // pollinations) qui sont stables et maintenus.
+    // Si réactivé plus tard : `opencode auth login` (CLI, pas TUI).
     // "@f97/opencode-morph-fast-apply" — désactivé : exige MORPH_API_KEY.
-    // Réactiver après avoir posé la clé (voir docs/02-configuration.md §3).
   ],
 
-  // ── Permissions globales ──
+  // ── Permissions globales ────────────────────────────────────────
+  // 2026-09-12 : lecture/écriture de fichiers auto-approuvées (accès
+  // simples). Les agents volontairement en lecture seule (architect,
+  // planner, reviewer, security, quality-engineer, git-engineer,
+  // tester) conservent `edit: deny` dans leur frontmatter :
+  // l'override par agent prime sur cette valeur globale.
+  // Bash garde ses garde-fous (destructeur = deny, réseau/publish = ask).
+  //
+  // PRÉCÉDENCE : la DERNIÈRE règle qui matche gagne (doc officielle).
+  // Ordre obligatoire : règles LARGES d'abord, règles PRÉCISES ensuite.
   "permission": {
     "skill": "allow",
+    "read": "allow",
+    "edit": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "todowrite": "allow",
 
-    // Bash : allow lecture/build/tools ; ask modif réseau ; deny destructeur
+    // ── Garde-fous destructeurs globaux (larges, placés tôt) ──
     "bash": {
       "*": "allow",
       "rm *": "ask",
       "rm -rf *": "deny",
-      "mkfs *": "deny",
+      "mkfs*": "deny",
       "dd if=*": "deny",
-      "git push*": "ask",
+      "dd *of=/dev/*": "deny",
+      "npm publish*": "deny",
+      "curl *|*sh": "ask",
+      "git push*": "allow",
+      // ── Interdits précis (APRÈS leur règle large, la dernière gagne) ──
       "git push --force*": "deny",
-      "git reset --hard*": "ask",
-      "npm publish*": "ask",
-      "curl *|*sh": "ask"
-    }
+      "git push -f*": "deny",
+      "git push *--force*": "deny",
+      "git push * -f": "deny",
+      // ── Autonomie : caches de build régénérables (APRÈS le deny large) ──
+      "rm -rf .next*": "allow",
+      "rm -rf .turbo*": "allow",
+      "rm -rf dist*": "allow",
+      "rm -rf coverage*": "allow",
+      "rm -rf node_modules*": "allow",
+      // ── Autonomie git : récupération ──
+      "git reset --hard*": "allow",
+    },
   },
 
-  // ── Modèle par défaut : EURINHASH (superviseur FREE) ──
+  // ── Modèle par défaut : EURINHASH (superviseur FREE) ────────────
+  // 2026-09-12 : tous les rôles basculés sur des modèles FREE.
+  //   - mistral/* → "Payment Required" (abonnement Mistral inactif)  ⇒ retiré
+  //   - groq/qwen3.8-27b → free tier mais ITPM 7000 ⇒ inutilisable sur gros contexte
+  //   - défaut = opencode/deepseek-v4-flash-free (intégré, $0, 200K ctx)
+  //   - worker-zenmux (anthropic/*) reste PAYG et n'est jamais routé auto.
   "default_agent": "eurinhash",
-  "small_model": "mistral/mistral-code-latest",
-  "formatter": true,
+  // 2026-09-14 : gemini-2.5-flash rate_limited (20 req/jour) → tout
+  // tombait en panne. Basculé sur l'abonnement, variantes flash.
+  // 2026-09-19 : opencode-go indisponible → bascule 100% FREE.
+  //   Enrichi via models.dev : opencode/deepseek-v4-flash-free
+  //   (intégré, $0, 200K ctx, out 128K) = remplaçant naturel de
+  //   opencode-go/deepseek-v4.1-flash. Revenir dès dispo.
+  "model": "opencode/deepseek-v4-flash-free",
+  "small_model": "opencode/mimo-v2.5-free",
+
+  // ── AUTONOMIE & ÉCONOMIE DE TOKENS ──────────────────────────────
+  // Les défauts bloquaient le travail autonome :
+  //   subagent_depth=1        → un sous-agent ne peut PAS en lancer un autre
+  //   compaction.prune=false  → les vieux tool outputs restent en contexte
+  //   continue_loop_on_deny=false → l'agent S'ARRÊTE quand un outil est refusé
+  //   tool_output.max_bytes=51200 → des dizaines de KB par sortie d'outil
+  "subagent_depth": 3,
+  "compaction": {
+    "auto": true,               // compaction auto quand le contexte approche de la limite
+    "prune": true,              // élague les vieux tool outputs → gros gain
+    "tail_turns": 10,           // garde les 10 derniers tours intacts
+    "preserve_recent_tokens": 30000,  // préserve 30K tokens récents (continuité)
+    "reserved": 20000           // réserve 20K pour la réponse
+  },
+  "tool_output": {
+    "max_lines": 400,           // au lieu de 2000
+    "max_bytes": 16000          // au lieu de 51200
+  },
+  "experimental": {
+    "continue_loop_on_deny": true,   // ne s'arrête plus sur un refus d'outil
+    "batch_tool": true               // regroupe les appels d'outils indépendants
+  },
+  // 2026-09-12 : formatter désactivé — le format-on-save reformatait des
+  // fichiers ENTIERS (diffs de 150+ lignes de bruit). On formate manuellement
+  // avec `pnpm format` avant commit (prettier reste dans le repo).
+  "formatter": false,
   "lsp": true,
 
-  // ── MCP ──
+  // ── Agents du plugin oh-my-opencode-slim ────────────────────────
+  // Ils n'ont PAS de fichier agent/*.md : leur modèle est forcé ici,
+  // sinon ils retombent sur le modèle payant codé en dur par le plugin.
+  //
+  // 2026-09-15 : abandon de google/gemini-2.5-flash :
+  // son free tier est plafonné à 20 req/JOUR, épuisé en quelques minutes.
+  // Symptôme observé : échecs en cascade de designer, explorer et librarian
+  // (« You exceeded your current quota »), alors que les 14 agents en
+  // opencode-go/* fonctionnaient. Sondage mesuré : 3 workers gratuits
+  // sur 8 répondent seulement (groq 656ms, novita 1218ms,
+  // pollinations 1602ms) ; zhipu/codestral/google sont en 429, ollama
+  // sans modèle téléchargé.
+  //
+  // Écartés volontairement : muse-spark-*-contributor-free (prompts ET
+  // complétions servent à entraîner) et nemotron-*-free (usage journalisé) —
+  // inacceptables, ce projet manipule des données utilisateurs réelles.
+  // zenmux/* : clé en mode payg → 403 « no permission to access ».
+  "agent": {
+    // Haute fréquence, lecture seule → gratuit, sans clause d'entraînement
+    "explorer": { "model": "opencode/mimo-v2.5-free" },
+    "librarian": { "model": "opencode/mimo-v2.5-free" },
+    // Écriture de code → OpenRouter FREE code model (1M ctx, pas de rate limit critique)
+    "fixer": { "model": "openrouter/poolside/laguna-s-2.1:free" },
+    "councillor": { "model": "openrouter/poolside/laguna-s-2.1:free" },
+    // Légèrement plus cher mais gratuit, 256K ctx, pas de rate limiting documenté
+    "designer": { "model": "novita/inclusionai/ling-3.0-flash-sante" },
+    // Raisonnement léger, FREE tier, à utiliser pour de la revue simple
+    "oracle": { "model": "zhipu/glm-4.7-flash" },
+  },
+
+  // ── MCP ─────────────────────────────────────────────────────────
+  // MCP (Model Context Protocol) : outils externes accessibles par les
+  // agents. Type "remote" = serveur hébergé, type "local" = commande npx.
+  //
+  // ┌─────────────────────────────────────────────────────────────┐
+  // │ agentdeals (remote)                                         │
+  // │ URL : https://agentdeals-production.up.railway.app/mcp       │
+  // │ Rôle : agrège free tiers, credits et deals sur 1500+ outils │
+  // │        (Railway, Vercel, Fly, OpenAI, Anthropic...)          │
+  // │ Outils : search_deals, plan_stack, compare_vendors,          │
+  // │          track_changes                                       │
+  // │ Utilité : trouve les meilleurs free tiers pour alimenter     │
+  // │           le système FREE-only d'EURINHASH.                  │
+  // └─────────────────────────────────────────────────────────────┘
   "mcp": {
     "cloudflare": {
       "type": "remote",
       "url": "https://mcp.cloudflare.com/mcp",
-      "enabled": false
+      "enabled": false,
     },
     "cloudflare-docs": {
       "type": "remote",
       "url": "https://docs.mcp.cloudflare.com/mcp",
-      "enabled": false
+      "enabled": false,
     },
     "postgres": {
       "type": "local",
       "command": ["npx", "-y", "@database-mcp/postgres"],
       "environment": {
-        "DATABASE_URL": "{env:DATABASE_URL}"
+        "DATABASE_URL": "{env:DATABASE_URL}",
       },
-      "enabled": true
-    }
+      // 2026-09-12 : désactivé — DB inaccessible (P1000 auth), le serveur
+      // échouait au boot. Réactiver quand la DB sera accessible.
+      "enabled": false,
+    },
+    "agentdeals": {
+      "type": "remote",
+      "url": "https://agentdeals-production.up.railway.app/mcp",
+      "enabled": true,
+      // 2026-09-19 : MCP agrégeant free tiers/credits sur 1500+ outils
+      // (Railway, Vercel, Fly, OpenAI, Anthropic...). Outils :
+      // search_deals, plan_stack, compare_vendors, track_changes.
+      // Alimente la stratégie FREE-only : trouve les meilleurs
+      // free tiers pour étendre le pool de modèles sans dépenser.
+    },
   },
 
   // ── Providers : gratuits (free tier, quotas stricts) + trial/payants marqués ──
-  // « FREE » = tier gratuit du provider, jamais illimité. Voir docs/02-configuration.md §3.
+  // « FREE » = tier gratuit du provider, jamais illimité.
+  // Voir docs/02-configuration.md §3 pour le détail de chaque provider.
+  //
+  // Stratégie de routage (route.py v2) :
+  //   EV(worker) = qualité × disponibilité / coût(latence)
+  //   - qualité : baseline par famille de modèle, ajustée par Bayes
+  //   - disponibilité : 1.0 si ok, 0.2 si rate_limited, 0 si error
+  //   - coût : latence mesurée (ms/1000 + 1)
+  //   - Feedback : route.py record <worker> success|fail → ajuste les poids
+  //
+  // Workers actifs (statut live : ~/.config/opencode/free-models.json) :
+  //   worker-opencode      → deepseek-v4-flash-free (intégré, 0 quota)
+  //   worker-opencode-heavy → glm-5-free (intégré, 0 quota, raisonnement)
+  //   worker-groq          → qwen3.8-27b (245ms, FREE tier)
+  //   worker-novita        → ling-3.0-flash-sante (256K ctx, GRATUIT)
+  //   worker-google        → gemini-2.5-flash (20 req/jour)
+  //   worker-pollinations  → openai (sans clé, 1 req/15s)
+  //   worker-codestral     → laguna-s-2.1 (rate_limited, ~3/3 req)
+  //   worker-zhipu         → glm-4.7-flash (error/timeout)
+  //   worker-ollama        → devstral (local, modèle non téléchargé)
+  //
   "provider": {
     "zhipu": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "Z.AI GLM (FREE)",
       "options": {
         "baseURL": "https://api.z.ai/api/paas/v4",
-        "apiKey": "{file:~/.config/opencode/.zhipu-key}"
+        "apiKey": "{file:~/.config/opencode/.zhipu-key}",
       },
       "models": {
-        "glm-4.7-flash": {
-          "name": "GLM 4.7 Flash (FREE)"
-        },
-        "glm-5.3-flash": {
-          "name": "GLM 5.3 Flash (FREE)"
-        }
-      }
+        "glm-4.7-flash": { "name": "GLM 4.7 Flash (FREE)" },
+        "glm-5.3-flash": { "name": "GLM 5.3 Flash (FREE)" },
+      },
     },
 
     "google": {
@@ -98,58 +325,33 @@
         "apiKey": "{file:~/.config/opencode/.gemini-key}",
         "timeout": 300000,
         "headerTimeout": 90000,
-        "chunkTimeout": 60000
+        "chunkTimeout": 60000,
       },
       "models": {
         "gemini-2.5-flash": {
           "name": "Gemini 2.5 Flash (FREE)",
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          },
+          // 2026-09-13 : limit retiré — models.dev fournit context/output
+          // (1048576/65536) automatiquement. openrouter/free garde le sien
+          // car ce modèle n'existe pas dans models.dev.
           "options": {
             "maxRetries": 3,
             "safetySettings": [
-              { "category": "HARM_CATEGORY_DANGEROUS_CONTENT",  "threshold": "BLOCK_ONLY_HIGH" },
-              { "category": "HARM_CATEGORY_HARASSMENT",       "threshold": "BLOCK_ONLY_HIGH" },
-              { "category": "HARM_CATEGORY_HATE_SPEECH",        "threshold": "BLOCK_ONLY_HIGH" },
-              { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH" }
-            ]
-          }
+              { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH" },
+              { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH" },
+              { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH" },
+              { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH" },
+            ],
+          },
         },
-        "gemini-3.8-flash": {
-          "name": "Gemini 3.8 Flash (FREE)"
-        },
-        "gemini-3.7-flash": {
-          "name": "Gemini 3.7 Flash (FREE)"
-        },
-        "gemini-3.6-flash": {
-          "name": "Gemini 3.6 Flash (FREE)"
-        },
-        "gemini-3.5-flash": {
-          "name": "Gemini 3.5 Flash (FREE)"
-        },
-        "gemini-flash-latest": {
-          "name": "Gemini Flash Latest (FREE)"
-        }
-      }
-    },
-
-    "mistral": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Mistral (FREE)",
-      "options": {
-        "baseURL": "https://api.mistral.ai/v1",
-        "apiKey": "{file:~/.config/opencode/.mistral-key}"
+        "gemini-3.8-flash": { "name": "Gemini 3.8 Flash (FREE)" },
+        "gemini-3.7-flash": { "name": "Gemini 3.7 Flash (FREE)" },
+        "gemini-3.6-flash": { "name": "Gemini 3.6 Flash (FREE)" },
+        "gemini-3.5-flash": { "name": "Gemini 3.5 Flash (FREE)" },
+        "gemini-flash-latest": { "name": "Gemini Flash Latest (FREE)" },
+        // 2026-09-19 : enrichissement models.dev — Gemma 4 gratuits
+        "gemma-4-26b-a4b-it": { "name": "Gemma 4 26B (FREE)" },
+        "gemma-4-31b-it": { "name": "Gemma 4 31B (FREE)" },
       },
-      "models": {
-        "codestral-latest": {
-          "name": "Codestral (FREE tier quotas stricts, OK le 2026-09-05)"
-        },
-        "mistral-code-latest": {
-          "name": "Mistral Code (FREE tier quotas stricts, OK le 2026-09-05)"
-        }
-      }
     },
 
     "groq": {
@@ -157,22 +359,18 @@
       "name": "Groq (FREE)",
       "options": {
         "baseURL": "https://api.groq.com/openai/v1",
-        "apiKey": "{file:~/.config/opencode/.groq-key}"
+        "apiKey": "{file:~/.config/opencode/.groq-key}",
       },
       "models": {
-        "qwen/qwen3.8-27b": {
-          "name": "Qwen 3.8 27B (FREE tier, 1K req/jour chat-models)"
-        },
-        "openai/gpt-oss-120b": {
-          "name": "GPT-OSS 120B (FREE)"
-        },
-        "openai/gpt-oss-20b": {
-          "name": "GPT-OSS 20B (FREE)"
-        },
-        "qwen/qwen3.6-27b": {
-          "name": "Qwen 3.6 27B (FREE)"
-        }
-      }
+        "qwen/qwen3.8-27b": { "name": "Qwen 3.8 27B (FREE tier, 1K req/jour chat-models)" },
+        "openai/gpt-oss-120b": { "name": "GPT-OSS 120B (FREE)" },
+        "openai/gpt-oss-20b": { "name": "GPT-OSS 20B (FREE)" },
+        "qwen/qwen3.6-27b": { "name": "Qwen 3.6 27B (FREE)" },
+        // 2026-09-19 : enrichissement models.dev — nouveaux gratuits groq
+        "groq/compound": { "name": "Groq Compound (FREE)" },
+        "groq/compound-mini": { "name": "Groq Compound Mini (FREE)" },
+        "allam-2-7b": { "name": "Allam 2 7B (FREE)" },
+      },
     },
 
     "openrouter": {
@@ -180,29 +378,27 @@
       "name": "OpenRouter (FREE)",
       "options": {
         "baseURL": "https://openrouter.ai/api/v1",
-        "apiKey": "{file:~/.config/opencode/.openrouter-key}"
+        "apiKey": "{file:~/.config/opencode/.openrouter-key}",
       },
       "models": {
         "openrouter/free": {
           "name": "Free Router (auto, FREE)",
-          "limit": {
-            "context": 200000,
-            "output": 8192
-          }
+          "limit": { "context": 200000, "output": 8192 },
         },
-        "inclusionai/ling-3.0-flash-sante:free": {
-          "name": "Ling 3.0 Flash Santé (100% GRATUIT, 256K ctx)"
-        },
-        "poolside/laguna-s-2.1:free": {
-          "name": "Poolside Laguna S 2.1 (FREE, code, 1M ctx)"
-        },
-        "minimax/MiniMax-M2.7:free": {
-          "name": "MiniMax M2.7 (FREE, 512K ctx)"
-        },
-        "meta-llama/muse-spark-1.3-contributor": {
-          "name": "Muse Spark 1.3 (1M ctx, $0.10/M)"
-        }
-      }
+        "inclusionai/ling-3.0-flash-sante:free": { "name": "Ling 3.0 Flash Santé (100% GRATUIT, 256K ctx)" },
+        "poolside/laguna-s-2.1:free": { "name": "Poolside Laguna S 2.1 (FREE, code, 1M ctx)" },
+        // 2026-09-13 : découverts via models-free.py (models.dev)
+        "poolside/laguna-xs-2.1:free": { "name": "Poolside Laguna XS 2.1 (FREE, code, 262K ctx)" },
+        "minimax/MiniMax-M2.7:free": { "name": "MiniMax M2.7 (FREE, 512K ctx)" },
+        // 2026-09-19 : enrichissement models.dev — nouveaux gratuits openrouter
+        "deepseek/deepseek-v4-flash-0731:free": { "name": "DeepSeek V4 Flash (FREE, 200K ctx)" },
+        "z-ai/glm-5.2:free": { "name": "GLM 5.2 (FREE)" },
+        "qwen/qwen3.8-27b:free": { "name": "Qwen 3.8 27B (FREE)" },
+        "thinkingmachines/inkling:free": { "name": "Inkling (FREE)" },
+        "cohere/north-mini-code:free": { "name": "North Mini Code (FREE)" },
+        "inclusionai/ling-3.0-flash-fin:free": { "name": "Ling 3.0 Flash Fin (FREE, 256K ctx)" },
+        "meta-llama/muse-spark-1.3-contributor": { "name": "Muse Spark 1.3 (1M ctx, $0.10/M)" },
+      },
     },
 
     "huggingface": {
@@ -210,33 +406,12 @@
       "name": "Hugging Face (FREE)",
       "options": {
         "baseURL": "https://router.huggingface.co/v1",
-        "apiKey": "{file:~/.config/opencode/.hf-key}"
+        "apiKey": "{file:~/.config/opencode/.hf-key}",
       },
       "models": {
-        "Qwen/Qwen3-Coder-480B-A35B-Instruct:cheapest": {
-          "name": "Qwen3 Coder 480B (FREE)"
-        },
-        "deepseek-ai/DeepSeek-V4-Flash:cheapest": {
-          "name": "DeepSeek V4 Flash (FREE)"
-        }
-      }
-    },
-
-    "deepseek": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "DeepSeek Direct (API native, prompt caching)",
-      "options": {
-        "baseURL": "https://api.deepseek.com/v1",
-        "apiKey": "{file:~/.config/opencode/.deepseek-key}"
+        "Qwen/Qwen3-Coder-480B-A35B-Instruct:cheapest": { "name": "Qwen3 Coder 480B (FREE)" },
+        "deepseek-ai/DeepSeek-V4-Flash:cheapest": { "name": "DeepSeek V4 Flash (FREE)" },
       },
-      "models": {
-        "deepseek-v4-flash": {
-          "name": "DeepSeek V4 Flash ($0.14/M, $0.03/M cached, 1M ctx)"
-        },
-        "deepseek-v4-pro": {
-          "name": "DeepSeek V4 Pro (raisonnement avancé, 128K ctx)"
-        }
-      }
     },
 
     "novita": {
@@ -244,63 +419,14 @@
       "name": "Novita AI (bon marché + gratuit)",
       "options": {
         "baseURL": "https://api.novita.ai/openai/v1",
-        "apiKey": "{file:~/.config/opencode/.novita-key}"
+        "apiKey": "{file:~/.config/opencode/.novita-key}",
       },
       "models": {
-        "deepseek-ai/DeepSeek-V4-Flash": {
-          "name": "DeepSeek V4 Flash ($0.14/M input, $0.03/M cached, 1M ctx)"
-        },
-        "deepseek-ai/GLM-5-Flash": {
-          "name": "GLM 5 Flash ($0.075/M, 1M ctx)"
-        },
-        "inclusionai/ling-3.0-flash-fin": {
-          "name": "Ling 3.0 Flash Fin (GRATUIT, 256K ctx)"
-        },
-        "inclusionai/ling-3.0-flash-sante": {
-          "name": "Ling 3.0 Flash Santé (GRATUIT, 256K ctx)"
-        }
-      }
-    },
-
-    "together": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Together AI (spécialisé code)",
-      "options": {
-        "baseURL": "https://api.together.xyz/v1",
-        "apiKey": "{file:~/.config/opencode/.together-key}"
+        "deepseek-ai/DeepSeek-V4-Flash": { "name": "DeepSeek V4 Flash ($0.14/M input, $0.03/M cached, 1M ctx)" },
+        "deepseek-ai/GLM-5-Flash": { "name": "GLM 5 Flash ($0.075/M, 1M ctx)" },
+        "inclusionai/ling-3.0-flash-fin": { "name": "Ling 3.0 Flash Fin (GRATUIT, 256K ctx)" },
+        "inclusionai/ling-3.0-flash-sante": { "name": "Ling 3.0 Flash Santé (GRATUIT, 256K ctx)" },
       },
-      "models": {
-        "moonshotai/Kimi-K2.7-Code": {
-          "name": "Kimi K2.7 Code (spécialisé code, 256K ctx)"
-        },
-        "meta-llama/Llama-4-Maverick": {
-          "name": "Llama 4 Maverick (1M ctx, $0.27/M)"
-        },
-        "deepseek-ai/DeepSeek-V4-Pro": {
-          "name": "DeepSeek V4 Pro (raisonnement avancé, 1M ctx)"
-        }
-      }
-    },
-
-    // ── Nouveaux providers gratuits (v0.8.0) — voir docs/02-configuration.md §3.6 ──
-    "sambanova": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "SambaNova (FREE, gros modèles rapides)",
-      "options": {
-        "baseURL": "https://api.sambanova.ai/v1",
-        "apiKey": "{file:~/.config/opencode/.sambanova-key}"
-      },
-      "models": {
-        "Meta-Llama-3.3-70B-Instruct": {
-          "name": "Llama 3.3 70B (FREE, 20 req/jour)"
-        },
-        "DeepSeek-V3.1": {
-          "name": "DeepSeek V3.1 (FREE, 20 req/jour, bon en code)"
-        },
-        "gpt-oss-120b": {
-          "name": "GPT-OSS 120B (FREE, 20 req/jour)"
-        }
-      }
     },
 
     "pollinations": {
@@ -308,32 +434,13 @@
       "name": "Pollinations (FREE, sans clé)",
       "options": {
         "baseURL": "https://text.pollinations.ai/openai",
-        // Tier anonyme : aucune vraie clé requise (1 req/15s). Compte gratuit
-        // sur auth.pollinations.ai pour des limites supérieures.
-        "apiKey": "anonymous"
+        // Tier anonyme : aucune vraie clé requise (1 req/15s).
+        // Compte gratuit sur auth.pollinations.ai pour des limites supérieures.
+        "apiKey": "anonymous",
       },
       "models": {
-        "openai": {
-          "name": "Auto (FREE, sans clé, backup ultime)"
-        }
-      }
-    },
-
-    "cerebras": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Cerebras (TRIAL $5, ultra-rapide)",
-      "options": {
-        "baseURL": "https://api.cerebras.ai/v1",
-        "apiKey": "{file:~/.config/opencode/.cerebras-key}"
+        "openai": { "name": "Auto (FREE, sans clé, backup ultime)" },
       },
-      "models": {
-        "gpt-oss-120b": {
-          "name": "GPT-OSS 120B (TRIAL, 1M tokens/jour)"
-        },
-        "llama3.1-8b": {
-          "name": "Llama 3.1 8B (TRIAL, ~2000 tok/s)"
-        }
-      }
     },
 
     "ollama": {
@@ -342,41 +449,13 @@
       "options": {
         "baseURL": "http://localhost:11434/v1",
         // Ollama local n'exige aucune clé ; valeur factice pour le SDK.
-        "apiKey": "ollama"
+        "apiKey": "ollama",
       },
       "models": {
-        "devstral": {
-          "name": "Devstral (local, agentique code)"
-        },
-        "qwen2.5-coder": {
-          "name": "Qwen2.5-Coder (local, code)"
-        },
-        "llama3.1": {
-          "name": "Llama 3.1 (local, générique)"
-        }
-      }
+        "devstral": { "name": "Devstral (local, agentique code)" },
+        "qwen2.5-coder": { "name": "Qwen2.5-Coder (local, code)" },
+        "llama3.1": { "name": "Llama 3.1 (local, générique)" },
+      },
     },
-
-    "cohere": {
-      // API propriétaire /v2/chat (pas OpenAI-compatible) exposée via
-      // l'adaptateur AI SDK — à valider live avec une clé trial.
-      // Trial : 1000 appels/mois, sans carte, usage non-commercial uniquement.
-      "npm": "@ai-sdk/cohere",
-      "name": "Cohere (TRIAL 1000 appels/mois)",
-      "options": {
-        "apiKey": "{file:~/.config/opencode/.cohere-key}"
-      },
-      "models": {
-        "command-a-03-2025": {
-          "name": "Command A (TRIAL, généraliste)"
-        },
-        "command-r-plus-08-2024": {
-          "name": "Command R+ (TRIAL)"
-        },
-        "north-mini-code-1-0": {
-          "name": "North Mini Code (TRIAL, code)"
-        }
-      }
-    }
-  }
+  },
 }

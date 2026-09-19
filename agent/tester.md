@@ -1,7 +1,7 @@
 ---
 description: Tests ciblés et validation fonctionnelle. Lance les tests appropriés après une modification, analyse les régressions et les cas limites sans lancer aveuglément tout le pipeline.
 mode: subagent
-model: mistral/codestral-latest
+model: opencode/deepseek-v4-flash-free
 temperature: 0.1
 permission:
   bash: allow

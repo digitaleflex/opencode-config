@@ -1,7 +1,7 @@
 ---
 description: Transforme une demande floue en plan technique validé. N'écrit jamais de code, ne modifie jamais de fichiers.
 mode: subagent
-model: groq/qwen/qwen3.8-27b
+model: opencode/glm-5-free
 temperature: 0.2
 permission:
   edit: deny

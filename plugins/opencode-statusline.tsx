@@ -100,6 +100,8 @@ type WidgetType =
   | "burn"
   | "context-guard"
   | "mode"
+  | "clock"
+  | "date"
 
 interface WidgetDef {
   type: WidgetType
@@ -162,6 +164,7 @@ const ALL_WIDGET_TYPES: WidgetType[] = [
   "messages", "cache-hit-rate", "separator", "text",
   "provider-health", "routing-chain", "quota-bar", "audit-tail",
   "sensitive-ops", "risk-level", "budget", "advisor", "burn", "context-guard", "mode",
+  "clock", "date",
 ]
 
 // ─── i18n ────────────────────────────────────────────────────────────────
@@ -271,7 +274,7 @@ const zhCN: Messages = {
     "total-tokens": "总 Token 用量", messages: "消息数", "cache-hit-rate": "缓存命中率",
     separator: "分隔符", text: "自定义文字",
     "provider-health": "提供商健康", "routing-chain": "路由链", "quota-bar": "今日配额", "audit-tail": "审计尾迹",
-    "sensitive-ops": "敏感操作", "risk-level": "风险等级", "budget": "每日预算", "advisor": "建议", "burn": "速率", "context-guard": "上下文", "mode": "模式",
+    "sensitive-ops": "敏感操作", "risk-level": "风险等级", "budget": "每日预算", "advisor": "建议", "burn": "速率", "context-guard": "上下文", "mode": "模式", clock: "时钟", date: "日期",
   },
 }
 
@@ -341,7 +344,7 @@ const fr: Messages = {
     "total-tokens": "Total tokens", messages: "Messages", "cache-hit-rate": "Taux cache",
     separator: "Séparateur", text: "Texte personnalisé",
     "provider-health": "Santé provider", "routing-chain": "Chaîne routage", "quota-bar": "Quota quotidien", "audit-tail": "Dernière action",
-    "sensitive-ops": "Ops sensibles", "risk-level": "Niveau risque", "budget": "Budget quotidien", "advisor": "Conseil", "burn": "Débit", "context-guard": "Garde ctx", "mode": "Mode",
+    "sensitive-ops": "Ops sensibles", "risk-level": "Niveau risque", "budget": "Budget quotidien", "advisor": "Conseil", "burn": "Débit", "context-guard": "Garde ctx", "mode": "Mode", clock: "Horloge", date: "Date",
   },
 }
 
@@ -411,7 +414,7 @@ const en: Messages = {
     "total-tokens": "Total Tokens", messages: "Messages", "cache-hit-rate": "Cache Hit Rate",
     separator: "Separator", text: "Custom Text",
     "provider-health": "Provider Health", "routing-chain": "Routing Chain", "quota-bar": "Daily Quota", "audit-tail": "Audit Tail",
-    "sensitive-ops": "Sensitive Ops", "risk-level": "Risk Level", "budget": "Daily Budget", "advisor": "Advice", "burn": "Burn", "context-guard": "Ctx guard", "mode": "Mode",
+    "sensitive-ops": "Sensitive Ops", "risk-level": "Risk Level", "budget": "Daily Budget", "advisor": "Advice", "burn": "Burn", "context-guard": "Ctx guard", "mode": "Mode", clock: "Clock", date: "Date",
   },
 }
 
@@ -788,6 +791,21 @@ function renderWidget(w: WidgetDef, data: StatusData, theme: TuiThemeCurrent): S
 
     case "text":
       return w.text ? [seg(w.text, custom ?? theme.text)] : null
+
+    case "clock": {
+      // Le statusline est re-pollé toutes les 2 s → l'heure reste vivante.
+      const d = new Date()
+      const hh = String(d.getHours()).padStart(2, "0")
+      const mm = String(d.getMinutes()).padStart(2, "0")
+      return [seg("◷ ", muted), seg(`${hh}:${mm}`, custom ?? theme.text, true)]
+    }
+
+    case "date": {
+      const d = new Date()
+      const dd = String(d.getDate()).padStart(2, "0")
+      const mo = String(d.getMonth() + 1).padStart(2, "0")
+      return [seg("▤ ", muted), seg(`${dd}/${mo}`, custom ?? theme.text)]
+    }
 
     case "model": {
       const name = data.model || "—"
@@ -1364,6 +1382,8 @@ function linePreview(line: WidgetDef[], locale?: Locale): string {
          case "context-guard": return "GUARD"
          case "mode": return "MODE"
          case "advisor": return "⇒"
+         case "clock": return "HH:MM"
+         case "date": return "DD/MM"
       }
      })
      .join(" ")

@@ -1,0 +1,18 @@
+{
+  "worker-groq": {
+    "ok": 1,
+    "fail": 0
+  },
+  "worker-codestral": {
+    "ok": 0,
+    "fail": 1
+  },
+  "worker-novita": {
+    "ok": 1,
+    "fail": 0
+  },
+  "worker-zhipu": {
+    "ok": 0,
+    "fail": 1
+  }
+}

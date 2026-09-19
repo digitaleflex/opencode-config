@@ -1,7 +1,7 @@
 ---
 description: Technical writer / documentation specialist. Documente le code et les patterns en style tutoriel, applique les bons skills au bon moment, sur modèles rapides.
 mode: subagent
-model: groq/qwen/qwen3.8-27b
+model: opencode/qwen3.6-plus-free
 temperature: 0.3
 permission:
   bash: deny

@@ -23,7 +23,7 @@
 EURINHASH main supervisor. Manages provider rotation, quota tracking, circuit breaker, and decides which agent/provider to use based on task type.
 
 ### Model
-- `groq/qwen/qwen3.8-27b` (via Groq API)
+- `google/gemini-2.5-flash` (via Groq API)
 
 ### EURINHASH Protocol (6 steps)
 
@@ -83,7 +83,7 @@ def select_provider(task_type):
 ## 2. planner.md — Planning
 
 ### Model
-- `groq/qwen/qwen3.8-27b`
+- `google/gemini-2.5-flash`
 
 ### Role
 Plans complex tasks before execution. Decides scope, dependencies, and creates a structured plan.
@@ -134,7 +134,7 @@ Describe what we want to achieve.
 ## 3. architect.md — Architecture
 
 ### Model
-- `groq/qwen/qwen3.8-27b`
+- `google/gemini-2.5-flash`
 
 ### Role
 Makes long-term architectural decisions. Weighs performance/maintainability, scalability, security trade-offs.
@@ -162,7 +162,7 @@ Makes long-term architectural decisions. Weighs performance/maintainability, sca
 ## 4. design-lead.md — Design Lead
 
 ### Model
-- `groq/qwen/qwen3.8-27b`
+- `google/gemini-2.5-flash`
 
 ### Role
 UI/UX direction. Defines visual style, interactions, design system consistency.
@@ -199,7 +199,7 @@ UI/UX direction. Defines visual style, interactions, design system consistency.
 ## 5. builder.md — Builder
 
 ### Model
-- `mistral/codestral-latest` (via Mistral API)
+- `google/gemini-2.5-flash` (via Mistral API)
 
 ### Role
 Concrete code execution. Implements front-end and back-end features, creates components, modifies existing functionality.
@@ -257,7 +257,7 @@ function getUser(id: number): User {
 ## 6. quality-engineer.md — Quality Engineer
 
 ### Model
-- `mistral/codestral-latest`
+- `google/gemini-2.5-flash`
 
 ### Role
 Code quality. Linting, formatting, anti-patterns, best practices.
@@ -294,7 +294,7 @@ Code quality. Linting, formatting, anti-patterns, best practices.
 ## 7. tester.md — Tester
 
 ### Model
-- `mistral/codestral-latest`
+- `google/gemini-2.5-flash`
 
 ### Role
 Automated tests. Unit, integration, e2e tests.
@@ -321,7 +321,7 @@ Automated tests. Unit, integration, e2e tests.
 ## 8. security.md — Security
 
 ### Model
-- `mistral/codestral-latest`
+- `google/gemini-2.5-flash`
 
 ### Role
 Security analysis. OWASP Top 10, vulnerabilities, audit.
@@ -351,7 +351,7 @@ Security analysis. OWASP Top 10, vulnerabilities, audit.
 ## 9. reviewer.md — Reviewer
 
 ### Model
-- `mistral/codestral-latest`
+- `google/gemini-2.5-flash`
 
 ### Role
 Code review. Architecture, quality, best practices, security.
@@ -373,7 +373,7 @@ Code review. Architecture, quality, best practices, security.
 ## 10. git-engineer.md — Git Engineer
 
 ### Model
-- `mistral/codestral-latest`
+- `google/gemini-2.5-flash`
 
 ### Role
 Git operations. Commits, branches, merges, history.
@@ -401,7 +401,7 @@ Git operations. Commits, branches, merges, history.
 ## 11. docwriter.md — Doc Writer
 
 ### Model
-- `groq/qwen/qwen3.8-27b`
+- `google/gemini-2.5-flash`
 
 ### Role
 Technical documentation. README, API docs, user guides.
@@ -421,7 +421,7 @@ Technical documentation. README, API docs, user guides.
 ## 12. Workers (fallback)
 
 ### worker-codestral.md
-- `mistral/codestral-latest`
+- `google/gemini-2.5-flash`
 - Mistral fallback
 
 ### worker-google.md
@@ -429,7 +429,7 @@ Technical documentation. README, API docs, user guides.
 - Google fallback
 
 ### worker-groq.md
-- `groq/qwen/qwen3.8-27b`
+- `google/gemini-2.5-flash`
 - Groq fallback
 
 ### worker-zhipu.md

@@ -157,7 +157,7 @@ Displays recent JSONL audit log. Detects sensitive ops, shows model calls, succe
 
 ### Log Structure
 ```jsonl
-{"timestamp":"2026-09-06T10:30:00Z","tool":"tool.execute","model":"groq/qwen/qwen3.8-27b","status":"success","duration_ms":1500,"provider":"groq"}
+{"timestamp":"2026-09-06T10:30:00Z","tool":"tool.execute","model":"google/gemini-2.5-flash","status":"success","duration_ms":1500,"provider":"groq"}
 {"timestamp":"2026-09-06T10:30:01Z","tool":"bash","command":"rm -rf /test","status":"blocked","reason":"ops_sensitive","redaction":true}
 {"timestamp":"2026-09-06T10:30:02Z","tool":"tool.execute","model":"zhipu/glm-4.7-flash","status":"error","error":"429","provider":"zhipu"}
 ```
@@ -313,8 +313,8 @@ Displays and manages provider quotas. View status, reset, force.
 ### Displayed Structure
 ```text
 === Quota tracking ===
-groq/qwen/qwen3.8-27b: 12/50 (12 used out of 50)
-mistral/codestral-latest: 3/30
+google/gemini-2.5-flash: 12/50 (12 used out of 50)
+google/gemini-2.5-flash: 3/30
 google/gemini-2.5-flash: 0/20
 zhipu/glm-4.7-flash: 0/20
 
@@ -364,8 +364,8 @@ Models tested: 21
 OK: 17
 Errors: 4
 
-[OK] groq/qwen/qwen3.8-27b - 1.2s
-[OK] mistral/codestral-latest - 1.5s
+[OK] google/gemini-2.5-flash - 1.2s
+[OK] google/gemini-2.5-flash - 1.5s
 [OK] openrouter/openrouter/free - 2.1s
 [OK] google/gemini-2.5-flash - 850ms
 [ERR] zhipu/glm-4.7-flash - 429 (Quota exhausted)

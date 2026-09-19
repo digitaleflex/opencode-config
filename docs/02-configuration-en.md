@@ -47,7 +47,7 @@ opencode /run "test"
 ```jsonc
 {
   "default_agent": "eurinhash",
-  "small_model": "groq/qwen/qwen3.8-27b",
+  "small_model": "google/gemini-2.5-flash",
   "plugins": [
     "@felipegenef/opencode-lazy-skills",
     "envsitter-guard",
@@ -279,23 +279,23 @@ live validation** before routing workers to it.
 ### Agent List
 | Agent | Model | Role |
 |-------|-------|------|
-| eurinhash | groq/qwen/qwen3.8-27b | Supervisor, provider rotation |
-| planner | groq/qwen/qwen3.8-27b | Planning before action |
-| architect | groq/qwen/qwen3.8-27b | Architecture decisions |
-| design-lead | groq/qwen/qwen3.8-27b | UI/UX direction |
-| builder | mistral/codestral-latest | Code implementation |
-| quality-engineer | mistral/codestral-latest | Code quality, linting |
-| tester | mistral/codestral-latest | Automated tests |
-| security | mistral/codestral-latest | Security analysis |
-| reviewer | mistral/codestral-latest | Code review |
-| git-engineer | mistral/codestral-latest | Git operations |
-| docwriter | groq/qwen/qwen3.8-27b | Documentation |
+| eurinhash | google/gemini-2.5-flash | Supervisor, provider rotation |
+| planner | google/gemini-2.5-flash | Planning before action |
+| architect | google/gemini-2.5-flash | Architecture decisions |
+| design-lead | google/gemini-2.5-flash | UI/UX direction |
+| builder | google/gemini-2.5-flash | Code implementation |
+| quality-engineer | google/gemini-2.5-flash | Code quality, linting |
+| tester | google/gemini-2.5-flash | Automated tests |
+| security | google/gemini-2.5-flash | Security analysis |
+| reviewer | google/gemini-2.5-flash | Code review |
+| git-engineer | google/gemini-2.5-flash | Git operations |
+| docwriter | google/gemini-2.5-flash | Documentation |
 
 ### Agent Structure
 ```markdown
 ---
 description: Short description of agent role
-model: groq/qwen/qwen3.8-27b
+model: google/gemini-2.5-flash
 tools: read_files, write_files, bash, web_fetch, search
 ---
 
@@ -323,7 +323,7 @@ You are [agent name]. Your role is to...
 cat > agent/my-agent.md << 'EOF'
 ---
 description: My custom agent
-model: groq/qwen/qwen3.8-27b
+model: google/gemini-2.5-flash
 tools: read_files, write_files, bash
 ---
 

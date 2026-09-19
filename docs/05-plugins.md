@@ -38,7 +38,7 @@ Plugin de journalisation complet qui trace tous les appels d'outils et les inter
   "command": "rm -rf /tmp/test",
   "status": "blocked",
   "duration_ms": 5,
-  "model": "groq/qwen/qwen3.8-27b",
+  "model": "google/gemini-2.5-flash",
   "session_id": "ses_abc123"
 }
 ```

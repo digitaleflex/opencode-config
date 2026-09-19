@@ -1,6 +1,19 @@
 {
   "$schema": "https://opencode.ai/tui.json",
   "theme": "tokyonight",
+
+  "attention": {
+    "enabled": true,
+    "notifications": true,
+    "sound": true,
+    "volume": 0.4,
+    "sound_pack": "opencode.default"
+  },
+
+  "diff_style": "stacked",
+  "mouse": true,
+  "scroll_speed": 3,
+
   "plugin": [
     [
       "./plugins/opencode-statusline.tsx",
@@ -8,6 +21,10 @@
         "locale": "fr",
         "lines": [
           [
+            { "type": "clock", "color": "accent", "bold": true },
+            { "type": "separator" },
+            { "type": "date" },
+            { "type": "separator" },
             { "type": "model", "color": "accent", "bold": true },
             { "type": "separator" },
             { "type": "advisor", "bold": true },
@@ -38,30 +55,24 @@
           [
             { "type": "burn", "color": "info" },
             { "type": "separator" },
-            { "type": "context-guard" }
+            { "type": "context-guard" },
+            { "type": "separator" },
+            { "type": "messages" },
+            { "type": "separator" },
+            { "type": "duration" },
+            { "type": "separator" },
+            { "type": "speed" }
           ],
           [
             { "type": "reasoning" },
             { "type": "separator" },
             { "type": "total-tokens" },
             { "type": "separator" },
-            { "type": "cache-hit-rate" }
-          ],
-          [
-            { "type": "provider-health" },
+            { "type": "cache-hit-rate" },
             { "type": "separator" },
-            { "type": "routing-chain" },
+            { "type": "audit-tail" },
             { "type": "separator" },
-            { "type": "quota-bar" },
-            { "type": "separator" },
-            { "type": "audit-tail" }
-          ],
-          [
-            { "type": "sensitive-ops" },
-            { "type": "separator" },
-            { "type": "risk-level" },
-            { "type": "separator" },
-            { "type": "budget" }
+            { "type": "sensitive-ops" }
           ]
         ]
       }

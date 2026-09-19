@@ -72,9 +72,9 @@ opencode
 
 | Agent | Model | Provider |
 |-------|-------|----------|
-| eurinhash (supervisor) | `groq/qwen/qwen3.8-27b` | Groq |
-| planner, architect, design-lead, docwriter | `groq/qwen/qwen3.8-27b` | Groq |
-| builder, quality-engineer, tester, security, reviewer, git-engineer | `mistral/codestral-latest` | Mistral |
+| eurinhash (supervisor) | `google/gemini-2.5-flash` | Groq |
+| planner, architect, design-lead, docwriter | `google/gemini-2.5-flash` | Groq |
+| builder, quality-engineer, tester, security, reviewer, git-engineer | `google/gemini-2.5-flash` | Mistral |
 | worker-* | Various | Free/Paid fallback |
 
 ### Commands (8)

@@ -226,8 +226,8 @@ python scripts/free-probe.py
 Crée `~/.config/opencode/free-models.json` avec le statut de chaque modèle :
 ```json
 {
-  "groq/qwen/qwen3.8-27b": "ok",
-  "mistral/codestral-latest": "ok",
+  "google/gemini-2.5-flash": "ok",
+  "google/gemini-2.5-flash": "ok",
   "zhipu/glm-4.7-flash": "error",
   ...
 }
@@ -292,7 +292,7 @@ Crée `~/.config/opencode/myfree-eurinhash-report.json` avec les résultats dét
   "working": 12,
   "broken": 5,
   "results": [
-    {"model": "groq/qwen/qwen3.8-27b", "status": "ok", "latency": 1500},
+    {"model": "google/gemini-2.5-flash", "status": "ok", "latency": 1500},
     {"model": "zhipu/glm-4.7-flash", "status": "error", "error": "429"}
   ]
 }
@@ -340,8 +340,8 @@ Cache de disponibilité des modèles. Mis à jour par `free-probe.py`.
 
 ```json
 {
-  "groq/qwen/qwen3.8-27b": "ok",
-  "mistral/codestral-latest": "ok",
+  "google/gemini-2.5-flash": "ok",
+  "google/gemini-2.5-flash": "ok",
   "zhipu/glm-4.7-flash": "error",
   "google/gemini-2.5-flash": "ok",
   ...
@@ -378,7 +378,7 @@ Journal d'audit détaillé. Génénéré par le plugin audit-logger.ts.
 
 ```jsonl
 {"timestamp": "...", "tool": "bash", "command": "rm -rf /", "status": "blocked", "redaction": true}
-{"timestamp": "...", "tool": "tool.execute", "model": "groq/qwen/qwen3.8-27b", "status": "success", "duration_ms": 1500}
+{"timestamp": "...", "tool": "tool.execute", "model": "google/gemini-2.5-flash", "status": "success", "duration_ms": 1500}
 ```
 
 ---

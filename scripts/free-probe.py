@@ -18,8 +18,11 @@ CFG = os.path.join(HOME, ".config", "opencode")
 
 
 def read_key(name):
-    with open(os.path.join(CFG, name)) as f:
-        return f.read().strip()
+    try:
+        with open(os.path.join(CFG, name)) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return ""
 
 
 def post(url, headers, body, timeout=30):
@@ -83,13 +86,15 @@ except Exception as e:
     latencies["worker-zhipu"] = 0
 time.sleep(1.5)
 
-# 3. Mistral Codestral
+# 3. Worker code : OpenRouter poolside/laguna-s-2.1:free
+# (ex-Mistral Codestral — basculé le 2026-09-12, Mistral renvoyait
+# « Payment Required ». Le probe sonde le VRAI endpoint du worker.)
 try:
-    key = read_key(".mistral-key")
+    key = read_key(".openrouter-key")
     st, _, dt = post(
-        "https://api.mistral.ai/v1/chat/completions",
+        "https://openrouter.ai/api/v1/chat/completions",
         {"Authorization": f"Bearer {key}", "Content-Type": "application/json", **UA},
-        CHAT("codestral-latest"),
+        CHAT("poolside/laguna-s-2.1:free"),
     )
     results["worker-codestral"] = st
     latencies["worker-codestral"] = dt
@@ -128,63 +133,7 @@ except Exception as e:
     latencies["worker-novita"] = 0
 time.sleep(1.5)
 
-# 6. Together Kimi-K2.7-Code
-try:
-    key = read_key(".together-key")
-    if not key:
-        results["worker-together"] = "skipped"
-        latencies["worker-together"] = 0
-    else:
-        st, _, dt = post(
-            "https://api.together.xyz/v1/chat/completions",
-            {"Authorization": f"Bearer {key}", "Content-Type": "application/json", **UA},
-            CHAT("moonshotai/Kimi-K2.7-Code"),
-        )
-        results["worker-together"] = st
-        latencies["worker-together"] = dt
-except Exception as e:
-    results["worker-together"] = f"error:{str(e)[:60]}"
-    latencies["worker-together"] = 0
-time.sleep(1.5)
-
-# 7. DeepSeek (optionnel)
-try:
-    key = read_key(".deepseek-key")
-    if not key:
-        results["worker-deepseek"] = "skipped"
-        latencies["worker-deepseek"] = 0
-    else:
-        st, _, dt = post(
-            "https://api.deepseek.com/v1/chat/completions",
-            {"Authorization": f"Bearer {key}", "Content-Type": "application/json", **UA},
-            CHAT("deepseek-v4-flash"),
-        )
-        results["worker-deepseek"] = st
-        latencies["worker-deepseek"] = dt
-except Exception as e:
-    results["worker-deepseek"] = f"error:{str(e)[:60]}"
-    latencies["worker-deepseek"] = 0
-
-# 8. SambaNova DeepSeek V3.1 (FREE, 20 req/jour)
-try:
-    key = read_key(".sambanova-key")
-    if not key:
-        results["worker-sambanova"] = "skipped"
-        latencies["worker-sambanova"] = 0
-    else:
-        st, _, dt = post(
-            "https://api.sambanova.ai/v1/chat/completions",
-            {"Authorization": f"Bearer {key}", "Content-Type": "application/json", **UA},
-            CHAT("DeepSeek-V3.1"),
-        )
-        results["worker-sambanova"] = st
-        latencies["worker-sambanova"] = dt
-except Exception as e:
-    results["worker-sambanova"] = f"error:{str(e)[:60]}"
-    latencies["worker-sambanova"] = 0
-time.sleep(1.5)
-
-# 9. Pollinations (FREE, sans cle — tier anonyme)
+# 6. Pollinations (FREE, sans cle — tier anonyme)
 try:
     st, _, dt = post(
         "https://text.pollinations.ai/openai",
@@ -199,26 +148,7 @@ except Exception as e:
     latencies["worker-pollinations"] = 0
 time.sleep(1.5)
 
-# 10. Cerebras GPT-OSS 120B (TRIAL $5 — skip si pas de cle)
-try:
-    key = read_key(".cerebras-key")
-    if not key:
-        results["worker-cerebras"] = "skipped"
-        latencies["worker-cerebras"] = 0
-    else:
-        st, _, dt = post(
-            "https://api.cerebras.ai/v1/chat/completions",
-            {"Authorization": f"Bearer {key}", "Content-Type": "application/json", **UA},
-            CHAT("gpt-oss-120b"),
-        )
-        results["worker-cerebras"] = st
-        latencies["worker-cerebras"] = dt
-except Exception as e:
-    results["worker-cerebras"] = f"error:{str(e)[:60]}"
-    latencies["worker-cerebras"] = 0
-time.sleep(1.5)
-
-# 11. Ollama local (100% gratuit, offline — skip si Ollama absent)
+# 7. Ollama local (100% gratuit, offline — skip si Ollama absent)
 try:
     st, _, dt = post(
         "http://localhost:11434/v1/chat/completions",
@@ -232,28 +162,7 @@ except Exception as e:
     results["worker-ollama"] = f"error:{str(e)[:60]}"
     latencies["worker-ollama"] = 0
 
-# 12. Cohere Command A (TRIAL 1000 appels/mois — skip si pas de cle)
-try:
-    key = read_key(".cohere-key")
-    if not key:
-        results["worker-cohere"] = "skipped"
-        latencies["worker-cohere"] = 0
-    else:
-        st, _, dt = post(
-            "https://api.cohere.com/v2/chat",
-            {"Authorization": f"Bearer {key}", "Content-Type": "application/json", **UA},
-            {"model": "command-a-03-2025",
-             "messages": [{"role": "user", "content": "OK"}],
-             "max_tokens": 2},
-        )
-        results["worker-cohere"] = st
-        latencies["worker-cohere"] = dt
-except Exception as e:
-    results["worker-cohere"] = f"error:{str(e)[:60]}"
-    latencies["worker-cohere"] = 0
-time.sleep(1.5)
-
-# 13. Cloudflare Workers AI (10K neurons/jour — cle + account ID requis)
+# 8. Cloudflare Workers AI (10K neurons/jour — cle + account ID requis)
 try:
     key = read_key(".cloudflare-key")
     try:

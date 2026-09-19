@@ -31,9 +31,9 @@ opencode
 
 | Agent | Model | Provider |
 |-------|--------|----------|
-| eurinhash (supervisor) | `groq/qwen/qwen3.8-27b` | Groq |
-| planner, architect, design-lead, docwriter | `groq/qwen/qwen3.8-27b` | Groq |
-| builder, quality-engineer, tester, security, reviewer, git-engineer | `mistral/codestral-latest` | Mistral |
+| eurinhash (supervisor) | `google/gemini-2.5-flash` | Google (FREE) |
+| planner, architect, design-lead, docwriter | `google/gemini-2.5-flash` | Google (FREE) |
+| builder, quality-engineer, tester, security, reviewer, git-engineer | `google/gemini-2.5-flash` | Google (FREE) |
 | worker-* | Various based on fallback | Free/Pro |
 
 ## Installation
@@ -124,7 +124,7 @@ opencode /hash-direct --reset-quota
 ### opencode.jsonc
 The main configuration defines:
 - `default_agent`: "eurinhash"
-- `small_model`: "mistral/mistral-code-latest"
+- `small_model`: "google/gemini-2.5-flash"
 - Bash and skills permissions
 - Free/trial providers by default, paid entries clearly marked (Mammouth as optional fallback)
 - MCP servers (Postgres for memory)

@@ -1,0 +1,4 @@
+Explique la récursivité en Python
+Qu'est-ce qu'un circuit breaker
+Comment fonctionne le quota tracking
+Peux-tu me donner un exemple de fonction Python simple

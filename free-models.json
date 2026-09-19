@@ -1,18 +1,24 @@
 {
-  "updated": 1788657575,
+  "updated": 1789809821,
+  "updated_human": "2026-09-19 10:23:41",
   "models": {
-    "worker-google": "rate_limited",
-    "worker-zhipu": "ok",
-    "worker-codestral": "ok",
+    "worker-google": "ok",
+    "worker-zhipu": "error",
+    "worker-codestral": "rate_limited",
     "worker-groq": "ok",
     "worker-novita": "ok",
-    "worker-together": "error",
-    "worker-deepseek": "error",
-    "worker-sambanova": "unknown",
-    "worker-pollinations": "unknown",
-    "worker-cerebras": "unknown",
-    "worker-ollama": "unknown",
-    "worker-cohere": "unknown",
-    "worker-cloudflare": "unknown"
+    "worker-pollinations": "ok",
+    "worker-ollama": "error",
+    "worker-cloudflare": "skipped"
+  },
+  "latencies_ms": {
+    "worker-google": 1183,
+    "worker-zhipu": 31073,
+    "worker-codestral": 1400,
+    "worker-groq": 245,
+    "worker-novita": 1223,
+    "worker-pollinations": 630,
+    "worker-ollama": 4077,
+    "worker-cloudflare": 0
   }
 }

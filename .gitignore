@@ -30,8 +30,9 @@ logs/
 # Python cache
 __pycache__/
 *.pyc
-.morph-key
 # Tool runtime state
 .omo/
 # Chaos lab generated output
 scripts/chaos/results-*.json
+*.bak
+*.bak-*

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Tableau de bord lisible : conso du jour, état des workers gratuits, conseil.
-Langage simple (non-technique), couleurs d'état, recommandation du modèle
-à utiliser maintenant. Lecture seule, zéro coût (ne probe pas).
+"""Tableau de bord lisible : conso du jour, etat des workers gratuits, conseil.
+Langage simple (non-technique), couleurs d'etat, recommandation du modele
+a utiliser maintenant. Lecture seule, zero cout (ne probe pas).
 Usage: python ~/.config/opencode/scripts/quota.py
 """
 import json, os, sys, time, datetime, urllib.request, urllib.error
@@ -30,26 +30,26 @@ def bold(t): return c("bold", t)
 def dim(t): return c("dim", t)
 
 
-# Ordre de préférence (même ordre que le superviseur @eurinhash)
+# Ordre de preference (meme ordre que le superviseur @eurinhash)
 WORKERS = [
     ("worker-codestral", "Codestral", "le meilleur pour le code"),
     ("worker-groq", "Groq", "le plus rapide"),
     ("worker-novita", "Novita", "100% gratuit"),
     ("worker-zhipu", "Zhipu", "le plus polyvalent"),
-    ("worker-sambanova", "SambaNova", "les gros modèles"),
+    ("worker-sambanova", "SambaNova", "les gros modeles"),
     ("worker-google", "Google", "le plus costaud"),
     ("worker-cerebras", "Cerebras", "ultra-rapide (trial)"),
-    ("worker-cohere", "Cohere", "trial, réponses courtes"),
+    ("worker-cohere", "Cohere", "trial, reponses courtes"),
     ("worker-ollama", "Ollama", "local, sans quota"),
-    ("worker-pollinations", "Pollinations", "secours sans clé"),
+    ("worker-pollinations", "Pollinations", "secours sans cle"),
 ]
 
 STATE_FR = {
     "ok": ("disponible", "green"),
     "rate_limited": ("en pause (quota atteint)", "yellow"),
     "error": ("en panne", "red"),
-    "unknown": ("jamais testé", "yellow"),
-    "skipped": ("ignoré", "dim"),
+    "unknown": ("jamais teste", "yellow"),
+    "skipped": ("ignore", "dim"),
 }
 
 
@@ -76,8 +76,8 @@ mode_state = read_mode()
 mode = mode_state.get("mode", "free")
 cap = mode_state.get("proMonthlyCapUsd")
 if mode == "pro":
-    cap_txt = f", plafond {cap:.2f} $" if isinstance(cap, (int, float)) else ", sans plafond défini"
-    print(bold("=== Mode actuel : ") + yellow(bold("PRO (payant autorisé" + cap_txt + ")")))
+    cap_txt = f", plafond {cap:.2f} $" if isinstance(cap, (int, float)) else ", sans plafond defini"
+    print(bold("=== Mode actuel : ") + yellow(bold("PRO (payant autorise" + cap_txt + ")")))
 else:
     print(bold("=== Mode actuel : ") + green(bold("FREE (gratuit uniquement)")))
 
@@ -87,7 +87,7 @@ dbpath = next((x for x in dbcands if os.path.isfile(x)), None)
 total_cost = 0.0
 per_model = {}
 if not dbpath:
-    print("  " + dim("compteur local introuvable — `opencode stats --days 1 --models` pour le détail"))
+    print("  " + dim("compteur local introuvable - `opencode stats --days 1 --models` pour le detail"))
 else:
     try:
         import sqlite3
@@ -112,21 +112,21 @@ else:
     except Exception as e:
         print(f"  {str(e)[:100]}")
 if total_cost <= 0:
-    print("  " + green("0,00 $ dépensé — tout est passé par du gratuit") + " 🎉")
+    print("  " + green("0,00 $ depense - tout est passe par du gratuit") + " [OK]")
 else:
-    print(f"  {bold(f'{total_cost:.2f} $')} dépensés aujourd'hui")
+    print(f"  {bold(f'{total_cost:.2f} $')} depenses aujourd'hui")
     if mode == "pro" and isinstance(cap, (int, float)) and cap > 0:
         pct = min(100.0, total_cost / cap * 100)
-        bar_len = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+        bar_len = "#" * int(pct / 10) + "." * (10 - int(pct / 10))
         color = red if pct >= 90 else yellow if pct >= 70 else green
         print(f"  {color(f'plafond mensuel : {bar_len} {pct:.0f}% ({total_cost:.2f} $ / {cap:.2f} $)')}")
         if pct >= 90:
-            print("  " + red("⛔ Plafond presque atteint — repasse en FREE (`/mode free`) ou augmente le plafond"))
+            print("  " + red("[STOP] Plafond presque atteint - repasse en FREE (`/mode free`) ou augmente le plafond"))
     for k, e in sorted(per_model.items(), key=lambda x: -x[1]["cost"])[:5]:
         print(f"    {k} : {e['n']} appels, {e['cost']:.4f} $")
 
 print()
-print(bold("=== Mes modèles gratuits (état en direct) ==="))
+print(bold("=== Mes modeles gratuits (etat en direct) ==="))
 states = {}
 cache_age_min = None
 try:
@@ -134,18 +134,18 @@ try:
     cache_age_min = (int(time.time()) - fm.get("updated", 0)) // 60
     states = fm.get("models", {})
 except FileNotFoundError:
-    print("  " + yellow("pas d'état enregistré — lance free-probe.py via @eurinhash"))
+    print("  " + yellow("pas d'etat enregistre - lance free-probe.py via @eurinhash"))
 for wid, label, role in WORKERS:
     raw = states.get(wid, "unknown")
     base = raw.split(":")[0] if isinstance(raw, str) else "unknown"
-    fr, color = STATE_FR.get(base, ("état inconnu", "yellow"))
-    dot = {"green": "🟢", "yellow": "🟡", "red": "🔴", "dim": "⚪"}.get(color, "⚪")
+    fr, color = STATE_FR.get(base, ("etat inconnu", "yellow"))
+    dot = {"green": "[OK]", "yellow": "[!]", "red": "[KO]", "dim": "[..]"}.get(color, "[..]")
     print(f"  {dot} {c(color, label.ljust(22))} {fr}  {dim('(' + role + ')')}")
 if cache_age_min is not None:
     if cache_age_min > 30:
-        print("  " + yellow(f"⚠ état vieux de {cache_age_min} min — demande à @eurinhash de re-tester"))
+        print("  " + yellow(f"⚠ etat vieux de {cache_age_min} min - demande a @eurinhash de re-tester"))
     else:
-        print(f"  {dim(f'état vérifié il y a {cache_age_min} min')}")
+        print(f"  {dim(f'etat verifie il y a {cache_age_min} min')}")
 
 print()
 print(bold("=== Mon conseil du moment ==="))
@@ -154,7 +154,7 @@ if ok:
     best = ok[0]
     label = next(l for i, l, _ in WORKERS if i == best)
     role = next(r for i, _, r in WORKERS if i == best)
-    print(f"  👉 {green('Utilise ' + label + ' en ce moment')} ({role}, disponible)")
+    print(f"  >> {green('Utilise ' + label + ' en ce moment')} ({role}, disponible)")
     rest = [w for w in ok[1:3]]
     if rest:
         names = ", ".join(next(l for i, l, _ in WORKERS if i == w) for w in rest)
@@ -163,12 +163,12 @@ else:
     waiting = [wid for wid, _, _ in WORKERS
                if str(states.get(wid, "")).split(":")[0] in ("rate_limited", "unknown")]
     if waiting:
-        print("  " + yellow("⏳ Tous les gratuits sont en pause — attends un peu, ou passe en local (Ollama)"))
+        print("  " + yellow("[..] Tous les gratuits sont en pause - attends un peu, ou passe en local (Ollama)"))
     else:
-        print("  " + red("🔴 Tout est en panne — vérifie tes clés API, puis relance free-probe.py"))
+        print("  " + red("🔴 Tout est en panne - verifie tes cles API, puis relance free-probe.py"))
 
 print()
-print(bold("=== Clé OpenRouter (seule avec un compteur distant) ==="))
+print(bold("=== Cle OpenRouter (seule avec un compteur distant) ==="))
 try:
     key = read_key(".openrouter-key")
     req = urllib.request.Request(
@@ -176,7 +176,7 @@ try:
         headers={"Authorization": f"Bearer {key}"},
     )
     data = json.loads(urllib.request.urlopen(req, timeout=30).read()).get("data", {})
-    print(f"  utilisé : {data.get('usage')} / limite : {data.get('limit')}")
+    print(f"  utilise : {data.get('usage')} / limite : {data.get('limit')}")
     print(f"  restant : {data.get('limit_remaining')}")
 except Exception as e:
     print(f"  {dim('indisponible : ' + str(e)[:100])}")

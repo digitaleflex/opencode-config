@@ -1,7 +1,7 @@
 ---
 description: Responsable du cycle de vie du code : branches, commits, conventions, merges, Pull Requests, repository hygiene, GitHub Actions et CI/CD.
 mode: subagent
-model: mistral/codestral-latest
+model: opencode/qwen3.6-plus-free
 temperature: 0.1
 permission:
   bash: allow
