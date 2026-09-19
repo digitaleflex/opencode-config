@@ -187,5 +187,5 @@ MIT — Adapt to your needs.
 
 ---
 
-*Configuration maintained with love by digitalefish*
+*Configuration maintained with love by EurinHash*
 *Last update: 2026-09-19*
