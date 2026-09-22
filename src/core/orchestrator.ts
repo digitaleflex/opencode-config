@@ -530,7 +530,11 @@ export class GovernanceOrchestrator {
     }
     // Guard evaluation with hard timeout (anti Guardrail-DoS)
     const guardCheckStart = Date.now();
-    const guardResult = this.checkGuards(task.description);
+    const guardResult = this.guardOverrides.checkWithBudget(
+      taskWithRisk,
+      budget,
+      GovernanceOrchestrator.GUARD_TIMEOUT_MS
+    );
     const guardCheckElapsed = Date.now() - guardCheckStart;
     if (guardCheckElapsed > GovernanceOrchestrator.GUARD_TIMEOUT_MS) {
       console.warn(
@@ -576,22 +580,15 @@ export class GovernanceOrchestrator {
         verdict: "BLOCKED",
       };
     }
-    // Also exercise GuardOverrides timeout helper for coverage (sync, trivial)
-    // This ensures budget is checked before guard and timeout is enforced.
-    const guardOverridesResult = this.guardOverrides.checkWithBudget(
-      taskWithRisk,
-      budget,
-      GovernanceOrchestrator.GUARD_TIMEOUT_MS
-    );
     if (
-      guardOverridesResult.decision === "BLOCKED" &&
-      guardOverridesResult.reason.includes("budget")
+      guardResult.decision === "BLOCKED" &&
+      guardResult.reason.includes("budget")
     ) {
-      return budgetBlocked(guardOverridesResult.reason, "guard");
+      return budgetBlocked(guardResult.reason, "guard");
     }
     if (
-      guardOverridesResult.decision === "BLOCKED" &&
-      guardOverridesResult.reason === "guard timeout"
+      guardResult.decision === "BLOCKED" &&
+      guardResult.reason === "guard timeout"
     ) {
       guardMs = Date.now() - startGuard;
       budget.spend(guardMs);
@@ -875,140 +872,6 @@ export class GovernanceOrchestrator {
 
   private generateId(): string {
     return `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
-
-  private normalizeForGuards(text: string): string {
-    const confusables: Record<string, string> = {
-      "\u0430": "a",
-      "\u0435": "e",
-      "\u043E": "o",
-      "\u0440": "r",
-      "\u0441": "c",
-      "\u0443": "y",
-      "\u0445": "x",
-      "\u0432": "B",
-      "\u043C": "M",
-      "\u043D": "H",
-      "\u0442": "T",
-      "\u0444": "f",
-      "\u0448": "W",
-      "\u0433": "r",
-      "\u0438": "u",
-      "\u043A": "k",
-      "\u043B": "b",
-      "\u0434": "d",
-      "\u0436": "w",
-      "\u0437": "z",
-      "\u044D": "e",
-      "\u044E": "o",
-      "\u044F": "q",
-      "\uFF41": "a",
-      "\uFF42": "b",
-      "\uFF43": "c",
-      "\uFF44": "d",
-      "\uFF45": "e",
-      "\uFF46": "f",
-      "\uFF47": "g",
-      "\uFF48": "h",
-      "\uFF49": "i",
-      "\uFF4A": "j",
-      "\uFF4B": "k",
-      "\uFF4C": "l",
-      "\uFF4D": "m",
-      "\uFF4E": "n",
-      "\uFF4F": "o",
-      "\uFF50": "p",
-      "\uFF51": "q",
-      "\uFF52": "r",
-      "\uFF53": "s",
-      "\uFF54": "t",
-      "\uFF55": "u",
-      "\uFF56": "v",
-      "\uFF57": "w",
-      "\uFF58": "x",
-      "\uFF59": "y",
-      "\uFF5A": "z",
-    };
-    let result = text.normalize("NFC");
-    result = result.replace(/[\u200B-\u200F\uFEFF\u034F\u180E\u2060]/g, "");
-    for (const [from, to] of Object.entries(confusables)) {
-      result = result.split(from).join(to);
-    }
-    return result;
-  }
-
-  private checkGuards(description: string): {
-    decision: "BLOCKED" | "ALLOWED" | "WARN";
-    reason: string;
-  } {
-    const searchText = this.normalizeForGuards(description);
-    const dangerousPatterns = [
-      {
-        pattern: /rm\s+-rf\s+\/\S?/i,
-        action: "BLOCKED" as const,
-        reason: "Recursive root delete blocked",
-      },
-      {
-        pattern: /rm\s+-rf\s+\*/i,
-        action: "BLOCKED" as const,
-        reason: "Recursive wildcard delete blocked",
-      },
-      { pattern: /rm\s+-[rf]/i, action: "BLOCKED" as const, reason: "Recursive delete blocked" },
-      { pattern: /mkfs/i, action: "BLOCKED" as const, reason: "Filesystem format blocked" },
-      { pattern: /dd\s+if=/i, action: "BLOCKED" as const, reason: "Direct disk write blocked" },
-      {
-        pattern: /curl\s+.*\|\s*sh/i,
-        action: "BLOCKED" as const,
-        reason: "Pipe to shell execution blocked",
-      },
-      {
-        pattern: /format\s+.*\.env/i,
-        action: "BLOCKED" as const,
-        reason: "Env file overwrite blocked",
-      },
-      {
-        pattern: /truncate\s+table/i,
-        action: "BLOCKED" as const,
-        reason: "Table truncate blocked",
-      },
-      {
-        pattern: /DELETE\s+FROM\s+\w+\s*;/i,
-        action: "BLOCKED" as const,
-        reason: "Unqualified DELETE blocked",
-      },
-      {
-        pattern: /chmod\s+777/i,
-        action: "BLOCKED" as const,
-        reason: "World-writable permissions blocked",
-      },
-      { pattern: /shred\s+/i, action: "BLOCKED" as const, reason: "Secure delete blocked" },
-      { pattern: /shutdown/i, action: "BLOCKED" as const, reason: "System shutdown blocked" },
-      { pattern: /reboot/i, action: "BLOCKED" as const, reason: "System reboot blocked" },
-      { pattern: /halt/i, action: "BLOCKED" as const, reason: "System halt blocked" },
-      { pattern: /:\(\)\s*:\|:\s*&/i, action: "BLOCKED" as const, reason: "Fork bomb blocked" },
-      {
-        pattern: /git\s+push\s+--force/i,
-        action: "WARN" as const,
-        reason: "Force push requires review",
-      },
-      {
-        pattern: /git\s+reset\s+--hard/i,
-        action: "WARN" as const,
-        reason: "Hard reset can cause data loss",
-      },
-      {
-        pattern: /npm\s+publish/i,
-        action: "WARN" as const,
-        reason: "Package publish requires review",
-      },
-    ];
-
-    for (const guard of dangerousPatterns) {
-      if (guard.pattern.test(searchText)) {
-        return { decision: guard.action, reason: guard.reason };
-      }
-    }
-    return { decision: "ALLOWED", reason: "No guard match" };
   }
 
   private async executeWorker(task: TaskSpec): Promise<{
