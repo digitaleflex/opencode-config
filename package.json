@@ -4,20 +4,24 @@
   "description": "EURINHASH governance engine and OpenCode configuration (free-tier models only)",
   "private": true,
   "scripts": {
-    "test": "bun test src/core/core.test.ts",
+    "test": "vitest run && bun test src/core/core.test.ts",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:fuzz": "bun test tests/fuzz/",
     "typecheck": "tsc --noEmit",
     "chaos": "bun run scripts/chaos/chaos-lab.ts",
     "test:golden": "bun run scripts/verify-golden.ts",
     "format": "prettier --write \"src/**/*.ts\" \"scripts/**/*.ts\" \"plugin/*.ts\" \"tests/**/*.ts\" \"*.json\" \".opencode/*.json\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"scripts/**/*.ts\" \"plugin/*.ts\" \"tests/**/*.ts\" \"*.json\" \".opencode/*.json\"",
-    "verify": "bun run format:check && bun run typecheck && bun test src/core/core.test.ts && bun run test:fuzz && bun run test:golden"
+    "verify": "bun run format:check && bun run typecheck && bun run test && bun run test:fuzz && bun run test:golden"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
     "@types/node": "^22.20.2",
+    "@vitest/coverage-v8": "^5.0.1",
     "prettier": "3",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^5.0.1"
   },
   "dependencies": {
     "@opencode-ai/plugin": "1.18.32",
