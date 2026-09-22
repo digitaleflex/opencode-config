@@ -143,7 +143,7 @@ export type ExecutionResult = {
   taskType: TaskType;
   riskLevel: RiskLevel;
   policyDecision: PolicyDecision;
-  guardDecision: "BLOCKED" | "ALLOWED";
+  guardDecision: "BLOCKED" | "ALLOWED" | "WARN";
   proofStatus: "PASS" | "FAIL" | "PENDING";
   verdict: "APPROVED" | "BLOCKED" | "REJECTED";
 };
