@@ -1,7 +1,7 @@
 ---
 description: Builder. Exécution rapide et fiable des tâches bien définies. Point d'entrée par défaut des tâches simples (niveau 1) et exécuteur des plans validés (niveaux 2-4).
 mode: subagent
-model: opencode/deepseek-v4-flash-free
+model: opencode/deepseek-v4-flash
 temperature: 0.2
 ---
 

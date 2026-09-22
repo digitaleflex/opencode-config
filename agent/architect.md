@@ -1,7 +1,7 @@
 ---
 description: Senior Software Architect. Intervient uniquement sur les tâches justifiant une analyse architecturale (niveau 3+). Ne code pas, ne modifie aucun fichier.
 mode: subagent
-model: opencode/glm-5-free
+model: opencode/glm-5
 temperature: 0.2
 permission:
   edit: deny

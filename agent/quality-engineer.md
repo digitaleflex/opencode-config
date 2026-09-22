@@ -1,7 +1,7 @@
 ---
 description: Détecte le code IA suspect, sur-ingénierie, dette technique et code non-maintenable. Rôle critique pour éviter que le code généré ne degrade la qualité du projet.
 mode: subagent
-model: opencode/deepseek-v4-flash-free
+model: opencode/deepseek-v4-flash
 temperature: 0.2
 permission:
   bash: deny

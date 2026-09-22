@@ -1,7 +1,7 @@
 ---
 description: Integrator — spécialiste de l'absorption d'un module depuis un repo source (hashcode_reboot, hashskills, hashcode-community-portal) vers le monolithe hashcode-community. Connaît les pièges Next 16 et le mapping du design system. À appeler pour toute migration inter-repos.
 mode: subagent
-model: opencode/deepseek-v4-flash-free
+model: opencode/deepseek-v4-flash
 temperature: 0.2
 ---
 

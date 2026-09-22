@@ -165,16 +165,17 @@
   // 2026-09-12 : tous les rôles basculés sur des modèles FREE.
   //   - mistral/* → "Payment Required" (abonnement Mistral inactif)  ⇒ retiré
   //   - groq/qwen3.8-27b → free tier mais ITPM 7000 ⇒ inutilisable sur gros contexte
-  //   - défaut = opencode/deepseek-v4-flash-free (intégré, $0, 200K ctx)
+  //   - défaut = opencode/deepseek-v4-flash (intégré, $0, 200K ctx)
   //   - worker-zenmux (anthropic/*) reste PAYG et n'est jamais routé auto.
   "default_agent": "eurinhash",
   // 2026-09-14 : gemini-2.5-flash rate_limited (20 req/jour) → tout
   // tombait en panne. Basculé sur l'abonnement, variantes flash.
   // 2026-09-19 : opencode-go indisponible → bascule 100% FREE.
-  //   Enrichi via models.dev : opencode/deepseek-v4-flash-free
+  //   Enrichi via models.dev : opencode/deepseek-v4-flash
   //   (intégré, $0, 200K ctx, out 128K) = remplaçant naturel de
   //   opencode-go/deepseek-v4.1-flash. Revenir dès dispo.
-  "model": "opencode/deepseek-v4-flash-free",
+  // 2026-09-22 : deepseek-v4-flash renommé → deepseek-v4-flash.
+  "model": "opencode/deepseek-v4-flash",
   "small_model": "opencode/mimo-v2.5-free",
 
   // ── AUTONOMIE & ÉCONOMIE DE TOKENS ──────────────────────────────
@@ -294,8 +295,8 @@
   //   - Feedback : route.py record <worker> success|fail → ajuste les poids
   //
   // Workers actifs (statut live : ~/.config/opencode/free-models.json) :
-  //   worker-opencode      → deepseek-v4-flash-free (intégré, 0 quota)
-  //   worker-opencode-heavy → glm-5-free (intégré, 0 quota, raisonnement)
+  //   worker-opencode      → deepseek-v4-flash (intégré, 0 quota)
+  //   worker-opencode-heavy → glm-5 (intégré, 0 quota, raisonnement)
   //   worker-groq          → qwen3.8-27b (245ms, FREE tier)
   //   worker-novita        → ling-3.0-flash-sante (256K ctx, GRATUIT)
   //   worker-google        → gemini-2.5-flash (20 req/jour)
@@ -464,7 +465,7 @@
       "options": {
         "baseURL": "https://integrate.api.nvidia.com/v1",
         // Clé API NVIDIA (gratuit, 1000 req/jour).
-        "apiKey": "{file:~/.config/opencode/.nvidia-key}",
+        // "apiKey": "{file:~/.config/opencode/.nvidia-key}",
       },
       "models": {
         "nvidia/nemotron-3-ultra-550b-a55b:free": {

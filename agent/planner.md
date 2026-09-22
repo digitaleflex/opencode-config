@@ -1,7 +1,7 @@
 ---
 description: Transforme une demande floue en plan technique validé. N'écrit jamais de code, ne modifie jamais de fichiers.
 mode: subagent
-model: opencode/glm-5-free
+model: opencode/glm-5
 temperature: 0.2
 permission:
   edit: deny

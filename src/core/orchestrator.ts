@@ -139,8 +139,9 @@ export class GovernanceOrchestrator {
 
     const startTotal = Date.now();
     // Respect caller-supplied id for approval-token binding (Art.14) — otherwise generate
-    const taskId = task.id ?? this.generateId();
+    const taskId = task?.id ?? this.generateId();
 
+    // Variables declared outside try for catch block access
     let classifyMs = 0;
     let riskMs = 0;
     let policyMs = 0;
@@ -159,7 +160,7 @@ export class GovernanceOrchestrator {
       this.merkleAudit.record({
         timestamp: new Date().toISOString(),
         taskId,
-        taskDescription: task.description,
+        taskDescription: task?.description ?? "",
         stage: "final",
         decision: "BLOCKED",
         detail: { reason, stage, budgetExceeded: true, budgetReason: reason },
@@ -175,7 +176,7 @@ export class GovernanceOrchestrator {
       this.logAuditEntry({
         timestamp: new Date().toISOString(),
         taskId,
-        taskDescription: task.description,
+        taskDescription: task?.description ?? "",
         stage: "final",
         input: { stage, reason },
         output: "BLOCKED",
@@ -207,9 +208,9 @@ export class GovernanceOrchestrator {
     };
 
     // Global try/catch for fail-closed behavior (B2)
+    let startClassify = 0;
     try {
-      const startClassify = Date.now();
-    try {
+      startClassify = Date.now();
       taskType = classifyTask(task);
     } catch (err) {
       classifyMs = Date.now() - startClassify;
@@ -850,7 +851,6 @@ export class GovernanceOrchestrator {
       proofStatus: "FAIL",
       verdict: "BLOCKED",
     };
-  }
   }
 
   private checkMinimumProofs(chain: ProofChain, required: ProofType[]): boolean {

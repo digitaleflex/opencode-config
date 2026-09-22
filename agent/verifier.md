@@ -1,7 +1,7 @@
 ---
 description: Verifier — porte de sortie obligatoire avant tout commit. Exécute le gate déterministe (npm run verify) et conçoit les sondes runtime spécifiques au changement. Retourne des PREUVES brutes (commandes + sorties), jamais une opinion. À appeler systématiquement après un builder, un integrator ou un fixer.
 mode: subagent
-model: opencode/deepseek-v4-flash-free
+model: opencode/deepseek-v4-flash
 temperature: 0.1
 permission:
   edit: deny

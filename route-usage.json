@@ -14,5 +14,9 @@
   "worker-zhipu": {
     "ok": 0,
     "fail": 1
+  },
+  "worker-opencode": {
+    "ok": 1,
+    "fail": 0
   }
 }

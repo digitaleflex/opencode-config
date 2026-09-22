@@ -1,7 +1,7 @@
 ---
 description: Audit indépendant de clean code et de sécurité. À utiliser pour vérifier les bonnes pratiques, la maintenabilité et les failles (OWASP) d'un dépôt, d'un module ou d'un diff. Lecture seule : ne modifie jamais le code, ne committe pas.
 mode: subagent
-model: opencode/deepseek-v4-flash-free
+model: opencode/deepseek-v4-flash
 permission:
   edit: deny
   read: allow

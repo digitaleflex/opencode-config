@@ -40,8 +40,8 @@ USAGE_LOG = os.path.join(CFG, "route-usage.json")
 # Source : myfree-eurinhash.py QUALITY_BASELINE + connaissance des familles.
 QUALITY = {
     # FREE workers
-    "worker-opencode": 0.90,        # deepseek-v4-flash-free — workhorse éprouvé
-    "worker-opencode-heavy": 0.93,  # glm-5-free — raisonnement fort
+    "worker-opencode": 0.90,        # deepseek-v4-flash — workhorse éprouvé
+    "worker-opencode-heavy": 0.93,  # glm-5 — raisonnement fort
     "worker-codestral": 0.88,       # poolside laguna — code spécialisé
     "worker-groq": 0.82,            # qwen3.8-27b — rapide mais petit ctx
     "worker-novita": 0.85,          # ling-3.0-flash-sante — 256K ctx
@@ -58,14 +58,14 @@ QUALITY = {
 WORKERS = {
     # FREE workers
     "worker-opencode": {
-        "model": "opencode/deepseek-v4-flash-free",
+        "model": "opencode/deepseek-v4-flash",
         "kind": "integrated",
         "ctx": 200_000,
         "types": ["code", "general", "quick", "long", "review"],
         "note": "intégré 0 quota, workhorse",
     },
     "worker-opencode-heavy": {
-        "model": "opencode/glm-5-free",
+        "model": "opencode/glm-5",
         "kind": "integrated",
         "ctx": 204_800,
         "types": ["heavy", "review", "general"],
