@@ -206,7 +206,9 @@ export class GovernanceOrchestrator {
       };
     };
 
-    const startClassify = Date.now();
+    // Global try/catch for fail-closed behavior (B2)
+    try {
+      const startClassify = Date.now();
     try {
       taskType = classifyTask(task);
     } catch (err) {
@@ -802,6 +804,53 @@ export class GovernanceOrchestrator {
       proofStatus,
       verdict,
     };
+  } catch (error) {
+    // Fail-closed: any unexpected error = BLOCKED
+    const totalMs = Date.now() - startTotal;
+    const errMsg = error instanceof Error ? error.message : "Unknown governance error";
+    this.merkleAudit.record({
+      timestamp: new Date().toISOString(),
+      taskId,
+      taskDescription: task.description,
+      stage: "final",
+      decision: "BLOCKED",
+      detail: { reason: errMsg, error: true },
+    });
+    this.metrics.push({
+      classification_ms: classifyMs,
+      risk_assessment_ms: riskMs,
+      policy_evaluation_ms: policyMs,
+      guard_check_ms: guardMs,
+      proof_verification_ms: proofMs,
+      pipeline_total_ms: totalMs,
+    });
+    this.logAuditEntry({
+      timestamp: new Date().toISOString(),
+      taskId,
+      taskDescription: task.description,
+      stage: "final",
+      input: { error: errMsg },
+      output: "BLOCKED",
+      decision: "BLOCKED",
+      duration_ms: totalMs,
+      reason: `Governance error: ${errMsg}`,
+    });
+    return {
+      taskId,
+      taskType: taskType ?? TaskType.FEATURE_LIMITED,
+      riskLevel: riskLevel ?? RiskLevel.HIGH,
+      policyDecision: {
+        decision: "BLOCKED",
+        policy: null,
+        proofsRequired: [],
+        humanApproval: false,
+        reason: `Governance error: ${errMsg}`,
+      },
+      guardDecision: "BLOCKED",
+      proofStatus: "FAIL",
+      verdict: "BLOCKED",
+    };
+  }
   }
 
   private checkMinimumProofs(chain: ProofChain, required: ProofType[]): boolean {
