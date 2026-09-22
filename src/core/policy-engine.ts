@@ -1,4 +1,4 @@
-// src/core/policy-engine.ts — Policy Evaluation Engine (no external deps)
+// src/core/policy-engine.ts — Policy Evaluation Engine
 
 import {
   TaskSpec,
@@ -12,12 +12,45 @@ import {
 } from "./types";
 import { assessRisk } from "./risk-assessor";
 import { filterModelPlan, loadRegistry, type CostRegistry, type EngineMode } from "./mode";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { parse as parseYaml } from "yaml";
 
 export class PolicyEngine {
   private policies: PolicySpec[] = [];
 
   constructor() {
-    this.policies = this.getDefaultPolicies();
+    this.policies = this.loadPolicies();
+  }
+
+  private loadPolicies(): PolicySpec[] {
+    try {
+      // Resolve from project root (works from both src/ and dist/)
+      const yamlPath = join(process.cwd(), "src", "policies", "default.yaml");
+      const content = readFileSync(yamlPath, "utf-8");
+      const doc = parseYaml(content) as { policies?: unknown[] };
+      const rawPolicies = doc?.policies || [];
+
+      if (rawPolicies.length > 0) {
+        return rawPolicies.map((p: unknown) => {
+          const policy = p as Record<string, unknown>;
+          return {
+            name: policy.name as string,
+            complexity: policy.complexity as TaskComplexity,
+            taskTypes: (policy.task_types || policy.taskTypes || []) as TaskType[],
+            risk: policy.risk as RiskLevel,
+            agents: (policy.agents as string[]) || [],
+            modelPlan: PolicyEngine.parseModelPlan(policy),
+            proofsRequired: (policy.proofs_required || policy.proofsRequired || []) as ProofType[],
+            humanApproval: (policy.human_approval ?? policy.humanApproval ?? false) as boolean,
+            securityScan: (policy.security_scan ?? policy.securityScan ?? false) as boolean,
+          };
+        });
+      }
+    } catch (error) {
+      console.error("[PolicyEngine] Failed to load YAML, using defaults:", error);
+    }
+    return this.getDefaultPolicies();
   }
 
   private getDefaultPolicies(): PolicySpec[] {
@@ -232,7 +265,8 @@ export class PolicyEngine {
    * empty lists (callers fail closed on empty plans).
    */
   private static parseModelPlan(p: Record<string, unknown>): ModelPlan {
-    const direct = p.modelPlan ?? p.modelplan;
+    // YAML uses snake_case (model_plan), but we also accept camelCase (modelPlan/modelplan)
+    const direct = p.model_plan ?? p.modelPlan ?? p.modelplan;
     if (direct && typeof direct === "object" && !Array.isArray(direct)) {
       const d = direct as Record<string, unknown>;
       return {
