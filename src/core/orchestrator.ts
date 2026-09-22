@@ -210,9 +210,10 @@ export class GovernanceOrchestrator {
     // Global try/catch for fail-closed behavior (B2)
     let startClassify = 0;
     try {
-      startClassify = Date.now();
-      taskType = classifyTask(task);
-    } catch (err) {
+      try {
+        startClassify = Date.now();
+        taskType = classifyTask(task);
+      } catch (err) {
       classifyMs = Date.now() - startClassify;
       const totalMs = Date.now() - startTotal;
       budget.spend(classifyMs);
@@ -851,6 +852,7 @@ export class GovernanceOrchestrator {
       proofStatus: "FAIL",
       verdict: "BLOCKED",
     };
+  }
   }
 
   private checkMinimumProofs(chain: ProofChain, required: ProofType[]): boolean {
