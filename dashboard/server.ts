@@ -259,6 +259,107 @@ interface ChatRequest {
   complexity?: string;
 }
 
+// ─── Exécution réelle via workers gratuits (D1) ────────────────
+// Appelle les providers gratuits via HTTP réel (comme free-probe.py),
+// avec fallback en chaîne. Lit les clés depuis ~/.config/opencode/.
+
+function readKey(name: string): string {
+  try {
+    return readFileSync(join(EURINHASH_DIR, name), "utf-8").trim();
+  } catch {
+    return "";
+  }
+}
+
+interface WorkerCall {
+  name: string;
+  url: string;
+  keyFile: string;
+  model: string;
+}
+
+const WORKER_CALLS: WorkerCall[] = [
+  {
+    name: "worker-groq",
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    keyFile: ".groq-key",
+    model: "qwen/qwen3.8-27b",
+  },
+  {
+    name: "worker-zhipu",
+    url: "https://api.z.ai/api/paas/v4/chat/completions",
+    keyFile: ".zhipu-key",
+    model: "glm-4.7-flash",
+  },
+  {
+    name: "worker-codestral",
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    keyFile: ".openrouter-key",
+    model: "poolside/laguna-s-2.1:free",
+  },
+];
+
+async function callWorker(worker: WorkerCall, prompt: string, timeoutMs = 30000): Promise<{
+  ok: boolean;
+  output?: string;
+  error?: string;
+  status?: number;
+}> {
+  const key = readKey(worker.keyFile);
+  if (!key) return { ok: false, error: `clé ${worker.keyFile} absente` };
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(worker.url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: worker.model,
+        messages: [
+          { role: "system", content: "Tu es EURINHASH, un agent d'ingénierie. Réponds de façon concise et technique." },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 500,
+        temperature: 0.3,
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      return { ok: false, error: `HTTP ${res.status}: ${body.slice(0, 120)}`, status: res.status };
+    }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const output = data.choices?.[0]?.message?.content?.trim() || "(réponse vide)";
+    return { ok: true, output };
+  } catch (err: any) {
+    return { ok: false, error: err?.name === "AbortError" ? "timeout" : err?.message || "erreur" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function executeWithWorker(prompt: string): Promise<{
+  success: boolean;
+  output?: string;
+  error?: string;
+  provider?: string;
+}> {
+  for (const worker of WORKER_CALLS) {
+    const result = await callWorker(worker, prompt);
+    if (result.ok) {
+      return { success: true, output: result.output, provider: worker.name };
+    }
+    // 429 → essayer le suivant
+    if (result.status === 429) continue;
+    // Autre erreur → essayer le suivant aussi (failover)
+  }
+  return { success: false, error: "Tous les workers gratuits ont échoué (quota/auth/timeout)" };
+}
+
 async function handleChat(body: ChatRequest) {
   if (!body?.message || typeof body.message !== "string" || body.message.trim().length === 0) {
     return Response.json({ error: "message requis" }, { status: 400 });
@@ -274,9 +375,16 @@ async function handleChat(body: ChatRequest) {
   const result = await orchestrator.execute(task);
   const elapsed = Date.now() - start;
 
+  // D1 : si APPROVED, exécuter réellement via un worker gratuit
+  let execution = null;
+  if (result.verdict === "APPROVED") {
+    execution = await executeWithWorker(body.message.trim());
+  }
+
   return Response.json({
     result,
     elapsedMs: elapsed,
+    execution,
     summary: orchestrator.getSummary(),
   });
 }

@@ -266,11 +266,27 @@ function addChatMessage(role, html, meta) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-function renderGovernanceResult(result, elapsedMs) {
+function renderGovernanceResult(result, elapsedMs, execution) {
   const r = result;
   const verdictColor = r.verdict === "APPROVED" ? "success" : r.verdict === "BLOCKED" ? "error" : "warning";
   const guardColor = r.guardDecision === "ALLOWED" ? "success" : r.guardDecision === "WARN" ? "warning" : "error";
   const proofColor = r.proofStatus === "PASS" ? "success" : r.proofStatus === "PENDING" ? "warning" : "error";
+
+  let execHtml = "";
+  if (execution) {
+    if (execution.success) {
+      execHtml = `
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+          <div><span class="success">✓ Exécuté par ${esc(execution.provider)}</span></div>
+          <div class="term-muted" style="margin-top:6px;font-family:var(--font-mono);font-size:11px;white-space:pre-wrap">${esc(execution.output || "")}</div>
+        </div>`;
+    } else {
+      execHtml = `
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+          <div><span class="error">✗ Exécution échouée</span> <span class="dim">${esc(execution.error || "")}</span></div>
+        </div>`;
+    }
+  }
 
   return `
     <div class="agent-badges">
@@ -286,6 +302,7 @@ function renderGovernanceResult(result, elapsedMs) {
       <div><span class="muted">Proofs:</span> <span class="${proofColor}">${esc(r.proofStatus)}</span></div>
       ${r.policyDecision?.humanApproval ? '<div><span class="warning">⚠ Human approval required</span></div>' : ""}
     </div>
+    ${execHtml}
   `;
 }
 
@@ -320,7 +337,7 @@ async function sendChat() {
       addChatMessage("agent", `<span class="error">✗ ${esc(data.error)}</span>`, "EurinHash Agent · erreur");
       return;
     }
-    addChatMessage("agent", renderGovernanceResult(data.result, data.elapsedMs),
+    addChatMessage("agent", renderGovernanceResult(data.result, data.elapsedMs, data.execution),
       "EurinHash Agent · " + fmtTime(Date.now()));
   } catch (err) {
     thinking.remove();
