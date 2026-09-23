@@ -2,10 +2,14 @@
 // Vrai poste de pilotage : chat → orchestrateur, git réel, file tree réel,
 // terminal sécurisé via GuardOverrides, ressources système réelles.
 //
-// Usage: bun run dashboard  →  http://localhost:4321
+// Usage:
+//   bun run dashboard                          → pilote opencode-config
+//   bun run dashboard -- /chemin/vers/projet   → pilote n'importe quel projet
+//   EURINHASH_DASHBOARD_DIR=/projet bun run dashboard
+//   EURINHASH_DASHBOARD_PORT=9999 bun run dashboard
 
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
-import { join, dirname, relative, basename } from "node:path";
+import { join, dirname, relative, basename, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
 import { GovernanceOrchestrator } from "../src/core/orchestrator";
@@ -13,17 +17,23 @@ import { GuardOverrides } from "../src/core/guard-overrides";
 import type { TaskSpec } from "../src/core/types";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, "..");
+const EURINHASH_DIR = join(__dirname, ".."); // config EURINHASH (workers, logs, mode)
 const PORT = Number(process.env.EURINHASH_DASHBOARD_PORT || 4321);
+
+// Workspace à piloter : argument CLI > env var > défaut = opencode-config
+const cliArg = process.argv.slice(2).filter((a) => !a.startsWith("--")).join(" ");
+const WORKSPACE_DIR = resolve(
+  process.env.EURINHASH_DASHBOARD_DIR || cliArg || EURINHASH_DIR
+);
 
 // Orchestrateur partagé (une instance pour toute la session)
 const orchestrator = new GovernanceOrchestrator();
 const guardOverrides = new GuardOverrides();
 
-// ─── Lecture JSON sécurisée ────────────────────────────────────
+// ─── Lecture JSON sécurisée (depuis EURINHASH_DIR) ─────────────
 
 function readJson(rel: string): unknown {
-  const p = join(ROOT, rel);
+  const p = join(EURINHASH_DIR, rel);
   if (!existsSync(p)) return null;
   try {
     return JSON.parse(readFileSync(p, "utf-8"));
@@ -89,7 +99,7 @@ const AUDIT_CATEGORY: Record<string, string> = {
 };
 
 function readActivity(): ActivityEntry[] {
-  const logsDir = join(ROOT, "logs");
+  const logsDir = join(EURINHASH_DIR, "logs");
   if (!existsSync(logsDir)) return [];
   const files = readdirSync(logsDir)
     .filter((f) => /^governance-audit-.*\.jsonl$/.test(f))
@@ -122,7 +132,7 @@ function readActivity(): ActivityEntry[] {
 interface LogLine { level: string; message: string }
 
 function readLogs(): LogLine[] {
-  const logsDir = join(ROOT, "logs");
+  const logsDir = join(EURINHASH_DIR, "logs");
   if (!existsSync(logsDir)) return [];
   const files = readdirSync(logsDir)
     .filter((f) => /^governance-audit-.*\.jsonl$/.test(f))
@@ -153,7 +163,7 @@ function readMode(): string {
 
 function git(args: string): string {
   try {
-    return execSync(`git ${args}`, { cwd: ROOT, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }).trim();
+    return execSync(`git ${args}`, { cwd: WORKSPACE_DIR, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }).trim();
   } catch {
     return "";
   }
@@ -293,7 +303,7 @@ function handleTerminal(body: TerminalRequest) {
 
   try {
     const output = execSync(body.command, {
-      cwd: ROOT,
+      cwd: WORKSPACE_DIR,
       encoding: "utf-8",
       timeout: 10000,
       stdio: ["pipe", "pipe", "pipe"],
@@ -309,12 +319,13 @@ function handleTerminal(body: TerminalRequest) {
 
 function buildState() {
   return {
+    workspace: WORKSPACE_DIR,
     workers: readWorkers(),
     activity: readActivity(),
     logs: readLogs(),
     mode: readMode(),
     git: readGit(),
-    files: buildTree(ROOT, ROOT, 0),
+    files: buildTree(WORKSPACE_DIR, WORKSPACE_DIR, 0),
     system: readSystem(),
     agent: { status: "running", model: "Claude 3.5 Sonnet" },
     timestamp: Date.now(),
@@ -365,7 +376,7 @@ const server = Bun.serve({
         const body = await req.json() as { action: string; message?: string };
         if (body.action === "commit" && body.message) {
           const out = execSync(`git add -A && git commit -m "${body.message.replace(/"/g, '\\"')}"`, {
-            cwd: ROOT, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"],
+            cwd: WORKSPACE_DIR, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"],
           }).trim();
           return Response.json({ ok: true, output: out });
         }
@@ -395,5 +406,7 @@ console.log(`  │  EURINHASH Command Center                    │`);
 console.log(`  │  http://localhost:${PORT}                       │`);
 console.log(`  │  API: /api/state · /api/chat · /api/git      │`);
 console.log(`  │       /api/files · /api/system · /api/terminal│`);
-console.log(`  ╰──────────────────────────────────────────────╯\n`);
+console.log(`  ╰──────────────────────────────────────────────╯`);
+console.log(`  Workspace : ${WORKSPACE_DIR}`);
+console.log(`  EURINHASH : ${EURINHASH_DIR}`);
 console.log(`  Server listening on port ${server.port}`);

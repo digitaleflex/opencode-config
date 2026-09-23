@@ -12,6 +12,7 @@
     "chaos": "bun run scripts/chaos/chaos-lab.ts",
     "test:golden": "bun run scripts/verify-golden.ts",
     "dashboard": "bun run dashboard/server.ts",
+    "dashboard:proj": "bun run dashboard/server.ts --",
     "format": "prettier --write \"src/**/*.ts\" \"scripts/**/*.ts\" \"plugin/*.ts\" \"tests/**/*.ts\" \"*.json\" \".opencode/*.json\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"scripts/**/*.ts\" \"plugin/*.ts\" \"tests/**/*.ts\" \"*.json\" \".opencode/*.json\"",
     "verify": "bun run format:check && bun run typecheck && bun run test && bun run test:fuzz && bun run test:golden"

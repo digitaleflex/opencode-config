@@ -138,6 +138,12 @@ function renderStatusBar(state) {
     const months = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
     date.textContent = `${String(d.getDate()).padStart(2,"0")} ${months[d.getMonth()]} ${d.getFullYear()}`;
   }
+  // Workspace actif
+  const ws = $("#workspace-name");
+  if (ws && state.workspace) {
+    const parts = state.workspace.replace(/\\/g, "/").split("/");
+    ws.innerHTML = `${esc(parts[parts.length - 1] || state.workspace)} <span class="dim">˅</span>`;
+  }
 }
 
 // ─── Rendu Git réel ────────────────────────────────────────────
