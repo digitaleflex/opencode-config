@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/tui.json",
-  "theme": "tokyonight",
+  "theme": "eurinhash-command-center",
 
   "attention": {
     "enabled": true,
