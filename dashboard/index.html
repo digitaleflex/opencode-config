@@ -53,20 +53,7 @@
         <div class="sidebar-title">Workspace <span class="dim">×</span></div>
         <div class="workspace-selector" id="workspace-name">opencode-config <span class="dim">˅</span></div>
         <ul class="file-tree" id="file-tree">
-          <li><span class="chevron">▸</span><span class="tree-icon">📁</span> .github</li>
-          <li><span class="chevron">▸</span><span class="tree-icon">📁</span> agents</li>
-          <li><span class="chevron">▸</span><span class="tree-icon">📁</span> commands</li>
-          <li><span class="chevron">▸</span><span class="tree-icon">📁</span> mcp</li>
-          <li><span class="chevron">▸</span><span class="tree-icon">📁</span> rules</li>
-          <li><span class="chevron">▸</span><span class="tree-icon">📁</span> scripts</li>
-          <li class="selected"><span class="chevron">▾</span><span class="tree-icon">📁</span> src</li>
-          <li class="indent"><span class="tree-icon">📁</span> core</li>
-          <li class="indent"><span class="tree-icon">📁</span> policies</li>
-          <li><span class="chevron">▸</span><span class="tree-icon">📁</span> tests</li>
-          <li><span class="chevron">▸</span><span class="tree-icon">📁</span> docs</li>
-          <li><span class="tree-icon">📄</span> README.md</li>
-          <li><span class="tree-icon">⚙</span> opencode.jsonc</li>
-          <li><span class="tree-icon">📦</span> package.json</li>
+          <li class="muted" style="padding:4px 8px;font-size:11px">Chargement...</li>
         </ul>
       </div>
 
@@ -105,40 +92,17 @@
       </div>
 
       <div class="chat" id="chat">
-        <!-- Message utilisateur -->
-        <div class="msg user">
-          <div class="msg-meta">You · 14:23</div>
-          <div class="msg-bubble">Implémente un wrapper pour hash-direct.py avec quota tracking et circuit breaker. Utilise les clés dans ~/.config/opencode/.</div>
-        </div>
-
-        <!-- Réponse agent -->
-        <div class="msg agent">
+        <!-- Message de bienvenue (remplacé par les données réelles) -->
+        <div class="msg agent" id="welcome-msg">
           <div class="msg-meta">
             <span class="accent">#</span>
             <span>EurinHash Agent</span>
             <span class="dim">·</span>
-            <span>24:23</span>
-          </div>
-          <div class="agent-badges">
-            <span class="agent-badge">Planning</span>
-            <span class="agent-badge">Reading files</span>
-            <span class="agent-badge">Implementing</span>
+            <span>Command Center</span>
           </div>
           <div class="msg-bubble">
-            <div>Je vais analyser le fichier existant, puis implémenter un wrapper avec :</div>
-            <ul class="checklist">
-              <li><span class="done">✓</span> Quota tracking (par provider)</li>
-              <li><span class="done">✓</span> Circuit breaker</li>
-              <li><span class="todo">○</span> Utilisation des clés depuis ~/.config/opencode/</li>
-              <li><span class="todo">○</span> Tests et documentation</li>
-            </ul>
-            <div class="file-card">
-              <span class="file-path">src/providers/hash_wrapper.py</span>
-              <span class="file-diff">+124 -0</span>
-              <span class="file-badge">Created</span>
-              <span class="file-review">Review</span>
-            </div>
-            <div class="details-toggle">⌄ Détails de l'implémentation</div>
+            <div><span class="success">●</span> <strong>Command Center en ligne</strong></div>
+            <div class="muted" style="margin-top:6px">Envoie une demande ci-dessous pour la soumettre au GovernanceOrchestrator (classification → risk → policy → guard → proof).</div>
           </div>
         </div>
 
@@ -158,7 +122,7 @@
 
       <div class="chat-input-wrap">
         <div class="chat-input">
-          <input type="text" placeholder="Écris ta demande... (Ctrl+↵ pour envoyer, / pour commandes)" />
+          <input type="text" placeholder="Écris ta demande... (Entrée pour envoyer, Shift+Entrée pour nouvelle ligne)" />
           <div class="input-actions">
             <span class="input-action">📎</span>
             <span class="input-action">🔧</span>
@@ -217,44 +181,10 @@
         <div class="panel-card-title">Activity <span class="blue" style="cursor:pointer">See all →</span></div>
         <div class="activity-list" id="activity-list">
           <div class="activity-item">
-            <span class="activity-icon">📄</span>
+            <span class="activity-icon">◈</span>
             <div class="activity-body">
-              <div class="activity-title">File created</div>
-              <div class="activity-detail">src/providers/hash_wrapper.py · +124</div>
+              <div class="activity-title muted">Chargement de l'activité...</div>
             </div>
-            <span class="activity-time">14:24</span>
-          </div>
-          <div class="activity-item">
-            <span class="activity-icon">📖</span>
-            <div class="activity-body">
-              <div class="activity-title">Read file</div>
-              <div class="activity-detail">scripts/hash-direct.py · 342 lines</div>
-            </div>
-            <span class="activity-time">14:23</span>
-          </div>
-          <div class="activity-item">
-            <span class="activity-icon">⌕</span>
-            <div class="activity-body">
-              <div class="activity-title">Searched</div>
-              <div class="activity-detail">"quota tracking" · 12 results</div>
-            </div>
-            <span class="activity-time">14:23</span>
-          </div>
-          <div class="activity-item">
-            <span class="activity-icon">▶</span>
-            <div class="activity-body">
-              <div class="activity-title">Executed</div>
-              <div class="activity-detail">python --version · 1.2s</div>
-            </div>
-            <span class="activity-time">14:23</span>
-          </div>
-          <div class="activity-item">
-            <span class="activity-icon">🔌</span>
-            <div class="activity-body">
-              <div class="activity-title">MCP</div>
-              <div class="activity-detail">agentdeals · Connected</div>
-            </div>
-            <span class="activity-time">14:22</span>
           </div>
         </div>
       </div>
@@ -264,24 +194,7 @@
         <div class="panel-card-title">System Resources</div>
         <div id="system-resources">
           <div class="resource-row">
-            <span class="resource-label">CPU</span>
-            <div class="resource-track"><div class="resource-fill" style="width:35%;background:var(--accent)"></div></div>
-            <span class="resource-value">35%</span>
-          </div>
-          <div class="resource-row">
-            <span class="resource-label">Memory</span>
-            <div class="resource-track"><div class="resource-fill" style="width:45%;background:var(--blue)"></div></div>
-            <span class="resource-value">7.2 / 16 GB</span>
-          </div>
-          <div class="resource-row">
-            <span class="resource-label">Disk</span>
-            <div class="resource-track"><div class="resource-fill" style="width:42%;background:#A78BFA"></div></div>
-            <span class="resource-value">42 / 100 GB</span>
-          </div>
-          <div class="resource-row">
-            <span class="resource-label">Network</span>
-            <div class="resource-track"><div class="resource-fill" style="width:30%;background:var(--warning)"></div></div>
-            <span class="resource-value">12.4 MB/s</span>
+            <span class="resource-label muted">Chargement...</span>
           </div>
         </div>
       </div>
@@ -302,13 +215,7 @@
       </div>
       <div class="terminal-body" id="terminal-body">
         <div class="term-line"><span class="term-prompt">PS C:\Users\PC\opencode-config&gt;</span></div>
-        <div class="term-line"><span class="term-cmd">python scripts/hash-direct.py --test</span></div>
-        <div class="term-line"><span class="term-info">[INFO]</span> <span class="term-muted">Loading configuration from ~/.config/opencode/</span></div>
-        <div class="term-line"><span class="term-info">[INFO]</span> <span class="term-muted">Quota tracking enabled</span></div>
-        <div class="term-line"><span class="term-info">[INFO]</span> <span class="term-muted">Testing provider: openrouter</span></div>
-        <div class="term-line"><span class="term-success">[SUCCESS]</span> <span class="term-muted">Connection success (278ms)</span></div>
-        <div class="term-line"><span class="term-info">[INFO]</span> <span class="term-muted">Remaining quota: 87% (openrouter)</span></div>
-        <div class="term-line"><span class="term-prompt">PS C:\Users\PC\opencode-config&gt;</span></div>
+        <div class="term-line"><span class="term-muted">Terminal prêt — exécute une commande ci-dessous (GuardOverrides actif).</span></div>
       </div>
       <div class="terminal-input-row">
         <span class="term-prompt">PS C:\Users\PC\opencode-config&gt;</span>

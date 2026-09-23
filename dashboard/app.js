@@ -143,6 +143,9 @@ function renderStatusBar(state) {
   if (ws && state.workspace) {
     const parts = state.workspace.replace(/\\/g, "/").split("/");
     ws.innerHTML = `${esc(parts[parts.length - 1] || state.workspace)} <span class="dim">˅</span>`;
+    currentPrompt = `PS ${state.workspace}>`;
+    const termPrompt = $(".terminal-input-row .term-prompt");
+    if (termPrompt) termPrompt.textContent = currentPrompt;
   }
 }
 
@@ -334,8 +337,9 @@ async function sendTerminal() {
   if (!command) return;
 
   const body = $("#terminal-body");
+  const prompt = currentPrompt;
   input.value = "";
-  body.innerHTML += `<div class="term-line"><span class="term-prompt">PS C:\\Users\\PC\\opencode-config&gt;</span> <span class="term-cmd">${esc(command)}</span></div>`;
+  body.innerHTML += `<div class="term-line"><span class="term-prompt">${esc(prompt)}</span> <span class="term-cmd">${esc(command)}</span></div>`;
 
   try {
     const res = await fetch("/api/terminal", {
@@ -403,17 +407,22 @@ async function poll() {
 
 // ─── Init ──────────────────────────────────────────────────────
 
+let currentPrompt = "PS C:\\Users\\PC\\opencode-config>";
+
 document.addEventListener("DOMContentLoaded", () => {
   poll();
   setInterval(poll, POLL_MS);
 
-  // Chat
+  // Chat — Entrée simple envoie (Shift+Entrée = nouvelle ligne)
   const sendBtn = $(".send-btn");
   const chatInput = $(".chat-input input");
   if (sendBtn) sendBtn.addEventListener("click", sendChat);
   if (chatInput) {
     chatInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendChat();
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendChat();
+      }
     });
   }
 
