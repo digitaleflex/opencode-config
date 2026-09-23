@@ -739,6 +739,27 @@ html, body {
 .term-error { color: var(--error); }
 .term-muted { color: var(--text-dim); }
 
+.terminal-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.terminal-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.terminal-input::placeholder { color: var(--text-dim); }
+
 /* ============================================================
    STATUS BAR
    ============================================================ */
