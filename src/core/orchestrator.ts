@@ -3,6 +3,7 @@ import { assessRisk } from "./risk-assessor";
 import { PolicyEngine } from "./policy-engine";
 import { ProofVerifier } from "./proof-verifier";
 import { saveProofChain } from "./proof-store";
+import { logGovernanceEvent } from "./governance-events";
 import { MerkleAuditTrail } from "./merkle-audit";
 import { AnomalyDetector } from "./anomaly-detection";
 import { InjectionDetector } from "./injection-detection";
@@ -255,6 +256,7 @@ export class GovernanceOrchestrator {
       decision: "APPROVED",
       duration_ms: classifyMs,
     });
+    logGovernanceEvent("governance.classify", { taskId, decision: "APPROVED", taskType });
 
     let ex = budget.exhausted();
     if (ex.exhausted) return budgetBlocked(ex.reason!, "classification");
@@ -274,6 +276,7 @@ export class GovernanceOrchestrator {
       decision: "APPROVED",
       duration_ms: riskMs,
     });
+    logGovernanceEvent("governance.risk", { taskId, decision: "APPROVED", riskLevel });
 
     ex = budget.exhausted();
     if (ex.exhausted) return budgetBlocked(ex.reason!, "risk");
@@ -474,6 +477,11 @@ export class GovernanceOrchestrator {
       decision: policyDecision.decision as "APPROVED" | "BLOCKED" | "PENDING",
       duration_ms: policyMs,
     });
+    logGovernanceEvent("governance.policy", {
+      taskId,
+      decision: policyDecision.decision === "REQUIRES_HUMAN" ? "PENDING" : policyDecision.decision,
+      policy: policyDecision.policy?.name ?? null,
+    });
 
     ex = budget.exhausted();
     if (ex.exhausted) return budgetBlocked(ex.reason!, "policy");
@@ -638,6 +646,12 @@ export class GovernanceOrchestrator {
       duration_ms: guardMs,
       reason: guardResult.reason,
     });
+    logGovernanceEvent("governance.guard", {
+      taskId,
+      decision: guardResult.decision === "ALLOWED" ? "APPROVED" : "BLOCKED",
+      guardDecision: guardResult.decision,
+      reason: guardResult.reason,
+    });
 
     ex = budget.exhausted();
     if (ex.exhausted) return budgetBlocked(ex.reason!, "guard");
@@ -685,6 +699,12 @@ export class GovernanceOrchestrator {
       output: { proofStatus, hasAllRequiredProofs },
       decision: proofStatus === "PASS" && hasAllRequiredProofs ? "APPROVED" : "BLOCKED",
       duration_ms: proofMs,
+    });
+    logGovernanceEvent("governance.proof", {
+      taskId,
+      decision: proofStatus === "PASS" && hasAllRequiredProofs ? "APPROVED" : "BLOCKED",
+      proofStatus,
+      hasAllRequiredProofs,
     });
 
     // D3: Record to merkle audit trail for tamper-evident logging

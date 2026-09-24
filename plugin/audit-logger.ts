@@ -227,3 +227,8 @@ const plugin: Plugin = (async () => {
 }) as unknown as Plugin;
 
 export default plugin;
+
+// Surface canonique des événements de gouvernance (implémentation
+// import-safe dans src/core/governance-events.ts — même flux audit-*.jsonl).
+export { logGovernanceEvent } from "../src/core/governance-events";
+export type { GovernanceEventName, GovernanceEventFields } from "../src/core/governance-events";
