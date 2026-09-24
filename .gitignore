@@ -45,3 +45,4 @@ scripts/chaos/results-*.json
 .slim/clonedeps/repos/
 # END oh-my-opencode-slim clonedeps
 route-usage.json
+.oh-my-opencode-slim/
