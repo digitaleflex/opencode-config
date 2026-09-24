@@ -4,6 +4,7 @@ import { PolicyEngine } from "./policy-engine";
 import { ProofVerifier } from "./proof-verifier";
 import { saveProofChain } from "./proof-store";
 import { logGovernanceEvent } from "./governance-events";
+import type { WorkerExecutor } from "./worker-client";
 import { MerkleAuditTrail } from "./merkle-audit";
 import { AnomalyDetector } from "./anomaly-detection";
 import { InjectionDetector } from "./injection-detection";
@@ -77,6 +78,7 @@ export class GovernanceOrchestrator {
   private guardOverrides: GuardOverrides;
   private budgetOpts?: TaskBudgetOpts;
   private stateStore: StateStore | null;
+  private workerExecutor: WorkerExecutor | null;
   private mcpGovernance: McpGovernance | null = null;
   private static readonly GUARD_TIMEOUT_MS = 50;
 
@@ -85,8 +87,13 @@ export class GovernanceOrchestrator {
    * @param stateStore optional persistence store; when provided the anomaly
    *   baseline is loaded at construction and saved after each execute().
    *   Persistence is opt-in so callers keep hermetic behavior by default.
+   * @param workerExecutor called after an APPROVED verdict to really execute
+   *   the task (D1). Omitted/null = no execution, output stays undefined.
+   *   Network/quota must never be an implicit side effect: the application
+   *   (dashboard) injects defaultWorkerExecutor() explicitly; tests inject
+   *   a stub or nothing. An execution failure never changes the verdict.
    */
-  constructor(budgetOpts?: TaskBudgetOpts, stateStore?: StateStore | null) {
+  constructor(budgetOpts?: TaskBudgetOpts, stateStore?: StateStore | null, workerExecutor?: WorkerExecutor | null) {
     this.policyEngine = new PolicyEngine();
     this.proofVerifier = new ProofVerifier();
     this.merkleAudit = new MerkleAuditTrail();
@@ -96,6 +103,7 @@ export class GovernanceOrchestrator {
     this.guardOverrides = new GuardOverrides();
     this.budgetOpts = budgetOpts;
     this.stateStore = stateStore ?? null;
+    this.workerExecutor = workerExecutor ?? null;
     if (this.stateStore) {
       this.anomalyDetector.load(this.stateStore, "anomaly");
     }
@@ -794,6 +802,25 @@ export class GovernanceOrchestrator {
       console.warn(`[GovernanceOrchestrator] proof persistence failed for ${taskId}: ${(err as Error).message}`);
     }
 
+    // D1 : exécution réelle après APPROVED. L'échec d'exécution ne change
+    // jamais le verdict (la décision porte sur la permission, pas l'issue).
+    // Sans exécuteur injecté : pas d'exécution, output reste undefined.
+    let output: string | undefined;
+    let provider: string | undefined;
+    if (verdict === "APPROVED" && this.workerExecutor) {
+      try {
+        const exec = await this.workerExecutor(task.description);
+        if (exec.success) {
+          output = exec.output;
+          provider = exec.provider;
+        } else {
+          console.warn(`[GovernanceOrchestrator] worker execution failed for ${taskId}: ${exec.error}`);
+        }
+      } catch (err) {
+        console.warn(`[GovernanceOrchestrator] worker executor threw for ${taskId}: ${(err as Error).message}`);
+      }
+    }
+
     const totalMs = Date.now() - startTotal;
 
     this.logAuditEntry({
@@ -848,6 +875,8 @@ export class GovernanceOrchestrator {
       guardDecision: guardResult.decision === "WARN" ? "BLOCKED" : guardResult.decision,
       proofStatus,
       verdict,
+      ...(output !== undefined ? { output } : {}),
+      ...(provider !== undefined ? { provider } : {}),
     };
   } catch (error) {
     // Fail-closed: any unexpected error = BLOCKED
@@ -966,67 +995,6 @@ export class GovernanceOrchestrator {
 
   private generateId(): string {
     return `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
-
-  private async executeWorker(task: TaskSpec): Promise<{
-    success: boolean;
-    output?: string;
-    error?: string;
-    provider?: string;
-    statusCode?: number;
-  }> {
-    const WORKER_CHAIN = ["worker-codestral", "worker-groq", "worker-zhipu", "worker-novita"];
-    const maxRetries = WORKER_CHAIN.length;
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const worker = WORKER_CHAIN[attempt];
-      try {
-        const result = await this.runWorkerWithTimeout(worker, task);
-        if (result.success) {
-          return { success: true, output: result.output, provider: worker, statusCode: 200 };
-        }
-        if (result.statusCode === 429 && attempt < maxRetries - 1) continue;
-        return {
-          success: false,
-          error: result.error,
-          provider: worker,
-          statusCode: result.statusCode,
-        };
-      } catch (err) {
-        if (attempt < maxRetries - 1) continue;
-        return { success: false, error: (err as Error).message, provider: worker };
-      }
-    }
-    return { success: false, error: "All workers exhausted", provider: undefined, statusCode: 0 };
-  }
-
-  private async runWorkerWithTimeout(
-    worker: string,
-    task: TaskSpec
-  ): Promise<{ success: boolean; output?: string; error?: string; statusCode?: number }> {
-    return new Promise((resolve) => {
-      setTimeout(
-        () => {
-          if (worker === "worker-codestral") {
-            resolve({
-              success: true,
-              output: `Executed by ${worker}: ${task.description.substring(0, 50)}...`,
-            });
-          } else {
-            const is429 = Math.random() > 0.5;
-            if (is429) {
-              resolve({ success: false, error: "Rate limit exceeded", statusCode: 429 });
-            } else {
-              resolve({
-                success: true,
-                output: `Executed by ${worker}: ${task.description.substring(0, 50)}...`,
-              });
-            }
-          }
-        },
-        50 + Math.random() * 100
-      );
-    });
   }
 
   getSummary(): { policiesLoaded: number; version: string } {

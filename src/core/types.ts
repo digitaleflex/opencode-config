@@ -146,6 +146,11 @@ export type ExecutionResult = {
   guardDecision: "BLOCKED" | "ALLOWED" | "WARN";
   proofStatus: "PASS" | "FAIL" | "PENDING";
   verdict: "APPROVED" | "BLOCKED" | "REJECTED";
+  /** Sortie du worker après APPROVED (D1). Absent si pas d'exécuteur
+   *  injecté ou si l'exécution a échoué — le verdict n'en dépend pas. */
+  output?: string;
+  /** Nom du worker ayant produit output (ex. "worker-groq"). */
+  provider?: string;
 };
 
 export function isValidTaskSpec(task: unknown): task is TaskSpec {
