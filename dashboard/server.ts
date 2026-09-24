@@ -16,6 +16,8 @@ import { GovernanceOrchestrator } from "../src/core/orchestrator";
 import { GuardOverrides } from "../src/core/guard-overrides";
 import type { TaskSpec, TaskType, TaskComplexity } from "../src/core/types";
 import { vcrGet, vcrSet, vcrStats, vcrClear } from "./vcr-lite";
+// @opencode-ai/models SDK — données live de models.dev (prix, contexte, capabilities)
+import { Models } from "@opencode-ai/models";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const EURINHASH_DIR = join(__dirname, ".."); // config EURINHASH (workers, logs, mode)
@@ -53,16 +55,30 @@ interface WorkerInfo {
 }
 
 const WORKER_MODELS: Record<string, string> = {
-  "worker-opencode": "opencode/deepseek-v4-flash",
-  "worker-opencode-heavy": "opencode/glm-5",
-  "worker-codestral": "openrouter/poolside/laguna-s-2.1:free",
-  "worker-groq": "groq/qwen/qwen3.8-27b",
-  "worker-novita": "novita/inclusionai/ling-3.0-flash-sante",
-  "worker-zhipu": "zhipu/glm-4.7-flash",
-  "worker-google": "google/gemini-2.5-flash",
-  "worker-pollinations": "pollinations/openai",
-  "worker-ollama": "ollama/devstral",
-  "worker-zenmux": "zenmux/anthropic/claude-sonnet-5-free",
+  // IDs sans préfixe provider — lookup dans providers[providerId].models[modelId]
+  "worker-opencode": "deepseek-v4.1-flash",     // provider: opencode
+  "worker-opencode-heavy": "glm-5",              // provider: zhipuai
+  "worker-codestral": "poolside/laguna-s-2.1:free", // provider: openrouter
+  "worker-groq": "qwen/qwen3.8-27b",              // provider: groq
+  "worker-novita": "inclusionai/ling-3.0-flash-sante", // hors SDK → cost=0
+  "worker-zhipu": "glm-5.3-flash",               // provider: zhipuai
+  "worker-google": "gemini-flash-latest",        // provider: google
+  "worker-pollinations": "openai",                // hors SDK → cost=0
+  "worker-ollama": "devstral",                    // local → hors SDK
+  "worker-zenmux": "anthropic/claude-sonnet-5-free", // provider: zenmux
+};
+
+const WORKER_TO_PROVIDER: Record<string, string> = {
+  "worker-groq": "groq",
+  "worker-zhipu": "zhipuai",
+  "worker-google": "google",
+  "worker-codestral": "openrouter",
+  "worker-novita": "novita",       // hors SDK
+  "worker-pollinations": "pollinations", // hors SDK
+  "worker-ollama": "ollama",       // local, hors SDK
+  "worker-zenmux": "zenmux",
+  "worker-opencode": "opencode",
+  "worker-opencode-heavy": "zhipuai",
 };
 
 function readWorkers(): WorkerInfo[] {
@@ -661,11 +677,49 @@ function logExecution(entry: Record<string, unknown>): void {
   }
 }
 
-function buildStats() {
+// Cache SDK-derived cost metadata. The @opencode-ai/models SDK
+// performs a fresh GET on every call (no built-in cache), so we
+// cache for 1 hour to avoid flooding models.dev on every poll.
+let modelsMetaCache: Record<string, { cost_in: number; cost_out: number }> | null = null;
+let modelsMetaCacheTs = 0;
+const MODELS_META_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+async function getModelsMeta(): Promise<Record<string, { cost_in: number; cost_out: number }>> {
+  const now = Date.now();
+  if (modelsMetaCache && now - modelsMetaCacheTs < MODELS_META_TTL_MS) return modelsMetaCache;
+  try {
+    const providers = await Models.make().providers();
+    const meta: Record<string, { cost_in: number; cost_out: number }> = {};
+    for (const [workerName, providerId] of Object.entries(WORKER_TO_PROVIDER)) {
+      const provider = providers[providerId];
+      if (!provider) {
+        meta[workerName] = { cost_in: 0, cost_out: 0 };
+        continue;
+      }
+      const fullModelId = WORKER_MODELS[workerName] ?? "";
+      const modelId = fullModelId.replace(new RegExp(`^${providerId}/`), "");
+      const modelEntry = provider.models?.[modelId];
+      const modelCost = modelEntry?.cost;
+      if (modelCost) {
+        meta[workerName] = { cost_in: modelCost.input ?? 0, cost_out: modelCost.output ?? 0 };
+      } else {
+        meta[workerName] = { cost_in: 0, cost_out: 0 };
+      }
+    }
+    modelsMetaCache = meta;
+    modelsMetaCacheTs = now;
+    return meta;
+  } catch (err) {
+    console.warn("[stats] SDK models.dev fetch failed, using empty meta:", (err as Error).message);
+    return {};
+  }
+}
+
+async function buildStats() {
   const logsDir = join(EURINHASH_DIR, "logs");
-  const meta = (readJson("free-models.json") as {
-    models_meta?: Record<string, { cost_in?: number; cost_out?: number }>;
-  } | null)?.models_meta ?? {};
+  // Coût évité = tokens réels × prix models.dev (SDK @opencode-ai/models).
+  // Pas de fichier statique : données live depuis models.dev API.
+  const meta = await getModelsMeta();
   let exec7d = 0, execOk7d = 0, approved7d = 0, blocked7d = 0, savedUsd = 0;
   for (let i = 0; i < 7; i++) {
     const day = new Date(Date.now() - i * 86400000).toISOString().split("T")[0];
@@ -674,7 +728,8 @@ function buildStats() {
       if (e.ok === true) execOk7d++;
       const pt = Number(e.prompt_tokens);
       const ct = Number(e.completion_tokens);
-      const c = (typeof e.provider === "string" && meta[e.provider]) || {};
+      const provider = typeof e.provider === "string" ? e.provider : "";
+      const c = meta[provider] ?? { cost_in: 0, cost_out: 0 };
       if (Number.isFinite(pt)) savedUsd += (pt / 1e6) * (Number(c.cost_in) || 0);
       if (Number.isFinite(ct)) savedUsd += (ct / 1e6) * (Number(c.cost_out) || 0);
     }
@@ -727,7 +782,7 @@ const server = Bun.serve({
 
     // API
     if (path === "/api/state") return Response.json(buildState());
-    if (path === "/api/stats") return Response.json(buildStats());
+    if (path === "/api/stats") return Response.json(await buildStats());
     if (path === "/api/vcr") return Response.json(vcrStats());
     if (path === "/api/vcr/clear" && req.method === "POST") {
       const n = vcrClear();
