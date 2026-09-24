@@ -417,49 +417,87 @@ function mapGovernanceToRoute(governanceType: string): string {
 const ROUTE_TTL_MS = 60_000;
 const routeCache: Record<string, { name: string; ev: number; ts: number }> = {};
 
-function runRouteSync(routeType: string, skip: number): { name: string; ev: number } | null {
+async function withTimeout<T>(p: Promise<T>, ms: number, onTimeout: () => void): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => { try { onTimeout(); } catch { /* ignore */ } resolve(null); }, ms);
+    });
+    return await Promise.race([p, timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+// route.py sans jamais bloquer l'event loop : Bun.spawn + timeout 30s
+// (kill) + fallback python3 -> python. Sortie parsée comme avant.
+async function runRoute(routeType: string, skip: number): Promise<{ name: string; ev: number } | null> {
   const script = join(EURINHASH_DIR, "scripts", "route.py");
-  const args = `${routeType} --next=${skip}`;
-  const attempts = [`python3 "${script}" ${args}`, `python "${script}" ${args}`];
-  for (const cmd of attempts) {
+  for (const py of ["python3", "python"]) {
+    let proc: ReturnType<typeof Bun.spawn> | null = null;
     try {
-      const output = execSync(cmd, { encoding: "utf-8", timeout: 30000, cwd: EURINHASH_DIR }).trim();
-      const parts = output.split("|");
+      proc = Bun.spawn([py, script, routeType, `--next=${skip}`], {
+        cwd: EURINHASH_DIR,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const current = proc;
+      const out = current.stdout;
+      if (!(out instanceof ReadableStream)) continue;
+      const text = await withTimeout(new Response(out).text(), 30000, () => {
+        try { current.kill(); } catch { /* ignore */ }
+      });
+      const code = await current.exited;
+      if (text === null || code !== 0) continue;
+      const parts = text.trim().split("|");
       if (parts.length < 4) continue;
       const ev = parseFloat(parts[3].replace("EV=", ""));
       if (!parts[0] || Number.isNaN(ev)) continue;
       return { name: parts[0], ev };
     } catch {
+      try { proc?.kill(); } catch { /* ignore */ }
       continue;
     }
   }
   return null;
 }
 
-function getBestWorker(routeType: string, skip = 0): { name: string; ev: number } | null {
+async function getBestWorker(routeType: string, skip = 0): Promise<{ name: string; ev: number } | null> {
   if (skip === 0) {
     const cached = routeCache[routeType];
     if (cached && Date.now() - cached.ts < ROUTE_TTL_MS) return { name: cached.name, ev: cached.ev };
   }
-  const best = runRouteSync(routeType, skip);
+  const best = await runRoute(routeType, skip);
   if (best && skip === 0) routeCache[routeType] = { ...best, ts: Date.now() };
   return best;
 }
 
 function recordRouteResult(worker: string, success: boolean): void {
-  try {
+  // Invalidation synchrone (mémoire, instantanée) ; l'écriture disque
+  // part en arrière-plan : le hot path ne bloque jamais dessus.
+  for (const k of Object.keys(routeCache)) delete routeCache[k];
+  void (async () => {
     const script = join(EURINHASH_DIR, "scripts", "route.py");
     const outcome = success ? "success" : "fail";
-    try {
-      execSync(`python3 "${script}" record ${worker} ${outcome}`, { encoding: "utf-8", timeout: 10000, cwd: EURINHASH_DIR });
-    } catch {
-      execSync(`python "${script}" record ${worker} ${outcome}`, { encoding: "utf-8", timeout: 10000, cwd: EURINHASH_DIR });
+    for (const py of ["python3", "python"]) {
+      try {
+        const proc = Bun.spawn([py, script, "record", worker, outcome], {
+          cwd: EURINHASH_DIR,
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+        const out = proc.stdout;
+        const [code] = await Promise.all([
+          proc.exited,
+          out instanceof ReadableStream ? new Response(out).text().catch(() => "") : Promise.resolve(""),
+        ]);
+        if (code === 0) return;
+      } catch {
+        continue;
+      }
     }
-    // Invalide le cache : l'EV du worker vient de changer
-    for (const k of Object.keys(routeCache)) delete routeCache[k];
-  } catch (err) {
-    console.warn("[route:record] erreur:", (err as Error).message);
-  }
+    console.warn(`[route:record] échec enregistrement ${worker} ${outcome}`);
+  })();
 }
 
 // Exécute via l'ordre EV du routeur : --next=0,1,2… en sautant les
@@ -475,7 +513,7 @@ async function executeViaRouter(routeType: string, prompt: string): Promise<{
 }> {
   let lastError = "routeur indisponible";
   for (let skip = 0; skip < 6; skip++) {
-    const routed = getBestWorker(routeType, skip);
+    const routed = await getBestWorker(routeType, skip);
     if (!routed) break;
     const worker = WORKER_BY_NAME[routed.name];
     if (!worker) {
