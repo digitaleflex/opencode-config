@@ -2,6 +2,7 @@ import { classifyTask } from "./classifier";
 import { assessRisk } from "./risk-assessor";
 import { PolicyEngine } from "./policy-engine";
 import { ProofVerifier } from "./proof-verifier";
+import { saveProofChain } from "./proof-store";
 import { MerkleAuditTrail } from "./merkle-audit";
 import { AnomalyDetector } from "./anomaly-detection";
 import { InjectionDetector } from "./injection-detection";
@@ -763,6 +764,14 @@ export class GovernanceOrchestrator {
       verdict = "BLOCKED";
     } else if (policyDecision.humanApproval && !this.hasHumanApproval(proofChain)) {
       verdict = "BLOCKED";
+    }
+
+    // D2 : persiste la chaîne de preuves (best-effort — n'altère jamais le verdict ;
+    // un échec disque est journalisé, pas transformé en BLOCKED : la décision est déjà prise).
+    try {
+      await saveProofChain(proofChain);
+    } catch (err) {
+      console.warn(`[GovernanceOrchestrator] proof persistence failed for ${taskId}: ${(err as Error).message}`);
     }
 
     const totalMs = Date.now() - startTotal;
