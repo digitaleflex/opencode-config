@@ -686,6 +686,20 @@ export class GovernanceOrchestrator {
       duration_ms: proofMs,
     });
 
+    // D3: Record to merkle audit trail for tamper-evident logging
+    this.merkleAudit.record({
+      timestamp: new Date().toISOString(),
+      taskId,
+      taskDescription: task.description,
+      stage: "proof",
+      decision: proofStatus === "PASS" && hasAllRequiredProofs ? "APPROVED" : "BLOCKED",
+      detail: {
+        requiredProofs: policyDecision.proofsRequired || [],
+        proofCount: proofChain.proofs.length,
+        proofStatus,
+        hasAllRequiredProofs,
+      },
+    });
     ex = budget.exhausted();
     if (ex.exhausted) {
       const totalMs = Date.now() - startTotal;

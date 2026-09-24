@@ -297,7 +297,21 @@ const WORKER_CALLS: WorkerCall[] = [
     keyFile: ".openrouter-key",
     model: "poolside/laguna-s-2.1:free",
   },
+  {
+    name: "worker-novita",
+    url: "https://api.novita.ai/openai/v1/chat/completions",
+    keyFile: ".novita-key",
+    model: "novita/inclusionai/ling-3.0-flash-sante",
+  },
 ];
+
+// Lookup HTTP-exécutable par nom (tirets, comme route.py).
+// Volontairement exclus : worker-opencode / opencode-heavy (intégrés,
+// pas d'endpoint HTTP) et worker-google (API non OpenAI-compatible).
+// Le routeur les saute via --next au lieu d'échouer dessus.
+const WORKER_BY_NAME: Record<string, WorkerCall> = Object.fromEntries(
+  WORKER_CALLS.map((w) => [w.name, w])
+);
 
 async function callWorker(worker: WorkerCall, prompt: string, timeoutMs = 30000): Promise<{
   ok: boolean;
@@ -360,6 +374,111 @@ async function executeWithWorker(prompt: string): Promise<{
   return { success: false, error: "Tous les workers gratuits ont échoué (quota/auth/timeout)" };
 }
 
+
+// ─── Model Router D4 : gouvernance → route.py ────────────────
+// Table de mapping : TaskType gouvernance → type route.py
+// (route.py ne connaît que code/general/quick/long/heavy/review).
+function mapGovernanceToRoute(governanceType: string): string {
+  switch (governanceType) {
+    case "TYPO":
+    case "CONFIG":
+    case "FORMAT":
+    case "DOC_READ":
+    case "DOC_WRITE":
+      return "quick";
+    case "BUG_LOCALIZED":
+    case "REFACTOR_MODULE":
+      return "code";
+    case "API_CHANGE":
+    case "ARCH_DESIGN":
+      return "heavy";
+    case "SECURITY":
+      return "review";
+    case "FEATURE_LIMITED":
+    default:
+      return "general";
+  }
+}
+
+const ROUTE_TTL_MS = 60_000;
+const routeCache: Record<string, { name: string; ev: number; ts: number }> = {};
+
+function runRouteSync(routeType: string, skip: number): { name: string; ev: number } | null {
+  const script = join(EURINHASH_DIR, "scripts", "route.py");
+  const args = `${routeType} --next=${skip}`;
+  const attempts = [`python3 "${script}" ${args}`, `python "${script}" ${args}`];
+  for (const cmd of attempts) {
+    try {
+      const output = execSync(cmd, { encoding: "utf-8", timeout: 30000, cwd: EURINHASH_DIR }).trim();
+      const parts = output.split("|");
+      if (parts.length < 4) continue;
+      const ev = parseFloat(parts[3].replace("EV=", ""));
+      if (!parts[0] || Number.isNaN(ev)) continue;
+      return { name: parts[0], ev };
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+function getBestWorker(routeType: string, skip = 0): { name: string; ev: number } | null {
+  if (skip === 0) {
+    const cached = routeCache[routeType];
+    if (cached && Date.now() - cached.ts < ROUTE_TTL_MS) return { name: cached.name, ev: cached.ev };
+  }
+  const best = runRouteSync(routeType, skip);
+  if (best && skip === 0) routeCache[routeType] = { ...best, ts: Date.now() };
+  return best;
+}
+
+function recordRouteResult(worker: string, success: boolean): void {
+  try {
+    const script = join(EURINHASH_DIR, "scripts", "route.py");
+    const outcome = success ? "success" : "fail";
+    try {
+      execSync(`python3 "${script}" record ${worker} ${outcome}`, { encoding: "utf-8", timeout: 10000, cwd: EURINHASH_DIR });
+    } catch {
+      execSync(`python "${script}" record ${worker} ${outcome}`, { encoding: "utf-8", timeout: 10000, cwd: EURINHASH_DIR });
+    }
+    // Invalide le cache : l'EV du worker vient de changer
+    for (const k of Object.keys(routeCache)) delete routeCache[k];
+  } catch (err) {
+    console.warn("[route:record] erreur:", (err as Error).message);
+  }
+}
+
+// Exécute via l'ordre EV du routeur : --next=0,1,2… en sautant les
+// workers non HTTP-exécutables (intégrés, google). Enregistre chaque
+// résultat → la boucle bayésienne de route.py apprend vraiment.
+async function executeViaRouter(routeType: string, prompt: string): Promise<{
+  success: boolean;
+  output?: string;
+  error?: string;
+  provider?: string;
+}> {
+  let lastError = "routeur indisponible";
+  for (let skip = 0; skip < 6; skip++) {
+    const routed = getBestWorker(routeType, skip);
+    if (!routed) break;
+    const worker = WORKER_BY_NAME[routed.name];
+    if (!worker) {
+      console.log(`[router] ${routed.name} non HTTP-exécutable, suivant (EV=${routed.ev.toFixed(3)})`);
+      continue;
+    }
+    console.log(`[router] tâche="${routeType}" → ${routed.name} EV=${routed.ev.toFixed(3)}`);
+    const result = await callWorker(worker, prompt);
+    if (result.ok) {
+      recordRouteResult(worker.name, true);
+      return { success: true, output: result.output, provider: worker.name };
+    }
+    lastError = result.error || "échec worker";
+    recordRouteResult(worker.name, false);
+    console.warn(`[router] ${worker.name} échec (${result.status ?? "?"}), suivant...`);
+  }
+  return { success: false, error: lastError };
+}
+
 async function handleChat(body: ChatRequest) {
   if (!body?.message || typeof body.message !== "string" || body.message.trim().length === 0) {
     return Response.json({ error: "message requis" }, { status: 400 });
@@ -375,10 +494,14 @@ async function handleChat(body: ChatRequest) {
   const result = await orchestrator.execute(task);
   const elapsed = Date.now() - start;
 
-  // D1 : si APPROVED, exécuter réellement via un worker gratuit
+  // D1+D4 : si APPROVED, exécuter via le routeur EV, fallback chaîne D1
   let execution = null;
   if (result.verdict === "APPROVED") {
-    execution = await executeWithWorker(body.message.trim());
+    const routeType = mapGovernanceToRoute(result.taskType || "general");
+    execution = await executeViaRouter(routeType, body.message.trim());
+    if (!execution.success) {
+      execution = await executeWithWorker(body.message.trim());
+    }
   }
 
   return Response.json({
