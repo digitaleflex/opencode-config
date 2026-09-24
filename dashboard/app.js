@@ -423,6 +423,12 @@ async function poll() {
     } catch (err) {
       console.warn("[CommandCenter] stats failed:", err.message);
     }
+    try {
+      const vres = await fetch("/api/vcr");
+      if (vres.ok) renderVCR(await vres.json());
+    } catch (err) {
+      console.warn("[CommandCenter] vcr failed:", err.message);
+    }
   } catch (err) {
     console.warn("[CommandCenter] poll failed:", err.message);
   }
@@ -437,6 +443,15 @@ function renderImpact(s) {
     `7j · ${s.exec7d} exec (${s.execOk7d} ok)` +
     ` · ${s.approved7d} approved / ${s.blocked7d} blocked` +
     ` · ~$${s.savedUsd} évités`;
+}
+
+// ─── VCR-lite cache status ──────────────────────────────────
+
+function renderVCR(v) {
+  const el = $("#vcr-line");
+  if (!el || !v) return;
+  el.textContent = `cache: ${v.cassettes} cassette(s) · mode: ${v.mode}`;
+  el.style.color = v.cassettes > 0 ? "#4ade80" : "#6b7280";
 }
 
 // ─── Init ──────────────────────────────────────────────────────

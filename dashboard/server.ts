@@ -15,6 +15,7 @@ import { execSync } from "node:child_process";
 import { GovernanceOrchestrator } from "../src/core/orchestrator";
 import { GuardOverrides } from "../src/core/guard-overrides";
 import type { TaskSpec, TaskType, TaskComplexity } from "../src/core/types";
+import { vcrGet, vcrSet, vcrStats, vcrClear } from "./vcr-lite";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const EURINHASH_DIR = join(__dirname, ".."); // config EURINHASH (workers, logs, mode)
@@ -319,7 +320,14 @@ async function callWorker(worker: WorkerCall, prompt: string, timeoutMs = 30000)
   error?: string;
   status?: number;
   usage?: { prompt_tokens?: number; completion_tokens?: number };
+  cached?: boolean;
 }> {
+  // VCR-lite : replay si cassette existe (évite appels réseau en test/dev)
+  const cached = vcrGet(worker.name, worker.model, prompt);
+  if (cached) {
+    return { ...cached.response, cached: true };
+  }
+
   const key = readKey(worker.keyFile);
   if (!key) return { ok: false, error: `clé ${worker.keyFile} absente` };
 
@@ -345,7 +353,9 @@ async function callWorker(worker: WorkerCall, prompt: string, timeoutMs = 30000)
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      return { ok: false, error: `HTTP ${res.status}: ${body.slice(0, 120)}`, status: res.status };
+      const errResult = { ok: false, error: `HTTP ${res.status}: ${body.slice(0, 120)}`, status: res.status };
+      vcrSet(worker.name, worker.model, prompt, errResult);
+      return errResult;
     }
     const data = await res.json() as {
       choices?: Array<{ message?: { content?: string } }>;
@@ -360,7 +370,9 @@ async function callWorker(worker: WorkerCall, prompt: string, timeoutMs = 30000)
           ...(Number.isFinite(ct) ? { completion_tokens: ct } : {}),
         }
       : undefined;
-    return usage ? { ok: true, output, usage } : { ok: true, output };
+    const result = usage ? { ok: true, output, usage } : { ok: true, output };
+    vcrSet(worker.name, worker.model, prompt, result);
+    return { ...result, cached: false };
   } catch (err: any) {
     return { ok: false, error: err?.name === "AbortError" ? "timeout" : err?.message || "erreur" };
   } finally {
@@ -375,11 +387,12 @@ async function executeWithWorker(prompt: string): Promise<{
   provider?: string;
   model?: string;
   usage?: { prompt_tokens?: number; completion_tokens?: number };
+  cached?: boolean;
 }> {
   for (const worker of WORKER_CALLS) {
     const result = await callWorker(worker, prompt);
     if (result.ok) {
-      return { success: true, output: result.output, provider: worker.name, model: worker.model, usage: result.usage };
+      return { success: true, output: result.output, provider: worker.name, model: worker.model, usage: result.usage, cached: result.cached };
     }
     // 429 → essayer le suivant
     if (result.status === 429) continue;
@@ -510,6 +523,7 @@ async function executeViaRouter(routeType: string, prompt: string): Promise<{
   provider?: string;
   model?: string;
   usage?: { prompt_tokens?: number; completion_tokens?: number };
+  cached?: boolean;
 }> {
   let lastError = "routeur indisponible";
   for (let skip = 0; skip < 6; skip++) {
@@ -524,7 +538,7 @@ async function executeViaRouter(routeType: string, prompt: string): Promise<{
     const result = await callWorker(worker, prompt);
     if (result.ok) {
       recordRouteResult(worker.name, true);
-      return { success: true, output: result.output, provider: worker.name, model: worker.model, usage: result.usage };
+      return { success: true, output: result.output, provider: worker.name, model: worker.model, usage: result.usage, cached: result.cached };
     }
     lastError = result.error || "échec worker";
     recordRouteResult(worker.name, false);
@@ -714,6 +728,11 @@ const server = Bun.serve({
     // API
     if (path === "/api/state") return Response.json(buildState());
     if (path === "/api/stats") return Response.json(buildStats());
+    if (path === "/api/vcr") return Response.json(vcrStats());
+    if (path === "/api/vcr/clear" && req.method === "POST") {
+      const n = vcrClear();
+      return Response.json({ ok: true, cleared: n });
+    }
     if (path === "/api/health") return Response.json({ ok: true, ts: Date.now() });
 
     if (path === "/api/chat" && req.method === "POST") {
