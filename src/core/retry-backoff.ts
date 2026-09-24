@@ -56,7 +56,7 @@ export class RetryLogic {
   ): Promise<T> {
     // Idempotency store: if we have a cached result, return it immediately
     if (idempotencyKey && this.opt.idempotencyTtlMs > 0) {
-      const cached = IdempotencyStore.get(idempotencyKey);
+      const cached = IdempotencyStore.get<T>(idempotencyKey);
       if (cached !== undefined) return cached;
     }
 

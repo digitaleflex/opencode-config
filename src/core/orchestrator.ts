@@ -136,12 +136,12 @@ export class GovernanceOrchestrator {
       budget = budgetOverride;
     } else if (
       budgetOverride &&
-      ((typeof (budgetOverride as TaskBudgetOpts).maxMs !== "undefined" &&
-        (budgetOverride as TaskBudgetOpts).maxMs !== null) ||
-        typeof (budgetOverride as any)?.maxTokens !== "undefined" ||
-        typeof (budgetOverride as any)?.maxToolCalls !== "undefined")
+      ((typeof budgetOverride.maxMs !== "undefined" &&
+        budgetOverride.maxMs !== null) ||
+        typeof budgetOverride.maxTokens !== "undefined" ||
+        typeof budgetOverride.maxToolCalls !== "undefined")
     ) {
-      budget = new TaskBudget(budgetOverride as TaskBudgetOpts);
+      budget = new TaskBudget(budgetOverride);
     } else if (this.budgetOpts) {
       budget = new TaskBudget(this.budgetOpts);
     } else {
@@ -972,10 +972,11 @@ export class GovernanceOrchestrator {
       "proof_verification_ms",
       "pipeline_total_ms",
     ] as const;
-    const result: any = {};
+    // keys couvre exactement les champs de PerformanceMetrics.
+    const result = {} as Record<(typeof keys)[number], number>;
     const count = this.metrics.length;
     for (const key of keys) {
-      result[key] = this.metrics.reduce((sum, m) => sum + (m as any)[key], 0) / count;
+      result[key] = this.metrics.reduce((sum, m) => sum + m[key], 0) / count;
     }
     return result;
   }

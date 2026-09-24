@@ -407,7 +407,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 describe("MerkleAuditTrail", () => {
-  const trail = new MerkleAuditTrail("/tmp/merkle-test-" + Date.now());
+  // null = plaine SHA-256 forcée : le .morph-key ambiant du repo ne doit
+  // pas rendre ces tests dépendants de l'environnement.
+  const trail = new MerkleAuditTrail("/tmp/merkle-test-" + Date.now(), null);
 
   test("records entries and computes Merkle root", () => {
     trail.record({
@@ -506,7 +508,7 @@ describe("MerkleAuditTrail", () => {
   });
 
   test("plain trail still uses sha256 and verifies", () => {
-    const p = new MerkleAuditTrail("/tmp/merkle-plain-" + Date.now());
+    const p = new MerkleAuditTrail("/tmp/merkle-plain-" + Date.now(), null);
     expect(p.isHmacMode()).toBe(false);
     p.record({
       timestamp: new Date().toISOString(),

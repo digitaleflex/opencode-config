@@ -54,11 +54,16 @@ export class MerkleAuditTrail {
   private latestHead: HeadAnchor | null = null;
   private auditKey?: Buffer;
 
-  constructor(logDir?: string, key?: Buffer | string) {
+  constructor(logDir?: string, key?: Buffer | string | null) {
     this.logDir = logDir || join(process.cwd(), "logs");
     this.logFile = join(this.logDir, "merkle-audit.jsonl");
     this.headFile = join(this.logDir, "merkle-head.json");
-    if (key !== undefined) {
+    if (key === null) {
+      // Opt-out explicite : plaine SHA-256 même si une clé ambiante
+      // (EURINHASH_AUDIT_KEY / .morph-key du cwd) existe. Utilisé par
+      // les tests pour un mode déterministe indépendant de l'env.
+      this.auditKey = undefined;
+    } else if (key !== undefined) {
       this.auditKey = typeof key === "string" ? Buffer.from(key, "utf8") : key;
     } else {
       const resolved = MerkleAuditTrail.resolveKey();

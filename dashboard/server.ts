@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
 import { GovernanceOrchestrator } from "../src/core/orchestrator";
 import { GuardOverrides } from "../src/core/guard-overrides";
-import type { TaskSpec } from "../src/core/types";
+import type { TaskSpec, TaskType, TaskComplexity } from "../src/core/types";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const EURINHASH_DIR = join(__dirname, ".."); // config EURINHASH (workers, logs, mode)
@@ -541,8 +541,8 @@ async function handleChat(body: ChatRequest) {
   const task: TaskSpec = {
     description: body.message.trim(),
   };
-  if (body.taskType) (task as any).taskType = body.taskType;
-  if (body.complexity) (task as any).complexity = body.complexity;
+  if (body.taskType) (task as TaskSpec & { taskType: TaskType }).taskType = body.taskType as TaskType;
+  if (body.complexity) (task as TaskSpec & { complexity: TaskComplexity }).complexity = body.complexity as TaskComplexity;
 
   const start = Date.now();
   const result = await orchestrator.execute(task);

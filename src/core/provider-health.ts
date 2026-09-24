@@ -64,7 +64,7 @@ export class ProviderHealth {
   /** Rolling error rate over the window, in [0,1]. */
   errorRate(): number {
     this.prune();
-    if (this.outcomes.length < this.opt.minimumRequests) return 0;
+    if (this.outcomes.length < (this.opt.minimumRequests ?? 5)) return 0;
     const fails = this.outcomes.reduce((n, o) => n + (o.ok ? 0 : 1), 0);
     return fails / this.outcomes.length;
   }
