@@ -74,18 +74,18 @@ WORKERS = {
     "worker-codestral": {
         "model": "openrouter/poolside/laguna-s-2.1:free",
         "kind": "external",
-        "ctx": 1_000_000,
+        "ctx": 262_144,
         "types": ["code", "long"],
         "probe": "worker-codestral",
-        "note": "code spécialisé, 1M ctx",
+        "note": "code spécialisé, 262k ctx (:free)",
     },
     "worker-groq": {
         "model": "groq/qwen/qwen3.8-27b",
         "kind": "external",
-        "ctx": 32_768,
+        "ctx": 131_042,
         "types": ["quick", "general"],
         "probe": "worker-groq",
-        "note": "le plus rapide (ITPM 7000, petit ctx)",
+        "note": "le plus rapide (ITPM 7000, 131k ctx)",
     },
     "worker-novita": {
         "model": "novita/inclusionai/ling-3.0-flash-sante",
@@ -98,7 +98,7 @@ WORKERS = {
     "worker-zhipu": {
         "model": "zhipu/glm-4.7-flash",
         "kind": "external",
-        "ctx": 204_800,
+        "ctx": 200_000,
         "types": ["general", "review"],
         "probe": "worker-zhipu",
         "note": "générique, latence parfois élevée",
@@ -106,7 +106,7 @@ WORKERS = {
     "worker-google": {
         "model": "google/gemini-2.5-flash",
         "kind": "external",
-        "ctx": 1_000_000,
+        "ctx": 1_048_576,
         "types": ["general", "long"],
         "probe": "worker-google",
         "note": "polyvalent, 20 req/jour",
@@ -211,11 +211,20 @@ def load_status():
         return json.load(f)
 
 
+# Contexte minimal exigé par type de tâche (tokens). En dessous, EV / 4 :
+# le worker reste routable si tout le reste est KO (fail-open contrôlé),
+# mais ne gagne plus contre un modèle adapté. Source : models_meta
+# (models.dev live via free-probe.py) ; sans meta, pas de pénalité —
+# la latence du probe reste le seul signal.
+CTX_THRESHOLD = {"long": 200_000, "heavy": 200_000}
+
+
 def compute_ev(task_type, pro=False):
     """Retourne [(worker, ev, detail)] trié par EV décroissant."""
     status = load_status()
     lat = status.get("latencies_ms", {})
     models = status.get("models", {})
+    meta = status.get("models_meta", {})
     usage = load_usage()
     workers = TYPE_ORDER_PRO if pro else TYPE_ORDER
 
@@ -231,6 +240,10 @@ def compute_ev(task_type, pro=False):
             st = models.get(w["probe"], "unknown")
             avail = AVAIL.get(st, 0.5)
             latency = lat.get(w["probe"], 5000)
+        # Contexte live (models.dev) prioritaire, statique en repli.
+        ctx = (meta.get(name) or {}).get("context") or w.get("ctx", 0) or 0
+        if task_type in CTX_THRESHOLD and ctx and ctx < CTX_THRESHOLD[task_type]:
+            avail = avail * 0.25
         cost = latency / 1000 + 1.0
         ev = q * avail / cost
         results.append((name, ev, q, avail, latency, st, w))
@@ -261,8 +274,9 @@ def main():
         status = load_status()
         lat = status.get("latencies_ms", {})
         models = status.get("models", {})
+        meta = status.get("models_meta", {})
         usage = load_usage()
-        print(f"{'worker':<24} {'statut':<12} {'latence':<8} {'qualité':<8} {'EV(code)':<8} modèle")
+        print(f"{'worker':<24} {'statut':<12} {'latence':<8} {'qualité':<8} {'EV(code)':<8} {'ctx':<8} modèle")
         for name, w in WORKERS.items():
             q = effective_quality(name, usage)
             if w["kind"] == "integrated":
@@ -271,7 +285,9 @@ def main():
                 st = models.get(w["probe"], "unknown")
                 l = lat.get(w["probe"], "?")
             ev = q * (AVAIL.get(st, 0.5) if w["kind"] == "external" else 1.0) / (l / 1000 + 1 if isinstance(l, (int, float)) else 6)
-            print(f"{name:<24} {st:<12} {str(l):<8} {q:<8.2f} {ev:<8.3f} {w['model']}")
+            ctx = (meta.get(name) or {}).get("context") or "-"
+            ctx_s = f"{ctx // 1000}k" if isinstance(ctx, int) else str(ctx)
+            print(f"{name:<24} {st:<12} {str(l):<8} {q:<8.2f} {ev:<8.3f} {ctx_s:<8} {w['model']}")
         return 0
 
     if args[0] == "report":

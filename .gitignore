@@ -22,6 +22,7 @@ mode.json
 provider_circuit.json
 provider_usage.json
 free-models.json
+models-dev-cache.json
 myfree-eurinhash-report.json
 opencode-mem.jsonc
 tui.json
@@ -40,3 +41,6 @@ scripts/chaos/results-*.json
 .opencode/preload-skills-analytics.json
 .oh-my-opencode-slim/skills-manifest.json
 .opencode/better-compact/
+# BEGIN oh-my-opencode-slim clonedeps
+.slim/clonedeps/repos/
+# END oh-my-opencode-slim clonedeps

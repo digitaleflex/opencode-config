@@ -185,12 +185,84 @@ except Exception as e:
     results["worker-cloudflare"] = f"error:{str(e)[:60]}"
     latencies["worker-cloudflare"] = 0
 
+# 9. Métadonnées modèles live (models.dev, cache 24h — jamais bloquant)
+# Schéma upstream vérifié dans .slim/clonedeps/repos/anomalyco__models-dev :
+# providers.<p>.models.<id> -> {limit:{context,output}, cost:{input,output}($/M)}.
+# worker -> [(provider, model_id)] candidats, premier hit gagne. Un worker
+# absent de models.dev (ex. novita ling-sante) n'a simplement pas de meta :
+# la latence du probe reste son seul signal. Coût réseau : 1 GET / 24h.
+MODELS_DEV_URL = "https://models.dev/api.json"
+MODELS_DEV_CACHE = os.path.join(CFG, "models-dev-cache.json")
+MODELS_DEV_TTL = 86400
+MODELS_DEV_MAP = {
+    "worker-groq": [("groq", "qwen/qwen3.8-27b")],
+    "worker-zhipu": [("zhipuai", "glm-4.7-flash"), ("zai", "glm-4.7-flash")],
+    "worker-codestral": [("openrouter", "poolside/laguna-s-2.1:free")],
+    "worker-novita": [("novita-ai", "inclusionai/ling-3.0-flash-sante")],
+    "worker-google": [("google", "gemini-2.5-flash")],
+}
+
+
+def fetch_models_dev():
+    try:
+        with open(MODELS_DEV_CACHE) as f:
+            cache = json.load(f)
+        if time.time() - cache.get("fetched", 0) < MODELS_DEV_TTL:
+            return cache.get("api")
+    except Exception:
+        pass
+    try:
+        req = urllib.request.Request(MODELS_DEV_URL, headers=UA)
+        api = json.load(urllib.request.urlopen(req, timeout=25))
+        try:
+            with open(MODELS_DEV_CACHE, "w") as f:
+                json.dump({"fetched": int(time.time()), "api": api}, f)
+        except Exception:
+            pass
+        return api
+    except Exception as e:
+        print(f"  [META] models.dev injoignable ({str(e)[:60]}), sans metadonnees")
+        return None
+
+
+def extract_meta(api):
+    meta = {}
+    if not isinstance(api, dict):
+        return meta
+    for worker, candidates in MODELS_DEV_MAP.items():
+        for provider, mid in candidates:
+            try:
+                m = api[provider]["models"][mid]
+            except (KeyError, TypeError):
+                continue
+            try:
+                limit = m.get("limit", {}) or {}
+                cost = m.get("cost", {}) or {}
+                meta[worker] = {
+                    "model": mid,
+                    "context": int(limit.get("context") or 0),
+                    "max_output": int(limit.get("output") or 0),
+                    "cost_in": float(cost.get("input") or 0),
+                    "cost_out": float(cost.get("output") or 0),
+                }
+                break
+            except (ValueError, TypeError):
+                continue
+    return meta
+
+
+models_meta = extract_meta(fetch_models_dev())
+missing = [w for w in MODELS_DEV_MAP if w not in models_meta]
+print(f"  [META] {len(models_meta)}/{len(MODELS_DEV_MAP)} modeles documentes" +
+      (f" (absents: {', '.join(missing)})" if missing else ""))
+
 # Construction du rapport
 out = {
     "updated": int(time.time()),
     "updated_human": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
     "models": results,
     "latencies_ms": latencies,
+    "models_meta": models_meta,
 }
 
 # Sauvegarde

@@ -230,3 +230,11 @@ avec free tier, trial ou crédits. Détail par provider : `docs/02-configuration
 **Token efficiency:** search before broad reading (`hash-code-navigation`); read only relevant files; reuse acquired context; batch independent tool calls; make minimal changes; verify proportionally to risk (`hash-verification`); stop when complete. Optimize tokens per completed task, not per response.
 
 **Never:** call all agents, load all skills, add plugins/MCP without real need, use premium models by default, bypass safety protections, modify `plugin/guard.ts` without explicit user authorization, or turn a small task into a complex pipeline.
+
+## Cloned Dependency Source
+
+Read-only dependency source repositories are available under
+`.slim/clonedeps/repos/` for inspection. Do not edit these clones.
+
+- `.slim/clonedeps/repos/anomalyco__models-dev/` - `anomalyco/models.dev` at `cff85c0` (2026-09-24, shallow, sparse: amazon-bedrock exclu — nom de fichier invalide sur Windows); schéma TOML cost/limit/modalities + usage SDK `@opencode-ai/models` pour brancher les données modèles live dans `route.py`.
+- `.slim/clonedeps/repos/anomalyco__effect-http-recorder/` - `anomalyco/effect-http-recorder` at `89e1b85` (2026-07-06, shallow); patterns cassettes record/replay + redaction pour des tests HTTP workers déterministes (Effect 4 beta only — patterns, pas une dépendance).
