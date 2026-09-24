@@ -429,6 +429,12 @@ async function poll() {
     } catch (err) {
       console.warn("[CommandCenter] vcr failed:", err.message);
     }
+    try {
+      const ares = await fetch("/api/availability");
+      if (ares.ok) renderAvailability(await ares.json());
+    } catch (err) {
+      console.warn("[CommandCenter] availability failed:", err.message);
+    }
   } catch (err) {
     console.warn("[CommandCenter] poll failed:", err.message);
   }
@@ -452,6 +458,18 @@ function renderVCR(v) {
   if (!el || !v) return;
   el.textContent = `cache: ${v.cassettes} cassette(s) · mode: ${v.mode}`;
   el.style.color = v.cassettes > 0 ? "#4ade80" : "#6b7280";
+}
+
+// ─── Disponibilité workers ────────────────────────────
+
+function renderAvailability(workers) {
+  const el = $("#availability-line");
+  if (!el || !workers) return;
+  const healthy = workers.filter((w) => w.healthy).length;
+  const total = workers.length;
+  const errors = workers.filter((w) => w.state === "error" || w.circuit === "OPEN").length;
+  el.textContent = `${healthy}/${total} ok · ${errors} en erreur`;
+  el.style.color = errors > 0 ? "#f87171" : "#4ade80";
 }
 
 // ─── Init ──────────────────────────────────────────────────────

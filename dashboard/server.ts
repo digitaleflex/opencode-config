@@ -82,15 +82,63 @@ const WORKER_TO_PROVIDER: Record<string, string> = {
 };
 
 function readWorkers(): WorkerInfo[] {
-  const freeModels = readJson("free-models.json") as { models?: Record<string, string> } | null;
-  const circuit = readJson("provider_circuit.json") as Record<string, { state?: string }> | null;
+  const freeModels = readJson("free-models.json") as { models?: Record<string, string>; latencies_ms?: Record<string, number> } | null;
+  const circuit = readJson("provider_circuit.json") as Record<string, { state?: string; failures?: number }> | null;
   const models = freeModels?.models ?? {};
+  const latencies = freeModels?.latencies_ms ?? {};
 
   return Object.keys(WORKER_MODELS).map((name) => {
     const state = models[name] ?? models[name.replace("worker-", "")] ?? "unknown";
     const circuitState = circuit?.[name]?.state;
     const finalState = circuitState === "OPEN" ? "error" : state;
-    return { name, model: WORKER_MODELS[name], state: finalState };
+    return { name, model: WORKER_MODELS[name], state: finalState, latency: latencies[name] };
+  });
+}
+
+// ─── Disponibilité unifiée (state + circuit + SDK + coût) ─
+
+interface WorkerAvailability {
+  name: string;
+  model: string;
+  state: string;           // ok | rate_limited | error | unknown
+  circuit: string;         // CLOSED | OPEN | unknown
+  latency?: number;        // ms depuis free-models.json
+  sdkModelExists: boolean; // le modèle existe dans models.dev ?
+  cost_in?: number;        // USD / 1M tokens (SDK)
+  cost_out?: number;
+  healthy: boolean;        // state=ok ET circuit=CLOSED ET latency<10s
+}
+
+async function checkAvailability(): Promise<WorkerAvailability[]> {
+  const freeModels = readJson("free-models.json") as {
+    models?: Record<string, string>;
+    latencies_ms?: Record<string, number>;
+  } | null;
+  const circuit = readJson("provider_circuit.json") as Record<string, { state?: string; failures?: number }> | null;
+  const models = freeModels?.models ?? {};
+  const latencies = freeModels?.latencies_ms ?? {};
+  const meta = await getModelsMeta();
+
+  return Object.keys(WORKER_MODELS).map((name) => {
+    const state = models[name] ?? models[name.replace("worker-", "")] ?? "unknown";
+    // provider_circuit.json utilise les noms de provider (groq, google…)
+    const providerId = WORKER_TO_PROVIDER[name] ?? name.replace("worker-", "");
+    const circuitState = circuit?.[providerId]?.state ?? "unknown";
+    const latency = latencies[name];
+    const cost = meta[name];
+    const sdkModelExists = !!cost;
+    const healthy = state === "ok" && circuitState === "CLOSED" && (latency === undefined || latency < 10000);
+    return {
+      name,
+      model: WORKER_MODELS[name],
+      state,
+      circuit: circuitState,
+      latency,
+      sdkModelExists,
+      cost_in: cost?.cost_in,
+      cost_out: cost?.cost_out,
+      healthy,
+    };
   });
 }
 
@@ -783,6 +831,7 @@ const server = Bun.serve({
     // API
     if (path === "/api/state") return Response.json(buildState());
     if (path === "/api/stats") return Response.json(await buildStats());
+    if (path === "/api/availability") return Response.json(await checkAvailability());
     if (path === "/api/vcr") return Response.json(vcrStats());
     if (path === "/api/vcr/clear" && req.method === "POST") {
       const n = vcrClear();
