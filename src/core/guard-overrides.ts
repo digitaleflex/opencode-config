@@ -7,6 +7,7 @@
 import { TaskSpec, PolicyDecision, PolicySpec, GuardOverride } from "./types";
 import { normalizeForMatching, normalizeForMatchingVariants } from "./unicode-normalize";
 import { checkEgress } from "./confinement";
+import { randomUUID } from "node:crypto";
 
 export interface ToolAttestation {
   issuedAt: number;
@@ -359,7 +360,7 @@ export class GuardOverrides {
     return {
       issuedAt: now,
       expiresAt: now + ttlMs,
-      nonce: `att-${now.toString(36)}-${this.ceerNonce.toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
+      nonce: `att-${now.toString(36)}-${this.ceerNonce.toString(36)}-${randomUUID().replace(/-/g, "").slice(0, 10)}`,
       toolPath,
     };
   }

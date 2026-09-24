@@ -30,6 +30,7 @@ import {
 } from "./types";
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 import { normalizeForMatching } from "./unicode-normalize";
 
 export interface GovernanceAuditEntry {
@@ -994,7 +995,7 @@ export class GovernanceOrchestrator {
   }
 
   private generateId(): string {
-    return `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    return `task-${Date.now()}-${randomUUID().replace(/-/g, "").substring(0, 9)}`;
   }
 
   getSummary(): { policiesLoaded: number; version: string } {

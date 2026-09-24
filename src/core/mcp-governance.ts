@@ -1,7 +1,7 @@
 // src/core/mcp-governance.ts — MCP Governance (tool poisoning / rug-pull defense)
 // Zero-dep: uses node:crypto, node:fs, node:path only.
 
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual, randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { normalizeForMatching } from "./unicode-normalize";
@@ -281,7 +281,7 @@ export class McpGovernance {
         };
       }
       const tmp =
-        this.persistPath + ".tmp." + Date.now() + "." + Math.random().toString(36).slice(2, 8);
+        this.persistPath + ".tmp." + Date.now() + "." + randomUUID().replace(/-/g, "").slice(0, 8);
       writeFileSync(tmp, JSON.stringify(obj, null, 2), "utf8");
       renameSync(tmp, this.persistPath);
     } catch {

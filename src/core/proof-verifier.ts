@@ -13,7 +13,7 @@ import {
   EvidenceBundle,
   ApprovalToken,
 } from "./types";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { verifyApproval } from "./approval";
 
 export class ProofVerifier {
@@ -229,7 +229,7 @@ export class ProofVerifier {
   }
 
   private generateTaskId(task: TaskSpec): string {
-    return task.id || `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    return task.id || `task-${Date.now()}-${randomUUID().replace(/-/g, "").substring(0, 9)}`;
   }
 
   private computeRootHash(proofs: Proof[]): string {
