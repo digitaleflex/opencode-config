@@ -417,9 +417,26 @@ async function poll() {
     renderGit(state.git);
     renderFileTree(state.files, $("#file-tree"));
     renderSystem(state.system);
+    try {
+      const sres = await fetch("/api/stats");
+      if (sres.ok) renderImpact(await sres.json());
+    } catch (err) {
+      console.warn("[CommandCenter] stats failed:", err.message);
+    }
   } catch (err) {
     console.warn("[CommandCenter] poll failed:", err.message);
   }
+}
+
+// ─── Compteur d'impact (7j) ────────────────────────────────────
+
+function renderImpact(s) {
+  const el = $("#impact-line");
+  if (!el || !s) return;
+  el.textContent =
+    `7j · ${s.exec7d} exec (${s.execOk7d} ok)` +
+    ` · ${s.approved7d} approved / ${s.blocked7d} blocked` +
+    ` · ~$${s.savedUsd} évités`;
 }
 
 // ─── Init ──────────────────────────────────────────────────────

@@ -8,7 +8,7 @@
 //   EURINHASH_DASHBOARD_DIR=/projet bun run dashboard
 //   EURINHASH_DASHBOARD_PORT=9999 bun run dashboard
 
-import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, statSync, appendFileSync } from "node:fs";
 import { join, dirname, relative, basename, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
@@ -318,6 +318,7 @@ async function callWorker(worker: WorkerCall, prompt: string, timeoutMs = 30000)
   output?: string;
   error?: string;
   status?: number;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
 }> {
   const key = readKey(worker.keyFile);
   if (!key) return { ok: false, error: `clé ${worker.keyFile} absente` };
@@ -346,9 +347,20 @@ async function callWorker(worker: WorkerCall, prompt: string, timeoutMs = 30000)
       const body = await res.text().catch(() => "");
       return { ok: false, error: `HTTP ${res.status}: ${body.slice(0, 120)}`, status: res.status };
     }
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const data = await res.json() as {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: unknown; completion_tokens?: unknown };
+    };
     const output = data.choices?.[0]?.message?.content?.trim() || "(réponse vide)";
-    return { ok: true, output };
+    const pt = Number(data.usage?.prompt_tokens);
+    const ct = Number(data.usage?.completion_tokens);
+    const usage = (Number.isFinite(pt) || Number.isFinite(ct))
+      ? {
+          ...(Number.isFinite(pt) ? { prompt_tokens: pt } : {}),
+          ...(Number.isFinite(ct) ? { completion_tokens: ct } : {}),
+        }
+      : undefined;
+    return usage ? { ok: true, output, usage } : { ok: true, output };
   } catch (err: any) {
     return { ok: false, error: err?.name === "AbortError" ? "timeout" : err?.message || "erreur" };
   } finally {
@@ -361,11 +373,13 @@ async function executeWithWorker(prompt: string): Promise<{
   output?: string;
   error?: string;
   provider?: string;
+  model?: string;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
 }> {
   for (const worker of WORKER_CALLS) {
     const result = await callWorker(worker, prompt);
     if (result.ok) {
-      return { success: true, output: result.output, provider: worker.name };
+      return { success: true, output: result.output, provider: worker.name, model: worker.model, usage: result.usage };
     }
     // 429 → essayer le suivant
     if (result.status === 429) continue;
@@ -456,6 +470,8 @@ async function executeViaRouter(routeType: string, prompt: string): Promise<{
   output?: string;
   error?: string;
   provider?: string;
+  model?: string;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
 }> {
   let lastError = "routeur indisponible";
   for (let skip = 0; skip < 6; skip++) {
@@ -470,7 +486,7 @@ async function executeViaRouter(routeType: string, prompt: string): Promise<{
     const result = await callWorker(worker, prompt);
     if (result.ok) {
       recordRouteResult(worker.name, true);
-      return { success: true, output: result.output, provider: worker.name };
+      return { success: true, output: result.output, provider: worker.name, model: worker.model, usage: result.usage };
     }
     lastError = result.error || "échec worker";
     recordRouteResult(worker.name, false);
@@ -502,6 +518,18 @@ async function handleChat(body: ChatRequest) {
     if (!execution.success) {
       execution = await executeWithWorker(body.message.trim());
     }
+  }
+  if (execution) {
+    logExecution({
+      taskId: result.taskId,
+      verdict: result.verdict,
+      provider: execution.provider ?? null,
+      model: execution.model ?? null,
+      ok: execution.success,
+      ms: elapsed,
+      prompt_tokens: execution.usage?.prompt_tokens ?? null,
+      completion_tokens: execution.usage?.completion_tokens ?? null,
+    });
   }
 
   return Response.json({
@@ -546,6 +574,71 @@ function handleTerminal(body: TerminalRequest) {
   }
 }
 
+// ─── Compteur d'impact (executions + verdicts 7j + $ évités) ───
+// executions-YYYY-MM-DD.jsonl : une ligne par exécution worker.
+// Coût évité = tokens réels × prix models.dev (models_meta) : une
+// estimation basse honnête, pas une facture — affichée avec ~.
+
+function readJsonLines(absPath: string): Array<Record<string, unknown>> {
+  try {
+    if (!existsSync(absPath)) return [];
+    return readFileSync(absPath, "utf-8")
+      .split("\n")
+      .filter((l) => l.trim().length > 0)
+      .map((l) => {
+        try {
+          const v: unknown = JSON.parse(l);
+          return typeof v === "object" && v !== null ? (v as Record<string, unknown>) : null;
+        } catch {
+          return null;
+        }
+      })
+      .filter((v): v is Record<string, unknown> => v !== null);
+  } catch {
+    return [];
+  }
+}
+
+function logExecution(entry: Record<string, unknown>): void {
+  try {
+    const day = new Date().toISOString().split("T")[0];
+    const file = join(EURINHASH_DIR, "logs", `executions-${day}.jsonl`);
+    appendFileSync(file, JSON.stringify({ ts: new Date().toISOString(), ...entry }) + "\n", "utf-8");
+  } catch (err) {
+    console.warn("[stats] execution log failed:", (err as Error).message);
+  }
+}
+
+function buildStats() {
+  const logsDir = join(EURINHASH_DIR, "logs");
+  const meta = (readJson("free-models.json") as {
+    models_meta?: Record<string, { cost_in?: number; cost_out?: number }>;
+  } | null)?.models_meta ?? {};
+  let exec7d = 0, execOk7d = 0, approved7d = 0, blocked7d = 0, savedUsd = 0;
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(Date.now() - i * 86400000).toISOString().split("T")[0];
+    for (const e of readJsonLines(join(logsDir, `executions-${day}.jsonl`))) {
+      exec7d++;
+      if (e.ok === true) execOk7d++;
+      const pt = Number(e.prompt_tokens);
+      const ct = Number(e.completion_tokens);
+      const c = (typeof e.provider === "string" && meta[e.provider]) || {};
+      if (Number.isFinite(pt)) savedUsd += (pt / 1e6) * (Number(c.cost_in) || 0);
+      if (Number.isFinite(ct)) savedUsd += (ct / 1e6) * (Number(c.cost_out) || 0);
+    }
+    for (const a of readJsonLines(join(logsDir, `governance-audit-${day}.jsonl`))) {
+      if (a.stage !== "final") continue;
+      if (a.decision === "APPROVED") approved7d++;
+      else if (a.decision === "BLOCKED") blocked7d++;
+    }
+  }
+  return {
+    exec7d, execOk7d, approved7d, blocked7d,
+    savedUsd: Math.round(savedUsd * 10000) / 10000,
+    periodDays: 7,
+  };
+}
+
 // ─── API /api/state ────────────────────────────────────────────
 
 function buildState() {
@@ -582,6 +675,7 @@ const server = Bun.serve({
 
     // API
     if (path === "/api/state") return Response.json(buildState());
+    if (path === "/api/stats") return Response.json(buildStats());
     if (path === "/api/health") return Response.json({ ok: true, ts: Date.now() });
 
     if (path === "/api/chat" && req.method === "POST") {
