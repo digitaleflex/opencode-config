@@ -11,8 +11,6 @@
     "typecheck": "tsc --noEmit",
     "chaos": "bun run scripts/chaos/chaos-lab.ts",
     "test:golden": "bun run scripts/verify-golden.ts",
-    "dashboard": "bun run dashboard/server.ts",
-    "dashboard:proj": "bun run dashboard/server.ts --",
     "format": "prettier --write \"src/**/*.ts\" \"scripts/**/*.ts\" \"plugin/*.ts\" \"tests/**/*.ts\" \"*.json\" \".opencode/*.json\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"scripts/**/*.ts\" \"plugin/*.ts\" \"tests/**/*.ts\" \"*.json\" \".opencode/*.json\"",
     "verify": "bun run format:check && bun run typecheck && bun run test && bun run test:fuzz && bun run test:golden"
@@ -26,6 +24,7 @@
     "vitest": "^5.0.1"
   },
   "dependencies": {
+    "@opencode-ai/models": "^0.0.84",
     "@opencode-ai/plugin": "1.18.32",
     "openai": "^7.21.0",
     "yaml": "^2.9.1"
