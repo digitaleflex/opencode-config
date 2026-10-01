@@ -1,0 +1,143 @@
+name: Architecture Change
+description: Propose an architecture change
+title: "[ARCH] "
+labels: ["type:architecture"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Architecture Change — EurinHash Canonical Issue Contract
+        Fill in all required sections. Missing data is represented as `UNKNOWN`, never guessed.
+
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      placeholder: "Define cross-repository orchestration architecture"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Issue Type
+      options:
+        - architecture
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - critical
+        - high
+        - medium
+        - low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      options:
+        - open
+        - in_progress
+        - blocked
+        - review
+        - closed
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      placeholder: "Three repositories participate in one system without explicit authority model..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired_outcome
+    attributes:
+      label: Desired Outcome
+      placeholder: "Canonical architecture documented with authority matrix, registry, and routing rules..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_system_impact
+    attributes:
+      label: User/System Impact
+      placeholder: "Prevents agents from placing UX decisions in config, runtime behavior in docs..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: engineering_specs
+    attributes:
+      label: Engineering Spec References (URIs)
+      placeholder: "https://github.com/digitaleflex/eurinhash-engineering/blob/main/architecture.md"
+    validations:
+      required: true
+
+  - type: textarea
+    id: architecture_refs
+    attributes:
+      label: Architecture References (URIs)
+      placeholder: "https://github.com/digitaleflex/opencode-config/blob/main/docs/architecture.md"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: read_repositories
+    attributes:
+      label: Repositories to READ
+      options:
+        - label: engineering (digitaleflex/eurinhash-engineering)
+        - label: config (digitaleflex/opencode-config)
+        - label: product (digitaleflex/eurinhash-opencode)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: write_repositories
+    attributes:
+      label: Repositories Authorized to WRITE
+      options:
+        - label: engineering (digitaleflex/eurinhash-engineering)
+        - label: config (digitaleflex/opencode-config)
+        - label: product (digitaleflex/eurinhash-opencode)
+    validations:
+      required: true
+
+  - type: textarea
+    id: must_change
+    attributes:
+      label: MUST CHANGE
+      placeholder: "engineering | docs/architecture.md | CREATE | Canonical architecture\config | orchestration/repositories/repository-map.yaml | CREATE | Machine-readable registry"
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation_steps
+    attributes:
+      label: Implementation Steps
+      placeholder: "1 | engineering | Document 3-repo architecture | architect | | Review\n2 | config | Create repository-map.yaml | builder | 1 | Schema validates\n3 | config | Create registry parser | builder | 2 | Parser tests pass\n4 | config | Create issue schema | builder | 1 | Schema validates"
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      placeholder: "Three-repo model documented | true | test_output\nAuthority matrix explicit | true | test_output\nRead/write boundaries machine-readable | true | test_output\nCross-repo workflow deterministic | true | test_output\nCapability gaps have escalation path | true | test_output"
+
+  - type: checkboxes
+    id: audit_trail
+    attributes:
+      label: Audit Trail Required
+      options:
+        - label: Yes, record decision metadata without secrets
+    validations:
+      required: true

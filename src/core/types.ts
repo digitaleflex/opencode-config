@@ -30,6 +30,8 @@ export enum TaskType {
   DESTRUCTIVE_OP = "DESTRUCTIVE_OP",
 }
 
+export type OperationType = "CREATE" | "UPDATE" | "DELETE";
+
 export enum ProofType {
   TESTS = "tests",
   CODE_REVIEW = "code_review",

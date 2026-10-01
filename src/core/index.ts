@@ -64,3 +64,13 @@ export type {
 } from "./static-rules";
 export { judgeSemantic, NoopJudgeProvider } from "./semantic-judge";
 export type { SemanticJudgment, JudgeProvider } from "./semantic-judge";
+
+// Cross-repository orchestration exports
+export { RepositoryRegistry, getRegistry, resetRegistry } from "./registry";
+export type { RepositoryEntry, RegistrySchema, AuthorityResolution, CrossRepoWriteRequest } from "./registry";
+export { AuthorizationGate, getAuthorizationGate, resetAuthorizationGate } from "./authorization-gate";
+export type { AuthorizationInput, AuthorizationResult, AuthorizationDecision, WorkingTreeState, AuditRecord } from "./authorization-gate";
+export { IssueParser, getIssueParser, resetIssueParser } from "./issue-parser";
+export type { ParsedIssue, IssueIdentity, IssueImplementationStep } from "./issue-parser";
+export { CrossRepoOrchestrator, getCrossRepoOrchestrator, resetCrossRepoOrchestrator } from "./cross-repo-orchestrator";
+export type { OrchestrationPlan, OrchestrationStep, OrchestrationResult, CrossRepoContext } from "./cross-repo-orchestrator";

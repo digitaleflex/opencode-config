@@ -1,0 +1,410 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://eurinhash.dev/schemas/issue-contract.json",
+  "title": "EurinHash Canonical Cross-Repository Issue Specification",
+  "description": "Defines the canonical GitHub issue contract so an agent can parse an issue as an executable engineering specification without guessing missing requirements.",
+  "type": "object",
+  "required": [
+    "identity",
+    "objective",
+    "source_of_truth",
+    "repository_scope",
+    "implementation_boundary",
+    "data_contract",
+    "event_contract",
+    "state_contract",
+    "dependencies",
+    "implementation_steps",
+    "validation",
+    "acceptance_criteria",
+    "failure_stop_conditions",
+    "documentation_reporting"
+  ],
+  "properties": {
+    "identity": {
+      "type": "object",
+      "required": ["issue_number", "title", "type", "priority", "status"],
+      "properties": {
+        "issue_number": { "type": "integer", "minimum": 1 },
+        "title": { "type": "string", "minLength": 5, "maxLength": 120 },
+        "type": {
+          "type": "string",
+          "enum": [
+            "feature",
+            "bug",
+            "ux",
+            "architecture",
+            "configuration",
+            "maintenance",
+            "security",
+            "performance",
+            "capability-gap"
+          ]
+        },
+        "priority": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+        "status": { "type": "string", "enum": ["open", "in_progress", "blocked", "review", "closed"] }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "required": ["problem", "desired_outcome", "user_system_impact"],
+      "properties": {
+        "problem": { "type": "string", "minLength": 20 },
+        "desired_outcome": { "type": "string", "minLength": 20 },
+        "user_system_impact": { "type": "string", "minLength": 10 }
+      }
+    },
+    "source_of_truth": {
+      "type": "object",
+      "required": ["engineering_specs", "architecture_refs", "ux_refs", "existing_decisions"],
+      "properties": {
+        "engineering_specs": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" },
+          "minItems": 1
+        },
+        "architecture_refs": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" },
+          "minItems": 1
+        },
+        "ux_refs": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" }
+        },
+        "existing_decisions": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" }
+        }
+      }
+    },
+    "repository_scope": {
+      "type": "object",
+      "required": ["read_repositories", "write_repositories"],
+      "properties": {
+        "read_repositories": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["engineering", "config", "product"] },
+          "minItems": 1
+        },
+        "write_repositories": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["engineering", "config", "product"] }
+        }
+      }
+    },
+    "implementation_boundary": {
+      "type": "object",
+      "required": ["must_change", "may_change", "must_not_change"],
+      "properties": {
+        "must_change": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["repository", "path", "operation"],
+            "properties": {
+              "repository": { "type": "string", "enum": ["engineering", "config", "product"] },
+              "path": { "type": "string" },
+              "operation": { "type": "string", "enum": ["CREATE", "UPDATE", "DELETE"] },
+              "reason": { "type": "string" }
+            }
+          }
+        },
+        "may_change": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["repository", "path", "operation"],
+            "properties": {
+              "repository": { "type": "string", "enum": ["engineering", "config", "product"] },
+              "path": { "type": "string" },
+              "operation": { "type": "string", "enum": ["CREATE", "UPDATE", "DELETE"] },
+              "reason": { "type": "string" }
+            }
+          }
+        },
+        "must_not_change": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["repository", "path"],
+            "properties": {
+              "repository": { "type": "string", "enum": ["engineering", "config", "product"] },
+              "path": { "type": "string" },
+              "reason": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "data_contract": {
+      "type": "object",
+      "required": ["inputs", "outputs", "entities", "fact_sources"],
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "type", "source", "required"],
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string" },
+              "source": { "type": "string", "enum": ["engineering", "config", "product", "external", "user"] },
+              "required": { "type": "boolean" },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "type", "destination"],
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string" },
+              "destination": { "type": "string", "enum": ["engineering", "config", "product", "external", "user"] },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "definition_source"],
+            "properties": {
+              "name": { "type": "string" },
+              "definition_source": { "type": "string", "enum": ["engineering", "config", "product", "external"] },
+              "schema_ref": { "type": "string", "format": "uri" }
+            }
+          }
+        },
+        "fact_sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["fact", "source", "authority"],
+            "properties": {
+              "fact": { "type": "string" },
+              "source": { "type": "string", "format": "uri" },
+              "authority": { "type": "string", "enum": ["engineering", "config", "product"] }
+            }
+          }
+        }
+      }
+    },
+    "event_contract": {
+      "type": "object",
+      "required": ["consumed_events", "emitted_events", "correlation_ids"],
+      "properties": {
+        "consumed_events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["event_type", "source", "correlation_id"],
+            "properties": {
+              "event_type": { "type": "string" },
+              "source": { "type": "string", "enum": ["engineering", "config", "product", "external"] },
+              "correlation_id": { "type": "string" },
+              "payload_schema": { "type": "string", "format": "uri" }
+            }
+          }
+        },
+        "emitted_events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["event_type", "destination", "correlation_id"],
+            "properties": {
+              "event_type": { "type": "string" },
+              "destination": { "type": "string", "enum": ["engineering", "config", "product", "external"] },
+              "correlation_id": { "type": "string" },
+              "payload_schema": { "type": "string", "format": "uri" }
+            }
+          }
+        },
+        "correlation_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "state_contract": {
+      "type": "object",
+      "required": ["lifecycle_states", "transitions", "unknown_semantics"],
+      "properties": {
+        "lifecycle_states": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to", "trigger", "guard"],
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "trigger": { "type": "string" },
+              "guard": { "type": "string" }
+            }
+          }
+        },
+        "unknown_semantics": {
+          "type": "string",
+          "enum": ["BLOCK", "ESCALATE", "DEFAULT_TO_SAFE"],
+          "description": "How to handle UNKNOWN state — must not silently allow"
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "required": ["blocking_issues", "required_capabilities"],
+      "properties": {
+        "blocking_issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["issue_ref", "repository", "reason"],
+            "properties": {
+              "issue_ref": { "type": "string" },
+              "repository": { "type": "string", "enum": ["engineering", "config", "product"] },
+              "reason": { "type": "string" }
+            }
+          }
+        },
+        "required_capabilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["capability", "repository", "available"],
+            "properties": {
+              "capability": { "type": "string" },
+              "repository": { "type": "string", "enum": ["engineering", "config", "product"] },
+              "available": { "type": "boolean" },
+              "gap_issue_ref": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "implementation_steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["step", "repository", "action", "owner", "depends_on"],
+        "properties": {
+          "step": { "type": "integer", "minimum": 1 },
+          "repository": { "type": "string", "enum": ["engineering", "config", "product"] },
+          "action": { "type": "string" },
+          "owner": { "type": "string", "enum": ["planner", "architect", "builder", "reviewer", "security", "human"] },
+          "depends_on": { "type": "array", "items": { "type": "integer" } },
+          "validation": { "type": "string" }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "required": ["commands", "runtime_checks", "integration_ui_checks", "evidence"],
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["command", "repository", "expected_result"],
+            "properties": {
+              "command": { "type": "string" },
+              "repository": { "type": "string", "enum": ["engineering", "config", "product"] },
+              "expected_result": { "type": "string" }
+            }
+          }
+        },
+        "runtime_checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["check", "repository", "pass_criteria"],
+            "properties": {
+              "check": { "type": "string" },
+              "repository": { "type": "string", "enum": ["engineering", "config", "product"] },
+              "pass_criteria": { "type": "string" }
+            }
+          }
+        },
+        "integration_ui_checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["check", "repository", "pass_criteria"],
+            "properties": {
+              "check": { "type": "string" },
+              "repository": { "type": "string", "enum": ["engineering", "config", "product"] },
+              "pass_criteria": { "type": "string" }
+            }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "source", "location"],
+            "properties": {
+              "type": { "type": "string", "enum": ["test_output", "review_hash", "scan_report", "approval_token", "build_artifact"] },
+              "source": { "type": "string", "enum": ["ci", "human", "scanner", "orchestrator"] },
+              "location": { "type": "string", "format": "uri" }
+            }
+          }
+        }
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["criterion", "testable", "mapped_to_evidence"],
+        "properties": {
+          "criterion": { "type": "string" },
+          "testable": { "type": "boolean" },
+          "mapped_to_evidence": { "type": "string" }
+        }
+      }
+    },
+    "failure_stop_conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["condition", "action", "reason"],
+        "properties": {
+          "condition": { "type": "string" },
+          "action": { "type": "string", "enum": ["STOP", "ESCALATE", "BLOCK", "REQUIRE_HUMAN"] },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "documentation_reporting": {
+      "type": "object",
+      "required": ["update_docs", "report_format", "audit_trail"],
+      "properties": {
+        "update_docs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["document", "repository", "section"],
+            "properties": {
+              "document": { "type": "string" },
+              "repository": { "type": "string", "enum": ["engineering", "config", "product"] },
+              "section": { "type": "string" }
+            }
+          }
+        },
+        "report_format": { "type": "string", "enum": ["markdown", "json", "yaml"] },
+        "audit_trail": { "type": "boolean" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

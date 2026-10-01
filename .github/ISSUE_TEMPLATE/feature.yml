@@ -1,0 +1,340 @@
+name: Feature Request
+description: Propose a new feature or enhancement
+title: "[FEATURE] "
+labels: ["type:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Request — EurinHash Canonical Issue Contract
+        Fill in all required sections. Missing data is represented as `UNKNOWN`, never guessed.
+
+  - type: input
+    id: issue_number
+    attributes:
+      label: Issue Number (auto-filled)
+      placeholder: "Will be assigned on creation"
+    validations:
+      required: false
+
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: Concise, specific title (5-120 chars)
+      placeholder: "Add cross-repository authorization gate"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Issue Type
+      options:
+        - feature
+        - bug
+        - ux
+        - architecture
+        - configuration
+        - maintenance
+        - security
+        - performance
+        - capability-gap
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - critical
+        - high
+        - medium
+        - low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      options:
+        - open
+        - in_progress
+        - blocked
+        - review
+        - closed
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this solve? (min 20 chars)
+      placeholder: "Currently there is no authorization gate for cross-repository writes..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired_outcome
+    attributes:
+      label: Desired Outcome
+      description: What should the system do after this is implemented? (min 20 chars)
+      placeholder: "Every protected cross-repository write passes through an authorization gate..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_system_impact
+    attributes:
+      label: User/System Impact
+      description: Who benefits and how? (min 10 chars)
+      placeholder: "Prevents unauthorized writes, enables audit trail, blocks secret leakage..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: engineering_specs
+    attributes:
+      label: Engineering Spec References (URIs)
+      description: Links to engineering specs, one per line
+      placeholder: "https://github.com/digitaleflex/eurinhash-engineering/blob/main/docs/architecture.md\nhttps://github.com/digitaleflex/eurinhash-engineering/blob/main/specs/security.md"
+    validations:
+      required: true
+
+  - type: textarea
+    id: architecture_refs
+    attributes:
+      label: Architecture References (URIs)
+      description: Links to architecture docs, one per line
+      placeholder: "https://github.com/digitaleflex/opencode-config/blob/main/docs/architecture.md"
+    validations:
+      required: true
+
+  - type: textarea
+    id: ux_refs
+    attributes:
+      label: UX References (URIs, optional)
+      description: Links to UX specs, one per line
+      placeholder: "https://github.com/digitaleflex/eurinhash-engineering/blob/main/ux/auth-gate.md"
+
+  - type: textarea
+    id: existing_decisions
+    attributes:
+      label: Existing Decisions (URIs, optional)
+      description: Links to prior decisions, one per line
+      placeholder: "https://github.com/digitaleflex/opencode-config/issues/23"
+
+  - type: checkboxes
+    id: read_repositories
+    attributes:
+      label: Repositories to READ
+      description: Which repositories does this issue need to read from?
+      options:
+        - label: engineering (digitaleflex/eurinhash-engineering)
+        - label: config (digitaleflex/opencode-config)
+        - label: product (digitaleflex/eurinhash-opencode)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: write_repositories
+    attributes:
+      label: Repositories Authorized to WRITE
+      description: Which repositories is this issue authorized to modify?
+      options:
+        - label: engineering (digitaleflex/eurinhash-engineering)
+        - label: config (digitaleflex/opencode-config)
+        - label: product (digitaleflex/eurinhash-opencode)
+    validations:
+      required: true
+
+  - type: textarea
+    id: must_change
+    attributes:
+      label: MUST CHANGE — Required Changes
+      description: One per line: repository | path | operation (CREATE/UPDATE/DELETE) | reason
+      placeholder: "config | src/core/authorization-gate.ts | CREATE | Core authorization logic\nconfig | src/core/registry.ts | UPDATE | Add gate integration"
+    validations:
+      required: true
+
+  - type: textarea
+    id: may_change
+    attributes:
+      label: MAY CHANGE — Optional Changes
+      description: One per line: repository | path | operation | reason
+      placeholder: "config | tests/authorization-gate.test.ts | CREATE | Unit tests"
+
+  - type: textarea
+    id: must_not_change
+    attributes:
+      label: MUST NOT CHANGE — Protected Paths
+      description: One per line: repository | path | reason
+      placeholder: "config | src/core/types.ts | Core type definitions must remain stable"
+
+  - type: textarea
+    id: inputs
+    attributes:
+      label: Data Contract — Inputs
+      description: One per line: name | type | source (engineering/config/product/external/user) | required (true/false) | description
+      placeholder: "issue_id | string | engineering | true | Originating issue identifier\ntask_spec | TaskSpec | config | true | Task to authorize"
+
+  - type: textarea
+    id: outputs
+    attributes:
+      label: Data Contract — Outputs
+      description: One per line: name | type | destination | description
+      placeholder: "decision | AuthorizationDecision | config | ALLOW/DENY/REQUIRES_APPROVAL/UNKNOWN"
+
+  - type: textarea
+    id: entities
+    attributes:
+      label: Data Contract — Entities
+      description: One per line: name | definition_source | schema_ref (URI)
+      placeholder: "AuthorizationDecision | config | https://eurinhash.dev/schemas/authorization-decision.json"
+
+  - type: textarea
+    id: fact_sources
+    attributes:
+      label: Data Contract — Fact Sources
+      description: One per line: fact | source (URI) | authority (engineering/config/product)
+      placeholder: "Cross-repo writes require approval | https://github.com/digitaleflex/opencode-config/docs/architecture.md | config"
+
+  - type: textarea
+    id: consumed_events
+    attributes:
+      label: Event Contract — Consumed Events
+      description: One per line: event_type | source | correlation_id | payload_schema (URI)
+      placeholder: "issue.created | engineering | issue-123 | https://eurinhash.dev/schemas/issue-created.json"
+
+  - type: textarea
+    id: emitted_events
+    attributes:
+      label: Event Contract — Emitted Events
+      description: One per line: event_type | destination | correlation_id | payload_schema (URI)
+      placeholder: "authorization.decided | config | auth-456 | https://eurinhash.dev/schemas/auth-decision.json"
+
+  - type: textarea
+    id: correlation_ids
+    attributes:
+      label: Event Contract — Correlation IDs
+      description: One per line
+      placeholder: "issue-123\nauth-456"
+
+  - type: textarea
+    id: lifecycle_states
+    attributes:
+      label: State Contract — Lifecycle States
+      description: One per line
+      placeholder: "PENDING\nAUTHORIZED\nEXECUTING\nCOMPLETED\nFAILED\nBLOCKED"
+
+  - type: textarea
+    id: transitions
+    attributes:
+      label: State Contract — Transitions
+      description: One per line: from | to | trigger | guard
+      placeholder: "PENDING | AUTHORIZED | gate_evaluation | decision != DENY\nAUTHORIZED | EXECUTING | execution_start | working_tree_clean\nEXECUTING | COMPLETED | execution_end | all_proofs_pass\nEXECUTING | FAILED | execution_error | any_proof_fail\n* | BLOCKED | gate_evaluation | decision == DENY"
+
+  - type: dropdown
+    id: unknown_semantics
+    attributes:
+      label: State Contract — UNKNOWN Semantics
+      options:
+        - BLOCK
+        - ESCALATE
+        - DEFAULT_TO_SAFE
+      description: How to handle UNKNOWN state — must not silently allow
+    validations:
+      required: true
+
+  - type: textarea
+    id: blocking_issues
+    attributes:
+      label: Dependencies — Blocking Issues
+      description: One per line: issue_ref | repository | reason
+      placeholder: "#23 | engineering | Architecture must be defined first\n#24 | config | Registry must exist for authority resolution"
+
+  - type: textarea
+    id: required_capabilities
+    attributes:
+      label: Dependencies — Required Capabilities
+      description: One per line: capability | repository | available (true/false) | gap_issue_ref
+      placeholder: "YAML registry parser | config | true |\nAuthorization gate implementation | config | false | #42"
+
+  - type: textarea
+    id: implementation_steps
+    attributes:
+      label: Implementation Steps
+      description: One per line: step | repository | action | owner (planner/architect/builder/reviewer/security/human) | depends_on (step numbers) | validation
+      placeholder: "1 | config | Create authorization-gate.ts with decision model | architect | | Types compile\n2 | config | Implement repository/path/branch scope checking | builder | 1 | Unit tests pass\n3 | config | Integrate with registry resolver | builder | 2 | Integration test passes\n4 | config | Add audit logging for decisions | builder | 2 | Log output verified\n5 | config | Write fixtures for allowed/denied/approval/unknown | reviewer | 2 | Fixtures validate"
+
+  - type: textarea
+    id: validation_commands
+    attributes:
+      label: Validation — Commands
+      description: One per line: command | repository | expected_result
+      placeholder: "npm run test:authorization-gate | config | All tests pass\nnpm run verify | config | Types + lint + tests pass"
+
+  - type: textarea
+    id: runtime_checks
+    attributes:
+      label: Validation — Runtime Checks
+      description: One per line: check | repository | pass_criteria
+      placeholder: "Authorization gate blocks wrong-repo write | config | Decision = DENY with reason\nAuthorization gate allows valid cross-repo write | config | Decision = ALLOW/REQUIRES_APPROVAL"
+
+  - type: textarea
+    id: integration_ui_checks
+    attributes:
+      label: Validation — Integration/UI Checks
+      description: One per line: check | repository | pass_criteria
+      placeholder: "UI shows authorization state correctly | product | No bypass possible"
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Validation — Evidence
+      description: One per line: type (test_output/review_hash/scan_report/approval_token/build_artifact) | source (ci/human/scanner/orchestrator) | location (URI)
+      placeholder: "test_output | ci | https://github.com/digitaleflex/opencode-config/actions/runs/...\nreview_hash | human | https://github.com/digitaleflex/opencode-config/pull/..."
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: One per line: criterion | testable (true/false) | mapped_to_evidence
+      placeholder: "Typed authorization decision model exists | true | test_output\nRepository/path/branch scope is checked | true | test_output\nRead and write permissions are distinct | true | test_output\nAmbiguity defaults to deny or review | true | test_output\nEvery protected execution path passes the gate | true | integration check\nUI cannot bypass authorization | true | integration_ui_check\nSecret material never enters decision logs | true | test_output\nFixtures cover allowed, denied, approval-required, unknown | true | test_output"
+
+  - type: textarea
+    id: failure_stop_conditions
+    attributes:
+      label: Failure/Stop Conditions
+      description: One per line: condition | action (STOP/ESCALATE/BLOCK/REQUIRE_HUMAN) | reason
+      placeholder: "Ambiguous repository identity | BLOCK | Cannot resolve target repository\nMissing issue/plan authorization | BLOCK | No valid authorization context\nSecurity policy violation | BLOCK | Hard deny condition\nUnexpected dirty tree state | STOP | Working tree protection"
+
+  - type: textarea
+    id: update_docs
+    attributes:
+      label: Documentation Updates
+      description: One per line: document | repository | section
+      placeholder: "docs/architecture.md | config | Security Boundaries\norchestration/repositories/repository-map.yaml | config | Permissions"
+
+  - type: dropdown
+    id: report_format
+    attributes:
+      label: Report Format
+      options:
+        - markdown
+        - json
+        - yaml
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: audit_trail
+    attributes:
+      label: Audit Trail Required
+      options:
+        - label: Yes, record decision metadata without secrets
+    validations:
+      required: true

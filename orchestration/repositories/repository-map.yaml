@@ -1,0 +1,233 @@
+# orchestration/repositories/repository-map.yaml
+# Machine-readable repository authority registry for EurinHash cross-repository orchestration
+# Schema version: 1.0
+
+schema_version: "1.0"
+updated: "2026-09-30"
+
+repositories:
+  - id: "engineering"
+    name: "digitaleflex/eurinhash-engineering"
+    full_name: "digitaleflex/eurinhash-engineering"
+    url: "https://github.com/digitaleflex/eurinhash-engineering"
+    default_branch: "main"
+    role: "specification"
+    status: "active"
+    authority_domains:
+      - "product-vision"
+      - "ux"
+      - "architecture"
+      - "acceptance"
+    read_paths:
+      - "docs/**"
+      - "specs/**"
+      - "architecture/**"
+      - ".github/ISSUE_TEMPLATE/**"
+    write_paths:
+      - "docs/**"
+      - "specs/**"
+      - "architecture/**"
+    allowed_operations:
+      - "CREATE"
+      - "UPDATE"
+      - "DELETE"
+    documentation_entry_points:
+      - "docs/architecture.md"
+      - "specs/"
+    validation_commands:
+      - "npm run verify:architecture"
+    runtime_product_relationship: "upstream"
+    metadata:
+      description: "Canonical specification repository — owns product vision, UX, architecture, acceptance criteria"
+      contact: "architecture@eurinhash.dev"
+
+  - id: "config"
+    name: "digitaleflex/opencode-config"
+    full_name: "digitaleflex/opencode-config"
+    url: "https://github.com/digitaleflex/opencode-config"
+    default_branch: "main"
+    role: "orchestration"
+    status: "active"
+    authority_domains:
+      - "orchestration"
+      - "agent-config"
+      - "command-config"
+      - "rule-config"
+      - "routing"
+      - "validation"
+    read_paths:
+      - "src/**"
+      - "agent/**"
+      - "command/**"
+      - "skills/**"
+      - "orchestration/**"
+      - "docs/**"
+      - ".github/**"
+    write_paths:
+      - "src/**"
+      - "agent/**"
+      - "command/**"
+      - "skills/**"
+      - "orchestration/**"
+      - "docs/**"
+      - ".github/**"
+    allowed_operations:
+      - "CREATE"
+      - "UPDATE"
+      - "DELETE"
+    documentation_entry_points:
+      - "docs/architecture.md"
+      - "orchestration/repositories/repository-map.yaml"
+      - "orchestration/issues/issue-schema.json"
+    validation_commands:
+      - "npm run verify"
+      - "npm run test:governance"
+    runtime_product_relationship: "middleware"
+    metadata:
+      description: "Orchestration and configuration repository — owns agents, commands, rules, routing, validation"
+      contact: "config@eurinhash.dev"
+
+  - id: "product"
+    name: "digitaleflex/eurinhash-opencode"
+    full_name: "digitaleflex/eurinhash-opencode"
+    url: "https://github.com/digitaleflex/eurinhash-opencode"
+    default_branch: "main"
+    role: "product"
+    status: "planned"
+    authority_domains:
+      - "runtime-behavior"
+      - "ui-presentation"
+      - "tui-integration"
+      - "presentation"
+    read_paths:
+      - "src/**"
+      - "components/**"
+      - "hooks/**"
+      - "styles/**"
+      - "public/**"
+    write_paths:
+      - "src/**"
+      - "components/**"
+      - "hooks/**"
+      - "styles/**"
+      - "public/**"
+    allowed_operations:
+      - "CREATE"
+      - "UPDATE"
+      - "DELETE"
+    documentation_entry_points:
+      - "README.md"
+      - "docs/"
+    validation_commands:
+      - "npm run verify:product"
+      - "npm run test:e2e"
+    runtime_product_relationship: "downstream"
+    metadata:
+      description: "Product/runtime repository — owns TUI, runtime integration, presentation layer"
+      contact: "product@eurinhash.dev"
+
+# Resolution semantics
+resolution:
+  # Repository selection MUST be explicit. A path, filename, branch name
+  # or issue wording alone is insufficient evidence of repository identity.
+  # If metadata is missing or contradictory, return UNKNOWN and block protected writes.
+  explicit_selection_required: true
+  fail_on_unknown: true
+  fail_on_conflict: true
+
+# Read vs write separation
+permissions:
+  # Repositories allowed to be read (for context, specs, validation)
+  read_allowed:
+    - "engineering"
+    - "config"
+    - "product"
+
+  # Repositories allowed to be modified (explicit write permission)
+  write_allowed:
+    - "engineering"
+    - "config"
+    - "product"
+
+  # Path-level write permissions (glob patterns)
+  write_path_allowlist:
+    - repo: "engineering"
+      paths:
+        - "docs/**"
+        - "specs/**"
+        - "architecture/**"
+    - repo: "config"
+      paths:
+        - "src/**"
+        - "agent/**"
+        - "command/**"
+        - "skills/**"
+        - "orchestration/**"
+        - "docs/**"
+        - ".github/**"
+    - repo: "product"
+      paths:
+        - "src/**"
+        - "components/**"
+        - "hooks/**"
+        - "styles/**"
+        - "public/**"
+
+  # Operation types allowed per repository
+  operation_allowlist:
+    - repo: "engineering"
+      operations: ["CREATE", "UPDATE", "DELETE"]
+    - repo: "config"
+      operations: ["CREATE", "UPDATE", "DELETE"]
+    - repo: "product"
+      operations: ["CREATE", "UPDATE", "DELETE"]
+
+  # Conditions requiring human approval
+  requires_approval:
+    - condition: "cross_repo_write"
+      description: "Any write to a repository different from the originating repository"
+    - condition: "destructive_operation"
+      description: "DELETE operations or operations affecting production"
+    - condition: "security_policy_change"
+      description: "Changes to guard overrides, authorization policies, or security rules"
+    - condition: "architecture_contract_change"
+      description: "Changes to architecture.md, repository-map.yaml, or issue-schema.json"
+    - condition: "unknown_authority"
+      description: "When registry resolution returns UNKNOWN"
+
+# Extensibility rules
+extensibility:
+  # New repositories must declare all required fields before becoming routable
+  required_fields_for_new_repo:
+    - "id"
+    - "name"
+    - "full_name"
+    - "url"
+    - "default_branch"
+    - "role"
+    - "authority_domains"
+    - "read_paths"
+    - "write_paths"
+    - "allowed_operations"
+    - "documentation_entry_points"
+    - "validation_commands"
+    - "runtime_product_relationship"
+  # Existing workflows must fail safely when an entry is incomplete
+  fail_safe_on_incomplete: true
+  # Validation command for new entries
+  validate_new_entry: "npm run validate:repository-map"
+
+# Fixtures for testing (referenced by test suite)
+fixtures:
+  valid_entries:
+    - "engineering"
+    - "config"
+    - "product"
+  missing_metadata:
+    - repo: "incomplete"
+      missing: ["authority_domains", "write_paths"]
+  conflicting_metadata:
+    - repo: "conflict"
+      conflict: "read_paths and write_paths overlap with engineering"
+  unknown_repository:
+    - "unknown-repo"

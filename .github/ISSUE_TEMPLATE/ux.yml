@@ -1,0 +1,151 @@
+name: UX / Design Change
+description: Propose a UX or design change
+title: "[UX] "
+labels: ["type:ux"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## UX Change — EurinHash Canonical Issue Contract
+        Fill in all required sections. Missing data is represented as `UNKNOWN`, never guessed.
+
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      placeholder: "Redesign authorization gate UI"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Issue Type
+      options:
+        - ux
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - critical
+        - high
+        - medium
+        - low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      options:
+        - open
+        - in_progress
+        - blocked
+        - review
+        - closed
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      placeholder: "Current authorization state display is confusing..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired_outcome
+    attributes:
+      label: Desired Outcome
+      placeholder: "Clear visual indication of authorization state with approval controls..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_system_impact
+    attributes:
+      label: User/System Impact
+      placeholder: "Users can see and respond to authorization requests..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: engineering_specs
+    attributes:
+      label: Engineering Spec References (URIs)
+      placeholder: "https://github.com/digitaleflex/eurinhash-engineering/blob/main/ux/auth-gate.md"
+    validations:
+      required: true
+
+  - type: textarea
+    id: architecture_refs
+    attributes:
+      label: Architecture References (URIs)
+      placeholder: "https://github.com/digitaleflex/opencode-config/blob/main/docs/architecture.md"
+    validations:
+      required: true
+
+  - type: textarea
+    id: ux_refs
+    attributes:
+      label: UX References (URIs)
+      placeholder: "https://github.com/digitaleflex/eurinhash-engineering/blob/main/ux/auth-gate.md"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: read_repositories
+    attributes:
+      label: Repositories to READ
+      options:
+        - label: engineering (digitaleflex/eurinhash-engineering)
+        - label: config (digitaleflex/opencode-config)
+        - label: product (digitaleflex/eurinhash-opencode)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: write_repositories
+    attributes:
+      label: Repositories Authorized to WRITE
+      options:
+        - label: engineering (digitaleflex/eurinhash-engineering)
+        - label: config (digitaleflex/opencode-config)
+        - label: product (digitaleflex/eurinhash-opencode)
+    validations:
+      required: true
+
+  - type: textarea
+    id: must_change
+    attributes:
+      label: MUST CHANGE
+      placeholder: "product | src/components/AuthGate.tsx | CREATE | Authorization UI component\nproduct | src/hooks/useAuthorization.ts | CREATE | Authorization state hook"
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation_steps
+    attributes:
+      label: Implementation Steps
+      placeholder: "1 | product | Design authorization gate UI | design-lead | | Design review\n2 | product | Implement AuthGate component | builder | 1 | Component renders\n3 | product | Implement useAuthorization hook | builder | 1 | Hook tests pass\n4 | config | Connect gate to authorization API | builder | 2,3 | Integration works"
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      placeholder: "UI displays authorization state correctly | true | integration_ui_check\nApproval controls work | true | integration_ui_check\nUI cannot bypass authorization gate | true | integration_ui_check"
+
+  - type: checkboxes
+    id: audit_trail
+    attributes:
+      label: Audit Trail Required
+      options:
+        - label: Yes, record decision metadata without secrets
+    validations:
+      required: true

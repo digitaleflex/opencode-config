@@ -400,3 +400,16 @@ export class PolicyEngine {
     return this.policies.length;
   }
 }
+
+let policyEngineInstance: PolicyEngine | null = null;
+
+export function getPolicyEngine(): PolicyEngine {
+  if (!policyEngineInstance) {
+    policyEngineInstance = new PolicyEngine();
+  }
+  return policyEngineInstance;
+}
+
+export function resetPolicyEngine(): void {
+  policyEngineInstance = null;
+}
