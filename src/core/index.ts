@@ -101,3 +101,5 @@ export { ExecutionCoordinator } from "./execution-coordinator";
 export { VerificationEngine } from "./verification-engine";
 export type { EvidenceContract, VerificationResult, VerificationStatus } from "./verification-engine";
 export type { ExecutionAdapter, ExecutionPhase, ExecutionRecord, ExecutionRequest } from "./execution-coordinator";
+export { PreflightEngine, GitPreflightProvider } from "./preflight-engine";
+export type { PreflightRequest, PreflightResult, PreflightProvider, PreflightStatus, WorkingTreeSnapshot } from "./preflight-engine";
