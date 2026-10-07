@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import * as path from "node:path";
 
 export type PreflightStatus = "READY" | "BLOCKED";
 
@@ -16,6 +17,7 @@ export interface PreflightRequest {
   targetPaths: string[];
   operation: "CREATE" | "UPDATE" | "DELETE";
   cwd?: string;
+  expectedRemote?: string;
 }
 
 export interface PreflightResult {
@@ -25,6 +27,7 @@ export interface PreflightResult {
   head: string;
   workingTree: WorkingTreeSnapshot;
   scopeValid: boolean;
+  repositoryIdentityValid: boolean;
   reason: string;
 }
 
@@ -32,10 +35,39 @@ export interface PreflightProvider {
   currentBranch(cwd: string): string;
   head(cwd: string): string;
   status(cwd: string): WorkingTreeSnapshot;
+  remoteUrl?(cwd: string): string;
 }
 
 function runGit(cwd: string, args: string[]): string {
   return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+}
+
+function normalizeRemote(value: string): string {
+  return value
+    .trim()
+    .replace(/^git@github\.com:/, "https://github.com/")
+    .replace(/^ssh:\/\/git@github\.com\//, "https://github.com/")
+    .replace(/\.git$/, "")
+    .replace(/\/$/, "")
+    .toLowerCase();
+}
+
+function normalizeTarget(target: string): string | undefined {
+  const normalized = path.posix.normalize(target.replaceAll("\\", "/"));
+  if (!normalized || normalized === "." || normalized.startsWith("../") || normalized.startsWith("/")) {
+    return undefined;
+  }
+  return normalized;
+}
+
+function isPathWithinTarget(target: string, allowed: string): boolean {
+  const normalizedTarget = normalizeTarget(target);
+  const normalizedAllowed = normalizeTarget(allowed);
+  if (!normalizedTarget || !normalizedAllowed) return false;
+  return (
+    normalizedTarget === normalizedAllowed ||
+    normalizedTarget.startsWith(normalizedAllowed.endsWith("/") ? normalizedAllowed : normalizedAllowed + "/")
+  );
 }
 
 export class GitPreflightProvider implements PreflightProvider {
@@ -73,6 +105,10 @@ export class GitPreflightProvider implements PreflightProvider {
       conflictedFiles,
     };
   }
+
+  remoteUrl(cwd: string): string {
+    return runGit(cwd, ["remote", "get-url", "origin"]);
+  }
 }
 
 export class PreflightEngine {
@@ -81,7 +117,7 @@ export class PreflightEngine {
   run(request: PreflightRequest): PreflightResult {
     const cwd = request.cwd ?? process.cwd();
     if (!existsSync(cwd)) {
-      return this.block(request, "", "Preflight working directory does not exist");
+      return this.block(request, "", false, "Preflight working directory does not exist");
     }
 
     try {
@@ -89,40 +125,62 @@ export class PreflightEngine {
       const head = this.provider.head(cwd);
       const workingTree = this.provider.status(cwd);
 
+      if (request.expectedRemote && !this.provider.remoteUrl) {
+        return this.block(request, head, false, "Repository identity unavailable: remote URL cannot be inspected");
+      }
+
+      if (request.expectedRemote && this.provider.remoteUrl) {
+        const actualRemote = normalizeRemote(this.provider.remoteUrl(cwd));
+        const expectedRemote = normalizeRemote(request.expectedRemote);
+        if (!actualRemote || actualRemote !== expectedRemote) {
+          return this.block(
+            request,
+            head,
+            false,
+            `Repository identity mismatch: expected ${request.expectedRemote}, got ${actualRemote || "UNKNOWN"}`,
+          );
+        }
+      }
+
       if (!actualBranch || actualBranch !== request.branch) {
-        return {
-          status: "BLOCKED",
-          repository: request.repository,
-          branch: actualBranch,
+        return this.block(
+          request,
           head,
-          workingTree,
-          scopeValid: false,
-          reason: `Branch mismatch: expected ${request.branch}, got ${actualBranch || "DETACHED"}`,
-        };
+          false,
+          `Branch mismatch: expected ${request.branch}, got ${actualBranch || "DETACHED"}`,
+        );
       }
 
       if (workingTree.conflictedFiles.length > 0) {
-        return {
-          status: "BLOCKED",
-          repository: request.repository,
-          branch: actualBranch,
+        return this.block(
+          request,
           head,
-          workingTree,
-          scopeValid: false,
-          reason: `Conflicted working tree: ${workingTree.conflictedFiles.join(", ")}`,
-        };
+          false,
+          `Conflicted working tree: ${workingTree.conflictedFiles.join(", ")}`,
+        );
       }
 
       if (!workingTree.clean) {
-        return {
-          status: "BLOCKED",
-          repository: request.repository,
-          branch: actualBranch,
+        return this.block(
+          request,
           head,
-          workingTree,
-          scopeValid: false,
-          reason: "Working tree is dirty; execution requires an explicit clean workspace",
-        };
+          false,
+          "Working tree is dirty; execution requires an explicit clean workspace",
+        );
+      }
+
+      const invalidTargets = request.targetPaths.filter((target) => !normalizeTarget(target));
+      if (invalidTargets.length > 0) {
+        return this.block(
+          request,
+          head,
+          false,
+          `Invalid target path(s): ${invalidTargets.join(", ")}`,
+        );
+      }
+
+      if (request.targetPaths.length === 0) {
+        return this.block(request, head, false, "No target paths supplied");
       }
 
       return {
@@ -131,19 +189,30 @@ export class PreflightEngine {
         branch: actualBranch,
         head,
         workingTree,
-        scopeValid: request.targetPaths.length > 0,
-        reason: request.targetPaths.length > 0 ? "Preflight passed" : "No target paths supplied",
+        scopeValid: true,
+        repositoryIdentityValid: true,
+        reason: "Preflight passed",
       };
     } catch (error) {
       return this.block(
         request,
         "",
+        false,
         `Preflight failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
 
-  private block(request: PreflightRequest, head: string, reason: string): PreflightResult {
+  static pathWithinScope(targetPath: string, allowedPath: string): boolean {
+    return isPathWithinTarget(targetPath, allowedPath);
+  }
+
+  private block(
+    request: PreflightRequest,
+    head: string,
+    repositoryIdentityValid: boolean,
+    reason: string,
+  ): PreflightResult {
     return {
       status: "BLOCKED",
       repository: request.repository,
@@ -156,6 +225,7 @@ export class PreflightEngine {
         conflictedFiles: [],
       },
       scopeValid: false,
+      repositoryIdentityValid,
       reason,
     };
   }
