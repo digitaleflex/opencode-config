@@ -89,3 +89,6 @@ export type { ModelCandidate, ModelPreference, ModelChain } from "./config/model
 
 export { resolveSkills, resolveMcps, isSkillAllowed, isMcpAllowed } from "./config/capabilities";
 export type { SkillDirectives, AgentCapabilities } from "./config/capabilities";
+
+export { discoverProjectLocalSkills, discoverProjectLocalSkillNames } from "./config/project-skills";
+export type { LocalSkill } from "./config/project-skills";
