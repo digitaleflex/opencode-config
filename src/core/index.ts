@@ -77,3 +77,6 @@ export type { OrchestrationPlan, OrchestrationStep, OrchestrationResult, CrossRe
 
 export { resolveLayers, resolveAgentOverride } from "./config/layered";
 export type { ConfigLayer, LayeredConfigResult, AgentOverride } from "./config/layered";
+
+export { resolveAgentProfile } from "./config/agent-profile";
+export type { AgentProfile, AgentProfileSource } from "./config/agent-profile";
