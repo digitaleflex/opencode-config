@@ -74,3 +74,6 @@ export { IssueParser, getIssueParser, resetIssueParser } from "./issue-parser";
 export type { ParsedIssue, IssueIdentity, IssueImplementationStep } from "./issue-parser";
 export { CrossRepoOrchestrator, getCrossRepoOrchestrator, resetCrossRepoOrchestrator } from "./cross-repo-orchestrator";
 export type { OrchestrationPlan, OrchestrationStep, OrchestrationResult, CrossRepoContext } from "./cross-repo-orchestrator";
+
+export { resolveLayers, resolveAgentOverride } from "./config/layered";
+export type { ConfigLayer, LayeredConfigResult, AgentOverride } from "./config/layered";
