@@ -4,6 +4,7 @@ import { normalizeModelChain, type ModelPreference, type ModelChain } from "./co
 import { isMcpAllowed, isSkillAllowed, resolveMcps, resolveSkills } from "./config/capabilities";
 import { PolicyEngine } from "./policy-engine";
 import { TaskSpec, type PolicyDecision } from "./types";
+import { Router, type RouteDecision } from "./router";
 
 export type DecisionVerdict = "ALLOW" | "ASK" | "DENY";
 
@@ -31,12 +32,16 @@ export interface DecisionResult {
   modelChain: ModelChain;
   skills: string[];
   mcps: string[];
+  route?: RouteDecision;
 }
 
 const DEFAULT_AGENTS = ["planner", "architect", "builder", "reviewer", "tester", "security"];
 
 export class DecisionEngine {
-  constructor(private readonly policyEngine = new PolicyEngine()) {}
+  constructor(
+    private readonly policyEngine = new PolicyEngine(),
+    private readonly router = new Router(),
+  ) {}
 
   decide(request: DecisionRequest): DecisionResult {
     const policy = this.policyEngine.evaluatePolicy(request.task);
@@ -45,9 +50,18 @@ export class DecisionEngine {
       return this.build("DENY", policy.reason ?? "Policy blocked", policy);
     }
 
+    const policyAgents = policy.policy?.agents ?? DEFAULT_AGENTS;
+    const route = request.agent
+      ? undefined
+      : this.router.route({
+          task: request.task,
+          availableAgents: policyAgents.map((id) => ({ id })),
+        });
     const candidateNames = request.agent
       ? [request.agent]
-      : (policy.policy?.agents ?? DEFAULT_AGENTS);
+      : route?.agentCandidates.length
+        ? route.agentCandidates.filter((name) => policyAgents.includes(name))
+        : policyAgents;
 
     for (const name of candidateNames) {
       const resolved = resolveAgentProfile(name, request.configLayers ?? [], request.aliases);
@@ -78,6 +92,7 @@ export class DecisionEngine {
         modelChain: effectiveChain,
         skills,
         mcps,
+        route,
       };
     }
 
