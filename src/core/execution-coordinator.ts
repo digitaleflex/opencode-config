@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { AuthorizationGate, type AuthorizationInput, type AuthorizationResult } from "./authorization-gate";
 import { DecisionEngine, type DecisionRequest, type DecisionResult } from "./decision-engine";
 import { ProofVerifier } from "./proof-verifier";
-import type { EvidenceBundle, TaskSpec } from "./types";
+import { RiskLevel, type EvidenceBundle, type TaskSpec } from "./types";
 
 export type ExecutionPhase =
   | "DECIDING"
@@ -89,7 +89,7 @@ export class ExecutionCoordinator {
       target_paths: request.targetPaths,
       operation: request.operation,
       tool_command: request.toolCommand,
-      risk: request.task.risk ?? policyDecision.policy?.risk ?? "LOW",
+      risk: request.task.risk ?? policyDecision.policy?.risk ?? RiskLevel.LOW,
       actor_agent: decision.selectedAgent ?? request.actorAgent ?? "eurinhash",
       requested_capability: request.decision?.requestedMcp
         ? `mcp:${request.decision.requestedMcp}`
