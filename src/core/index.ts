@@ -80,3 +80,6 @@ export type { ConfigLayer, LayeredConfigResult, AgentOverride } from "./config/l
 
 export { resolveAgentProfile } from "./config/agent-profile";
 export type { AgentProfile, AgentProfileSource } from "./config/agent-profile";
+
+export { resolvePreset, resolveActivePreset, mergePresetMaps, normalizePreset, PresetResolutionError } from "./config/preset";
+export type { PresetDefinition, PresetInput, PresetLayer, PresetSelection } from "./config/preset";
