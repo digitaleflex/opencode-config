@@ -95,3 +95,6 @@ export type { LocalSkill } from "./config/project-skills";
 
 export { DecisionEngine } from "./decision-engine";
 export type { DecisionRequest, DecisionResult, DecisionVerdict } from "./decision-engine";
+
+export { ExecutionCoordinator } from "./execution-coordinator";
+export type { ExecutionAdapter, ExecutionPhase, ExecutionRecord, ExecutionRequest } from "./execution-coordinator";
