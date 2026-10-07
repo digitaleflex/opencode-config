@@ -46,7 +46,7 @@ export function resolveLayers<T extends Record<string, unknown>>(
       }
     };
 
-    mark(layer.value);
+    mark(layer.value as Record<string, unknown>);
   }
 
   return { value: value as T, sources };
