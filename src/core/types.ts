@@ -106,6 +106,12 @@ export interface ScanEvidence {
   outputHash: string;
 }
 
+/** Raw build-verification evidence supplied by a trusted build runner. */
+export interface BuildEvidence {
+  succeeded: boolean;
+  outputHash: string;
+}
+
 /**
  * Evidence supplied to the orchestrator. Proofs are no longer fabricated:
  * a required proof is only PASS when authentic evidence is provided.
@@ -114,6 +120,7 @@ export interface EvidenceBundle {
   testResult?: TestEvidence;
   reviewHash?: string;
   scanReport?: ScanEvidence;
+  buildResult?: BuildEvidence;
   /** Human-approval token — signed ApprovalToken (preferred) or legacy string. */
   approvalToken?: ApprovalToken | string;
 }
