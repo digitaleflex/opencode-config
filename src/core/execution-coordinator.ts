@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { AuthorizationGate, type AuthorizationInput, type AuthorizationResult } from "./authorization-gate";
 import { DecisionEngine, type DecisionRequest, type DecisionResult } from "./decision-engine";
 import { VerificationEngine, type EvidenceContract } from "./verification-engine";
+import { PreflightEngine, type PreflightResult } from "./preflight-engine";
 import { RiskLevel, TaskComplexity, type TaskSpec } from "./types";
 
 export type ExecutionPhase =
@@ -26,6 +27,7 @@ export interface ExecutionRequest {
   decision?: Omit<DecisionRequest, "task">;
   authorization?: Partial<AuthorizationInput>;
   evidence?: EvidenceContract;
+  cwd?: string;
 }
 
 export interface ExecutionAdapter {
@@ -45,6 +47,7 @@ export interface ExecutionRecord {
   authorization?: AuthorizationResult;
   output?: string;
   verification?: "PASS" | "FAIL" | "PENDING";
+  preflight?: PreflightResult;
   error?: string;
 }
 
@@ -53,6 +56,7 @@ export class ExecutionCoordinator {
     private readonly decisionEngine = new DecisionEngine(),
     private readonly authorizationGate = new AuthorizationGate(),
     private readonly verificationEngine = new VerificationEngine(),
+    private readonly preflightEngine = new PreflightEngine(),
   ) {}
 
   async execute(
@@ -81,6 +85,24 @@ export class ExecutionCoordinator {
       return { ...base, phase: "WAITING_APPROVAL", decision, error: decision.reason };
     }
 
+    const preflight = this.preflightEngine.run({
+      repository: request.repository,
+      branch: request.branch,
+      targetPaths: request.targetPaths,
+      operation: request.operation,
+      cwd: request.cwd,
+    });
+
+    if (preflight.status !== "READY" || !preflight.scopeValid) {
+      return {
+        ...base,
+        phase: "BLOCKED",
+        decision,
+        preflight,
+        error: preflight.reason,
+      };
+    }
+
     const policyDecision = decision.policy;
     const authInput: AuthorizationInput = {
       issue_id: request.issueId,
@@ -95,10 +117,10 @@ export class ExecutionCoordinator {
         ? `mcp:${request.decision.requestedMcp}`
         : "filesystem.write",
       working_tree_state: {
-        clean: true,
-        dirty_files: [],
-        untracked_files: [],
-        conflicted_files: [],
+        clean: preflight.workingTree.clean,
+        dirty_files: preflight.workingTree.dirtyFiles,
+        untracked_files: preflight.workingTree.untrackedFiles,
+        conflicted_files: preflight.workingTree.conflictedFiles,
       },
       policy_decision: policyDecision,
       ...request.authorization,
@@ -153,6 +175,7 @@ export class ExecutionCoordinator {
         phase: "COMPLETED",
         decision,
         authorization,
+        preflight,
         output: execution.output,
         verification,
       };
