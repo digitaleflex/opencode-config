@@ -103,3 +103,6 @@ export type { EvidenceContract, VerificationResult, VerificationStatus } from ".
 export type { ExecutionAdapter, ExecutionPhase, ExecutionRecord, ExecutionRequest } from "./execution-coordinator";
 export { PreflightEngine, GitPreflightProvider } from "./preflight-engine";
 export type { PreflightRequest, PreflightResult, PreflightProvider, PreflightStatus, WorkingTreeSnapshot } from "./preflight-engine";
+
+export { Router } from "./router";
+export type { RouteAgentCandidate, RouteRequest, RouteDecision } from "./router";
