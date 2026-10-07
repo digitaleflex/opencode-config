@@ -97,4 +97,6 @@ export { DecisionEngine } from "./decision-engine";
 export type { DecisionRequest, DecisionResult, DecisionVerdict } from "./decision-engine";
 
 export { ExecutionCoordinator } from "./execution-coordinator";
+export { VerificationEngine } from "./verification-engine";
+export type { EvidenceContract, VerificationResult, VerificationStatus } from "./verification-engine";
 export type { ExecutionAdapter, ExecutionPhase, ExecutionRecord, ExecutionRequest } from "./execution-coordinator";
