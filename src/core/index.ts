@@ -86,3 +86,6 @@ export type { PresetDefinition, PresetInput, PresetLayer, PresetSelection } from
 
 export { normalizeModelChain, selectFirstEligible } from "./config/model-chain";
 export type { ModelCandidate, ModelPreference, ModelChain } from "./config/model-chain";
+
+export { resolveSkills, resolveMcps, isSkillAllowed, isMcpAllowed } from "./config/capabilities";
+export type { SkillDirectives, AgentCapabilities } from "./config/capabilities";
