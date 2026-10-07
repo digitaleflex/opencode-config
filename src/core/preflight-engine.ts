@@ -180,7 +180,7 @@ export class PreflightEngine {
       }
 
       if (request.targetPaths.length === 0) {
-        return this.block(request, head, false, "No target paths supplied");
+        return this.block(request, head, true, "No target paths supplied");
       }
 
       return {
