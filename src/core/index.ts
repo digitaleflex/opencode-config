@@ -92,3 +92,6 @@ export type { SkillDirectives, AgentCapabilities } from "./config/capabilities";
 
 export { discoverProjectLocalSkills, discoverProjectLocalSkillNames } from "./config/project-skills";
 export type { LocalSkill } from "./config/project-skills";
+
+export { DecisionEngine } from "./decision-engine";
+export type { DecisionRequest, DecisionResult, DecisionVerdict } from "./decision-engine";
