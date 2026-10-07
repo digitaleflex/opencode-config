@@ -155,6 +155,23 @@ export class ProofVerifier {
           evidenceHash: this.hashEvidence(s),
         };
       }
+      case ProofType.BUILD_VERIFICATION: {
+        const b = evidence.buildResult;
+        if (!b) {
+          return {
+            ...base,
+            status: "PENDING",
+            evidence: `No build evidence for: ${task.description}`,
+          };
+        }
+        return {
+          ...base,
+          status: b.succeeded ? "PASS" : "FAIL",
+          source: "build",
+          evidence: `Build ${b.succeeded ? "succeeded" : "failed"} (output ${b.outputHash.slice(0, 16)})`,
+          evidenceHash: this.hashEvidence(b),
+        };
+      }
       case ProofType.HUMAN_APPROVAL: {
         const a = evidence.approvalToken;
         if (!a) {
@@ -210,6 +227,8 @@ export class ProofVerifier {
         return evidence.reviewHash !== undefined ? { reviewHash: evidence.reviewHash } : undefined;
       case ProofType.SECURITY_SCAN:
         return evidence.scanReport;
+      case ProofType.BUILD_VERIFICATION:
+        return evidence.buildResult;
       case ProofType.HUMAN_APPROVAL:
         return evidence.approvalToken !== undefined
           ? { approvalToken: evidence.approvalToken }
