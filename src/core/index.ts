@@ -30,6 +30,7 @@ export type {
   EvidenceBundle,
   TestEvidence,
   ScanEvidence,
+  BuildEvidence,
 } from "./types";
 
 // Re-export new types
