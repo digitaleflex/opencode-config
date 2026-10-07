@@ -11,6 +11,7 @@ export interface EvidenceContract {
   tests?: EvidenceBundle["testResult"];
   reviewHash?: string;
   securityScan?: EvidenceBundle["scanReport"];
+  build?: EvidenceBundle["buildResult"];
   approvalToken?: EvidenceBundle["approvalToken"];
 }
 
@@ -72,6 +73,7 @@ export class VerificationEngine {
       testResult: evidence.tests,
       reviewHash: evidence.reviewHash,
       scanReport: evidence.securityScan,
+      buildResult: evidence.build,
       approvalToken: evidence.approvalToken,
     };
   }
