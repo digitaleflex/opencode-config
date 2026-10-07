@@ -3,10 +3,11 @@ import { AuthorizationGate } from "./authorization-gate";
 import { DecisionEngine } from "./decision-engine";
 import { ExecutionCoordinator } from "./execution-coordinator";
 import { TaskType } from "./types";
+import { PreflightEngine } from "./preflight-engine";
 
 describe("ExecutionCoordinator", () => {
   it("stops before authorization when the decision is denied", async () => {
-    const coordinator = new ExecutionCoordinator();
+    const coordinator = new ExecutionCoordinator(undefined, undefined, undefined,);
     const adapter = { execute: vi.fn() };
 
     const result = await coordinator.execute({
