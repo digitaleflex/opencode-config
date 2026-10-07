@@ -113,7 +113,7 @@ export class PreflightEngine {
         };
       }
 
-      if (!workingTree.clean && request.operation !== "CREATE") {
+      if (!workingTree.clean) {
         return {
           status: "BLOCKED",
           repository: request.repository,
