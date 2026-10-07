@@ -83,3 +83,6 @@ export type { AgentProfile, AgentProfileSource } from "./config/agent-profile";
 
 export { resolvePreset, resolveActivePreset, mergePresetMaps, normalizePreset, PresetResolutionError } from "./config/preset";
 export type { PresetDefinition, PresetInput, PresetLayer, PresetSelection } from "./config/preset";
+
+export { normalizeModelChain, selectFirstEligible } from "./config/model-chain";
+export type { ModelCandidate, ModelPreference, ModelChain } from "./config/model-chain";
