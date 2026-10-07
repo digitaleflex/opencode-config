@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { AuthorizationGate, type AuthorizationInput, type AuthorizationResult } from "./authorization-gate";
 import { DecisionEngine, type DecisionRequest, type DecisionResult } from "./decision-engine";
-import { ProofVerifier } from "./proof-verifier";
-import { RiskLevel, type EvidenceBundle, type TaskSpec } from "./types";
+import { VerificationEngine, type EvidenceContract } from "./verification-engine";
+import { RiskLevel, TaskComplexity, type TaskSpec } from "./types";
 
 export type ExecutionPhase =
   | "DECIDING"
@@ -25,7 +25,7 @@ export interface ExecutionRequest {
   actorAgent?: string;
   decision?: Omit<DecisionRequest, "task">;
   authorization?: Partial<AuthorizationInput>;
-  evidence?: EvidenceBundle;
+  evidence?: EvidenceContract;
 }
 
 export interface ExecutionAdapter {
@@ -52,7 +52,7 @@ export class ExecutionCoordinator {
   constructor(
     private readonly decisionEngine = new DecisionEngine(),
     private readonly authorizationGate = new AuthorizationGate(),
-    private readonly proofVerifier = new ProofVerifier(),
+    private readonly verificationEngine = new VerificationEngine(),
   ) {}
 
   async execute(
@@ -119,10 +119,22 @@ export class ExecutionCoordinator {
     try {
       const execution = await adapter.execute({ executionId, task: request.task, decision });
 
-      const verification =
-        decision.policy.proofsRequired.length === 0
-          ? "PASS"
-          : this.verifyEvidence(request.task, decision, request.evidence);
+      const verificationResult = this.verificationEngine.verify(
+        request.task,
+        decision.policy.policy ?? {
+          name: "execution-verification",
+          complexity: request.task.complexity ?? TaskComplexity.L1,
+          taskTypes: request.task.taskType ? [request.task.taskType] : [],
+          risk: request.task.risk ?? RiskLevel.LOW,
+          agents: [],
+          modelPlan: { primary: [], fallback: [] },
+          proofsRequired: decision.policy.proofsRequired,
+          humanApproval: decision.policy.humanApproval,
+          securityScan: false,
+        },
+        request.evidence,
+      );
+      const verification = verificationResult.status;
 
       if (verification !== "PASS") {
         return {
@@ -132,7 +144,7 @@ export class ExecutionCoordinator {
           authorization,
           output: execution.output,
           verification,
-          error: `Verification ${verification.toLowerCase()}`,
+          error: verificationResult.reason,
         };
       }
 
@@ -155,13 +167,4 @@ export class ExecutionCoordinator {
     }
   }
 
-  private verifyEvidence(
-    task: TaskSpec,
-    decision: DecisionResult,
-    evidence: EvidenceBundle = {},
-  ): "PASS" | "FAIL" | "PENDING" {
-    if (!decision.policy.policy) return "PASS";
-    const chain = this.proofVerifier.generateProofChain(task, decision.policy.policy, evidence);
-    return this.proofVerifier.verifyProofChain(chain, task, evidence);
-  }
 }
