@@ -1,4 +1,5 @@
 import { resolveAgentProfile, type AgentProfile } from "./config/agent-profile";
+import type { AgentOverride } from "./config/layered";
 import { normalizeModelChain, type ModelPreference, type ModelChain } from "./config/model-chain";
 import { isMcpAllowed, isSkillAllowed, resolveMcps, resolveSkills } from "./config/capabilities";
 import { PolicyEngine } from "./policy-engine";
@@ -14,7 +15,7 @@ export interface DecisionRequest {
   model?: ModelPreference;
   configLayers?: ReadonlyArray<{
     source: "project" | "user" | "preset" | "default";
-    agents?: Record<string, Record<string, unknown>>;
+    agents?: Record<string, AgentOverride>;
   }>;
   aliases?: Readonly<Record<string, string>>;
   availableLocalSkills?: readonly string[];
